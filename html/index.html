@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chicago boundary explorer</title>
+  <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+  <script defer src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
+  <script defer src="map.js"></script>
+</head>
+<body>
+  <aside>
+    <h1>Chicago boundaries</h1>
+    <p>Explore the city, its 77 community areas, and 2025 Census block groups and tracts.</p>
+    <fieldset disabled id="layers">
+      <legend>Visible layers</legend>
+      <label><input type="checkbox" data-layer="city" checked><span class="key city"></span>City limits</label>
+      <label><input type="checkbox" data-layer="communities" checked><span class="key communities"></span>Community areas</label>
+      <label><input type="checkbox" data-layer="blocks" checked><span class="key blocks"></span>Block groups</label>
+      <label><input type="checkbox" data-layer="tracts" checked><span class="key tracts"></span>Census tracts</label>
+    </fieldset>
+    <button id="reset" disabled>Show all of Chicago</button>
+    <p id="status" role="status">Loading boundaries…</p>
+    <section aria-labelledby="detail-title">
+      <h2 id="detail-title">Inspect a boundary</h2>
+      <p id="details">Click the map for community names, tract and block group GEOIDs.</p>
+    </section>
+    <footer>Sources: <a href="https://data.cityofchicago.org/d/qqq8-j68g">City of Chicago</a>,
+      <a href="https://data.cityofchicago.org/d/igwz-8jzy">community areas</a>, and
+      <a href="https://www.census.gov/geographies/mapping-files/2025/geo/tiger-line-file.html">Census TIGER/Line 2025</a>.
+      Whole block groups and tracts with positive city overlap are shown; some extend beyond city limits.</footer>
+  </aside>
+  <main id="map" aria-label="Interactive map of Chicago boundaries"></main>
+</body>
+</html>

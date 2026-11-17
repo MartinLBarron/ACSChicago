@@ -1,3 +1,6 @@
+# Data files
+data/*
+
 # History files
 .Rhistory
 .Rapp.history
@@ -8,6 +11,8 @@
 
 # User-specific files
 .Ruserdata
+.Renviron
+.Renviron.R
 
 # Example code in package build process
 *-Ex.R
@@ -39,8 +44,24 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# pkgdown site
-docs/
+# Generated caches and local dependencies
+data/web/*
+!data/web/.gitkeep
+data/raw_data/*
+!data/raw_data/.gitkeep
+data/shape/*
+!data/shape/.gitkeep
+.R-library/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+.DS_Store
+.env
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/coverage/
 
 # translation temp files
 po/*~

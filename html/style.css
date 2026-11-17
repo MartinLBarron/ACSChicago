@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+body { margin: 0; display: flex; height: 100dvh; font: 16px/1.5 system-ui, sans-serif; color: #192d40; }
+aside { width: 320px; flex-shrink: 0; padding: 24px; background: #fff; overflow-y: auto; border-right: 1px solid #d8e1e8; }
+h1 { font-size: 25px; line-height: 1.2; margin: 0 0 16px; }
+h2 { font-size: 17px; }
+p, footer { color: #45586a; }
+fieldset { margin: 24px 0 16px; border: 1px solid #c9d5df; border-radius: 6px; }
+legend { padding: 0 6px; font-weight: 600; }
+label { display: flex; align-items: center; gap: 9px; padding: 9px 0; cursor: pointer; }
+input { width: 18px; height: 18px; }
+.key { width: 20px; height: 4px; display: inline-block; }
+.city { background: #b83246; }
+.communities { background: #126875; }
+.blocks { background: #72539b; }
+button { padding: 10px 14px; border: 1px solid #b7c6d2; border-radius: 5px; background: #f2f6f8; color: #192d40; cursor: pointer; font: inherit; }
+button:hover { background: #e4edf2; }
+:focus-visible { outline: 3px solid #1677b8; outline-offset: 3px; }
+#status { font-size: 14px; }
+section { border-top: 1px solid #d8e1e8; margin-top: 24px; }
+footer { margin-top: 28px; font-size: 12px; }
+a { color: #155c86; }
+#map { flex: 1; min-width: 0; background: #edf2f5; }
+@media (max-width: 650px) {
+  body { flex-direction: column; }
+  aside { width: 100%; max-height: 42dvh; padding: 16px; }
+  h1 { font-size: 21px; }
+  fieldset { margin: 10px 0; }
+  label { display: inline-flex; margin-right: 12px; }
+  #map { min-height: 58dvh; }
+}
+
+.tracts { background: #b16b08; }
