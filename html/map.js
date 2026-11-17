@@ -70,6 +70,34 @@ function countText(properties, measure, label) {
   }
   return text;
 }
+function observeMapSize(map) {
+  const container = map.getContainer();
+  let frame;
+  let width = 0;
+  let height = 0;
+  function scheduleResize() {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const nextWidth = container.clientWidth;
+      const nextHeight = container.clientHeight;
+      if (nextWidth > 0 && nextHeight > 0 && (nextWidth !== width || nextHeight !== height)) {
+        width = nextWidth;
+        height = nextHeight;
+        map.resize();
+      }
+    });
+  }
+  // MapLibre watches window resizes, but fonts and grid layout can resize the
+  // container without changing the window. Keep its WebGL canvas in sync.
+  const observer = new ResizeObserver(scheduleResize);
+  observer.observe(container);
+  scheduleResize();
+  map.on("remove", () => {
+    observer.disconnect();
+    cancelAnimationFrame(frame);
+  });
+}
+
 async function start() {
   if (typeof maplibregl === "undefined") throw new Error("MapLibre could not load. Check your internet connection.");
   const map = new maplibregl.Map({
@@ -81,6 +109,7 @@ async function start() {
       layers: [{ id: "basemap", type: "raster", source: "osm", paint: { "raster-saturation": -0.8, "raster-opacity": 0.65 } }]
     }, center: [-87.68, 41.84], zoom: 9.5
   });
+  observeMapSize(map);
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   map.addControl(new maplibregl.ScaleControl());
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
@@ -120,7 +149,10 @@ async function start() {
     else coordinates.forEach(extend);
   }
   layerData.city.features.forEach(feature => extend(feature.geometry.coordinates));
-  const reset = () => map.fitBounds(bounds, { padding: 35, duration: 0 });
+  const reset = () => {
+    map.resize();
+    map.fitBounds(bounds, { padding: 35, duration: 0 });
+  };
   const chicagoControl = {
     onAdd() {
       this.container = document.createElement("div");
