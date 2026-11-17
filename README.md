@@ -85,3 +85,33 @@ overlap rule as block groups, with no O'Hare exclusion. Tract GEOIDs retain all
 11 characters. The web export writes `data/web/chicago_tracts_2025.geojson`.
 The map has independent tract and block-group toggles, and identifies both GEOIDs
 on click. Rerun both R scripts to refresh the map data.
+
+## ACS rent analysis (2020–2024)
+
+Settings are in `R/acs_config.R`; reusable download, selection, and validation
+functions are in `R/acs_helpers.R`. Dependencies are listed in `packages.txt`.
+The scripts also look for dependencies in the project-local `.R-library/`.
+Set `CENSUS_API_KEY` in your ignored `.Renviron` (never commit the key).
+
+```sh
+Rscript -e 'install.packages(readLines("packages.txt"), repos = "https://cloud.r-project.org")'
+Rscript R/download_acs_rent.R
+```
+
+This runs the ACS stages independently. To run the entire project pipeline:
+
+```sh
+Rscript R/run_pipeline.R
+```
+
+The ACS pipeline downloads 2024 TIGER/Line tract and block-group boundaries and
+uses `tidycensus::get_acs(year = 2024, survey = "acs5", moe_level = 90)` to retrieve
+median contract and gross monthly rent. Entire areas with positive City overlap
+are retained. Both estimates and MOEs are preserved, along with original API
+codes and annotations. See [the codebook](docs/acs_rent_codebook.md) for output
+files, column definitions, and interpretation, and [the decision log](Decisions_Log.md)
+for the agreed choices. Raw data are cached; reruns reuse them and check recorded
+hashes. Archive the cache and manifest together before intentionally refreshing.
+Check reproducibility by running the pipeline end-to-end multiple times.
+The existing web map still displays 2025 geography; the new analytic GeoPackages
+contain matching 2024 geometry and rent data for a later map update.

@@ -1,0 +1,58 @@
+# ACS 2020–2024 rent datasets
+
+Official public ACS data, not synthetic. Universe for both measures:
+renter-occupied housing units paying cash rent. Dollar values are monthly amounts
+in 2024 inflation-adjusted dollars. Contract rent is the agreed monthly rent;
+gross rent adds estimated renter-paid utilities and fuels. These are separate
+medians; subtracting them does not estimate median utility expenditure.
+
+Source: Census ACS five-year Detailed Tables, API year 2024, variables
+`B25058_001` (median contract rent) and `B25064_001` (median gross rent).
+API variable suffixes: E = estimate, M = published 90% margin of error,
+EA/MA = associated annotations. Medians and MOEs are not summed or averaged.
+
+## Files
+
+Under `data/analytic/acs_2024/`, `tract_rent` and `block_group_rent` each have:
+
+- `.csv`: one row per selected whole Census area, with both measures side by side.
+- `.rds`: the same table with R types preserved.
+- `.gpkg`: the table joined to full 2024 geometry (EPSG:26916).
+- `_long.csv`: two rows per area, one per measure, including the variable code.
+
+`validation_summary.csv` records row counts and missing E/M values;
+`package_versions.csv` records direct dependency versions. Raw JSON responses,
+tidycensus RDS responses, TIGER ZIPs, and a checksum manifest live under
+`data/raw_data/acs_2024/`. Extracted original shapefiles and selected 2024 geometry
+are under `data/shape/acs_2024/`.
+
+## Columns
+
+| Column | Meaning |
+| --- | --- |
+| GEOID | Character identifier: 11 digits for tracts, 12 for block groups; preserve leading zeros when importing CSV |
+| NAME | Census API area description |
+| geography | tract or block group |
+| acs_start_year / acs_end_year | 2020 / 2024 |
+| boundary_year | 2024 |
+| moe_confidence | 90 (percent) |
+| synthetic_data | FALSE |
+| median_contract_rent_estimate / median_gross_rent_estimate | Valid monthly dollar estimate; missing where Census provides a special code or no value |
+| median_contract_rent_moe / median_gross_rent_moe | Published 90% dollar MOE; missing where Census provides a special code or no value |
+| *_estimate_raw / *_moe_raw | Original API E/M values as text, including special negative codes |
+| *_estimate_annotation / *_moe_annotation | Census API EA/MA annotations, including top/bottom coding indicators where supplied |
+
+Long files instead use `variable`, `variable_code`, `estimate`, `moe`,
+`estimate_raw`, `moe_raw`, `estimate_annotation`, and `moe_annotation`.
+Raw companion values and annotations must be considered when interpreting
+suppressed, unavailable, or top/bottom-coded medians. Missing MOEs remain missing,
+never zero; a valid estimate can have an unavailable MOE. See the
+[Census ACS special-value documentation](https://www.census.gov/programs-surveys/acs/technical-documentation/summary-file-documentation.html).
+
+Whole areas are selected by positive area overlap in EPSG:26916, using full 2024
+TIGER geometry and the project's cached City boundary. Touching an edge alone is
+insufficient. Small boundary mismatches and suburban portions remain included.
+The City snapshot is not a historical 2024 city-limit reconstruction. No areal
+allocation of rent values is performed. Use these matching 2024 geometries for
+mapping the rent estimates, rather than assuming the existing 2025 map has
+identical GEOIDs or geometry.
