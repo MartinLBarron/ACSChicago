@@ -155,6 +155,7 @@ async function start() {
       map.setLayoutProperty(`${id}-line`, "visibility", checked ? "visible" : "none");
     }
     renderLegend();
+    document.dispatchEvent(new CustomEvent("chicago:period-change", { detail: { year: periodControl.value } }));
     document.getElementById("map-period").textContent = `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
     const features = layerData[geographyControl.value].features;
     const unavailable = features.filter(feature => typeof feature.properties[field] !== "number" || feature.properties[field] < 0).length;

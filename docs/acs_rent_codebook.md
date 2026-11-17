@@ -157,3 +157,12 @@ MOEs are checked against that raw response. Source identifiers:
 [B25064](https://api.census.gov/data/2024/acs/acs5/groups/B25064.html),
 [B25063](https://api.census.gov/data/2024/acs/acs5/groups/B25063.html), and
 [B25003](https://api.census.gov/data/2024/acs/acs5/groups/B25003.html).
+
+
+The dashboard now presents these published citywide estimates in four cards and
+four D3 trend charts. Cards follow the selected period; charts show all periods.
+The self-contained website JSON is `html/data/web/chicago_city_statistics.json`,
+exported by `R/export_city_web_data.R`. Published 90% MOEs appear as chart error
+bars and card text; a full HTML table includes values and annotations. Rent charts
+show nominal end-year dollars and do not assert real growth or statistical
+significance. Lines connect the three period estimates, not annual observations.

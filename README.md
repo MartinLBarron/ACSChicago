@@ -196,5 +196,20 @@ raw codes, and annotations. It does not aggregate block-group or tract medians.
 Find `chicago_city_rent.csv` / `.rds` and `chicago_city_rent_long.csv` / `.rds`
 in each `data/analytic/acs_YEAR/` directory and the combined directory. Combined
 outputs contain three city-period rows or twelve city-period-measure rows.
-These are tabular inputs ready for dashboard summary cards; the frontend has
-not yet been changed to display citywide figures.
+These published place estimates feed the citywide dashboard cards and charts.
+
+## Chicago citywide cards and D3 trends
+
+Below the map, four citywide cards follow the selected period. Four D3 line
+charts show each measure across all three periods, with published 90% MOE bars,
+selected-period outlines, keyboard-focusable point details, and an accessible
+HTML data table. The graphs use independent unit scales starting at zero. They
+show period estimates, not annual measurements; rents remain in end-year dollars
+without inflation adjustment.
+
+`R/export_city_web_data.R` exports the validated published place estimates to
+`data/web/chicago_city_statistics.json` and copies them into `html/data/web/`.
+It runs at the end of `R/run_pipeline.R` and can also be run independently after
+ACS retrieval. Include this JSON, `city-stats.js`, and the pinned D3 library in
+`html/vendor/` in uploads, along with the existing HTML/CSS/map assets and GeoJSON.
+The four cards and HTML table remain available if the chart library fails to load.

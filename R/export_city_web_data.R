@@ -1,0 +1,25 @@
+# Publish directly estimated Chicago place statistics for cards and D3 charts.
+source("R/acs_config.R")
+input <- "data/analytic/acs_combined/chicago_city_rent.rds"
+if (!file.exists(input)) stop("Run Rscript R/download_acs_rent.R first.")
+x <- readRDS(input)
+x <- x[order(x$acs_end_year), ]
+stopifnot(nrow(x) == length(acs_years), setequal(x$acs_end_year, acs_years),
+          all(x$GEOID == "1714000"), !anyDuplicated(x$acs_end_year))
+for (directory in c("data/web", "html/data/web")) {
+  dir.create(directory, recursive = TRUE, showWarnings = FALSE)
+}
+output <- "data/web/chicago_city_statistics.json"
+jsonlite::write_json(x, output, dataframe = "rows", na = "null", digits = NA, pretty = TRUE)
+check <- jsonlite::read_json(output, simplifyVector = TRUE)
+stopifnot(identical(check$GEOID, x$GEOID))
+for (measure in names(acs_config$variables)) {
+  for (suffix in c("estimate", "moe")) {
+    column <- paste0(measure, "_", suffix)
+    stopifnot(isTRUE(all.equal(check[[column]], x[[column]])))
+  }
+}
+site_output <- "html/data/web/chicago_city_statistics.json"
+stopifnot(file.copy(output, site_output, overwrite = TRUE),
+          unname(tools::md5sum(output)) == unname(tools::md5sum(site_output)))
+message("Exported Chicago citywide statistics for ", nrow(x), " periods")
