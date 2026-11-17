@@ -90,3 +90,41 @@ is configured by parent tract GEOID in `R/acs_config.R`. Original Census respons
 and Illinois shapefiles remain unchanged. The remaining analytic coverage is
 868 tracts and 2,312 block groups. Positive city overlap remains the selection rule
 for other areas; the separate original 2025 boundary exports are not filtered.
+
+## Three non-overlapping periods
+
+The pipeline now runs the same four measures for 2010–2014, 2015–2019, and
+2020–2024 (end years 2014, 2019, 2024). The 2005–2009 period is intentionally
+excluded because the current tidycensus implementation cannot retrieve its
+block groups. The earlier sections describe the latest-release files; the same
+file schema and validation apply to each earlier period.
+
+Each release has its own `data/raw_data/acs_YEAR/`, `data/shape/acs_YEAR/`, and
+`data/analytic/acs_YEAR/` directories. `R/acs_config.R` lists the periods and
+constructs their paths; `R/download_acs_rent.R` runs the per-period stages;
+`R/combine_acs_periods.R` stacks the results into `data/analytic/acs_combined/`.
+
+Combined tract and block-group outputs include CSV/RDS wide and long tables.
+Each wide-table row is a **geographic area within a period**, uniquely identified
+by (`acs_end_year`, `GEOID`). Long tables add `variable` to that key. Combined
+GeoPackages have one native-geography layer per end year: `acs_2014`, `acs_2019`,
+and `acs_2024`. These are repeated cross-sections, not a boundary-harmonized panel.
+GEOIDs and geometry can change; identical GEOIDs do not guarantee stable boundaries.
+
+Additional metadata columns are `period` (e.g. 2010–2014) and `dollar_year`.
+Rent estimates and their MOEs remain in each release's **end-year dollars**:
+2014, 2019, or 2024 dollars. They have not been converted to a common purchasing
+power. The long-table `unit` column records the applicable year. Housing-unit
+counts remain counts. Inflation adjustment and geographic harmonization are
+separate analytical steps required before interpreting area-level rent changes.
+All releases use the same cached contemporary City boundary as an overlap mask,
+not reconstructed historical city limits. The Lake Michigan parent-tract exclusion
+applies in all periods. Original responses and geometry archives remain unchanged.
+
+The website continues to show only 2020–2024. Expanding the download pipeline
+does not introduce a time selector or silently compare nominal-dollar rents.
+
+Availability also changes with methodology: Census introduced the five-year
+dollar-median suppression rule (MOE greater than estimate) beginning with the
+2015 release. Thus missing-median patterns in the 2014 release are not directly
+comparable to those in 2019/2024. See the [Census methodological note](https://www.census.gov/programs-surveys/acs/technical-documentation/user-notes/2016-01.html).

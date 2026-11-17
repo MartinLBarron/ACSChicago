@@ -157,3 +157,22 @@ data/web/block_group_rent_2024.geojson
 
 The server needs no R installation, packages, raw inputs, or shapefiles. Generated
 GeoJSON copies are ignored by Git; include them explicitly in manual uploads.
+
+## Non-overlapping ACS periods
+
+`Rscript R/download_acs_rent.R` now gathers **2010–2014, 2015–2019, and
+2020–2024**, with the same four variables and their 90% MOEs, raw codes, and
+annotations. Periods are configured in `R/acs_config.R`. Each period has its own
+cached sources, matching TIGER boundaries, and analytic files under directories
+ending in `acs_2014`, `acs_2019`, or `acs_2024`.
+
+The script also runs `R/combine_acs_periods.R`, producing combined tract and
+block-group CSV/RDS datasets and GeoPackages under `data/analytic/acs_combined/`.
+GeoPackages have separate layers for each year. The table key is
+`acs_end_year` plus `GEOID`; long tables also include `variable`.
+
+These datasets retain native boundaries and end-year dollar units. They are
+repeated cross-sections, not a harmonized panel. Inflation and boundary changes
+must be addressed before interpreting historical rent differences. The existing
+web exports still use the latest release only. The [codebook](docs/acs_rent_codebook.md)
+details these conventions. The 2005–2009 release is excluded by user decision.

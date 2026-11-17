@@ -17,3 +17,15 @@ acs_config <- list(
 )
 # These are official public observations, not synthetic data.
 SYNTHETIC_DATA <- FALSE
+
+# Non-overlapping five-year releases supported by the current tidycensus API.
+acs_years <- c(2014L, 2019L, 2024L)
+acs_config_for_year <- function(year) {
+  stopifnot(length(year) == 1L, year %in% acs_years)
+  config <- acs_config
+  config$year <- as.integer(year)
+  config$raw_dir <- file.path("data", "raw_data", paste0("acs_", year))
+  config$shape_dir <- file.path("data", "shape", paste0("acs_", year))
+  config$analytic_dir <- file.path("data", "analytic", paste0("acs_", year))
+  config
+}

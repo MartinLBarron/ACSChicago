@@ -152,14 +152,16 @@ build_rent_dataset <- function(kind, boundaries, config) {
   selected <- selected |>
     dplyr::mutate(variable_code = unname(config$variables[variable]),
                   unit = ifelse(variable %in% c("cash_rent_units", "renter_occupied_units"),
-                                "housing units", "monthly 2024 dollars"),
+                                "housing units", paste("monthly", config$year, "dollars")),
                   acs_start_year = config$year - 4L, acs_end_year = config$year,
+                  period = paste0(config$year - 4L, "–", config$year),
+                  dollar_year = config$year,
                   boundary_year = config$year, moe_confidence = 90L,
                   geography = kind, synthetic_data = SYNTHETIC_DATA) |>
     dplyr::arrange(GEOID, variable)
   wide <- selected |>
     tidyr::pivot_wider(
-      id_cols = c(GEOID, NAME, geography, acs_start_year, acs_end_year,
+      id_cols = c(GEOID, NAME, geography, acs_start_year, acs_end_year, period, dollar_year,
                   boundary_year, moe_confidence, synthetic_data),
       names_from = variable,
       values_from = c(estimate, moe, estimate_raw, moe_raw,
@@ -178,7 +180,7 @@ build_rent_dataset <- function(kind, boundaries, config) {
   spatial <- boundaries[, "GEOID", drop = FALSE] |> dplyr::left_join(wide, by = "GEOID")
   sf::st_write(spatial, file.path(config$analytic_dir, paste0(tag, "_rent.gpkg")),
                delete_dsn = TRUE, quiet = TRUE)
-  data.frame(geography = kind, areas = nrow(wide),
+  data.frame(acs_end_year = config$year, geography = kind, areas = nrow(wide),
              missing_estimates = sum(is.na(selected$estimate)),
              missing_moes = sum(is.na(selected$moe)))
 }
