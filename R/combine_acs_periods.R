@@ -3,7 +3,7 @@
 source("R/acs_config.R")
 output_dir <- file.path("data", "analytic", "acs_combined")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-for (kind in c("tract", "block_group")) {
+for (kind in c("tract", "block_group", "chicago_city")) {
   tables <- lapply(acs_years, function(year) {
     config <- acs_config_for_year(year)
     path <- file.path(config$analytic_dir, paste0(kind, "_rent.rds"))
@@ -36,7 +36,7 @@ for (kind in c("tract", "block_group")) {
   readr::write_csv(long, file.path(output_dir, paste0(kind, "_rent_long.csv")))
   saveRDS(long, file.path(output_dir, paste0(kind, "_rent_long.rds")))
   # Preserve each period's full geometry in a separate layer of one GeoPackage.
-  for (year in acs_years) {
+  for (year in if (kind == "chicago_city") integer(0) else acs_years) {
     input <- file.path(acs_config_for_year(year)$analytic_dir, paste0(kind, "_rent.gpkg"))
     spatial <- sf::st_read(input, quiet = TRUE)
     sf::st_write(spatial, file.path(output_dir, paste0(kind, "_rent.gpkg")),

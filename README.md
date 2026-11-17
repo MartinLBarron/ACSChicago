@@ -187,3 +187,14 @@ measure, geography, and map position. Upload all eight files from `html/data/web
 when updating shared hosting. Dollar breaks stay fixed, but dollar units reflect
 the selected period's end year; the map explicitly labels the lack of inflation
 adjustment and the use of changing native boundaries.
+
+## Published Chicago citywide statistics
+
+The ACS pipeline also retrieves the four measures directly for Census place
+**Chicago city, Illinois (`1714000`)**, for every period, with published 90% MOEs,
+raw codes, and annotations. It does not aggregate block-group or tract medians.
+Find `chicago_city_rent.csv` / `.rds` and `chicago_city_rent_long.csv` / `.rds`
+in each `data/analytic/acs_YEAR/` directory and the combined directory. Combined
+outputs contain three city-period rows or twelve city-period-measure rows.
+These are tabular inputs ready for dashboard summary cards; the frontend has
+not yet been changed to display citywide figures.

@@ -129,3 +129,31 @@ Availability also changes with methodology: Census introduced the five-year
 dollar-median suppression rule (MOE greater than estimate) beginning with the
 2015 release. Thus missing-median patterns in the 2014 release are not directly
 comparable to those in 2019/2024. See the [Census methodological note](https://www.census.gov/programs-surveys/acs/technical-documentation/user-notes/2016-01.html).
+
+## Chicago citywide published estimates
+
+The same four measures are retrieved for the **Chicago city, Illinois place**
+(state FIPS `17`, place FIPS `14000`, GEOID `1714000`) for all three periods.
+These are directly published ACS estimates and 90% MOEs, not sums or averages of
+tract/block-group statistics. No county restriction is used; the place covers
+Chicago across county boundaries. This Census place differs from the set of
+whole areas selected by positive City overlap, which can include suburban parts.
+
+Each `data/analytic/acs_YEAR/` directory contains `chicago_city_rent.csv` and
+`.rds` (one row), plus `chicago_city_rent_long.csv` and `.rds` (four rows).
+`data/analytic/acs_combined/` contains the same filenames with three wide rows
+and twelve long rows. All use the existing variable, period, dollar-year,
+estimate, MOE, raw-code, and annotation definitions. `geography` is `place`;
+GEOID is the seven-character `1714000`. `boundary_year` records the Census
+geographic vintage, not a downloaded city geometry. City outputs are tabular;
+no city GeoPackage is created for these statistics.
+
+Raw responses are cached as `chicago_place_api.json` and
+`chicago_place_tidycensus.rds` in each period's raw directory and included in its
+checksum manifest. tidycensus requests Illinois places, then retains Chicago;
+the companion raw API request selects Chicago directly. All four estimates and
+MOEs are checked against that raw response. Source identifiers:
+[B25058](https://api.census.gov/data/2024/acs/acs5/groups/B25058.html),
+[B25064](https://api.census.gov/data/2024/acs/acs5/groups/B25064.html),
+[B25063](https://api.census.gov/data/2024/acs/acs5/groups/B25063.html), and
+[B25003](https://api.census.gov/data/2024/acs/acs5/groups/B25003.html).

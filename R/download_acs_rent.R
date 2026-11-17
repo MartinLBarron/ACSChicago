@@ -28,6 +28,10 @@ run_acs_period <- function(config) {
     build_rent_dataset(kind, boundaries, config)
   })
   report <- dplyr::bind_rows(reports)
+  message("Preparing ACS ", config$year - 4L, "–", config$year, " Chicago citywide rent data")
+  chicago_id <- data.frame(GEOID = paste0(config$state, config$chicago_place))
+  city_report <- build_rent_dataset("place", chicago_id, config)
+  report <- dplyr::bind_rows(report, city_report)
   readr::write_csv(report, file.path(config$analytic_dir, "validation_summary.csv"))
   inputs <- c(city_path, list.files(config$raw_dir, full.names = TRUE,
                                   pattern = "\\.(zip|json|rds)$"))

@@ -4,6 +4,7 @@ acs_config <- list(
   year = 2024L,
   survey = "acs5",
   state = "17",
+  chicago_place = "14000",
   crs = 26916L,
   # Cook County's Lake Michigan water-only tract and its block group.
   excluded_tract_geoids = "17031990000",
