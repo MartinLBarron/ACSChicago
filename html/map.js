@@ -8,7 +8,8 @@ const countBreaks = [1, 100, 250, 500, 1000, 2000];
 const countMeasures = new Set(["cash_rent_units", "renter_occupied_units"]);
 function selectedScale() {
   const isCount = countMeasures.has(measureControl.value);
-  return { isCount, breaks: isCount ? countBreaks : rentBreaks };
+  const isPercent = window.ChicagoMeasures.find(measure => measure.id === measureControl.value)?.percent || false;
+  return { isCount, isPercent, breaks: isPercent ? [10, 20, 30, 40, 50, 75] : isCount ? countBreaks : rentBreaks };
 }
 const colors = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#0c2c84"];
 const missingColor = "#bdbdbd";
@@ -20,6 +21,18 @@ const definitions = [
   { id: "city", file: "chicago_city", color: "#b83246", width: 3 }
 ];
 const measureControl = document.getElementById("measure");
+// Group all selectable measures using the shared map/dashboard definitions.
+const initialMeasure = measureControl.value;
+measureControl.replaceChildren();
+for (const [group, label] of Object.entries(window.ChicagoMeasureGroups)) {
+  const options = document.createElement("optgroup"); options.label = label;
+  for (const measure of window.ChicagoMeasures.filter(measure => measure.group === group)) {
+    const option = document.createElement("option"); option.value = measure.id;
+    option.textContent = measure.label; options.append(option);
+  }
+  measureControl.append(options);
+}
+measureControl.value = initialMeasure;
 const geographyControl = document.getElementById("geography");
 const periodControl = document.getElementById("period");
 const periodLabel = year => `${Number(year) - 4}–${year}`;
@@ -28,13 +41,17 @@ function renderLegend() {
   document.getElementById("map-heading").textContent = measureControl.selectedOptions[0].textContent;
   const list = document.getElementById("legend");
   list.replaceChildren();
-  const { isCount } = selectedScale();
-  const labels = isCount
+  const { isCount, isPercent } = selectedScale();
+  const labels = isPercent
+    ? ["Under 10%", "10% to under 20%", "20% to under 30%", "30% to under 40%", "40% to under 50%", "50% to under 75%", "75% or more", "Unavailable / no eligible units"]
+    : isCount
     ? ["0 units (estimated)", "1–99 units", "100–249 units", "250–499 units", "500–999 units", "1,000–1,999 units", "2,000 or more units", "No estimate available"]
     : ["Under $750", "$750 to under $1,000", "$1,000 to under $1,250", "$1,250 to under $1,500",
       "$1,500 to under $2,000", "$2,000 to under $2,500", "$2,500 or more", "No estimate available"];
-  list.setAttribute("aria-label", isCount ? "Estimated housing-unit count color scale" : "Monthly rent color scale");
-  document.getElementById("legend-note").textContent = isCount
+  list.setAttribute("aria-label", isPercent ? "Percentage color scale" : isCount ? "Estimated housing-unit count color scale" : "Monthly rent color scale");
+  document.getElementById("legend-note").textContent = isPercent
+    ? `${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed breaks across all periods. Gray includes missing inputs or no eligible units. MOEs are in percentage points.`
+    : isCount
     ? "Estimated housing-unit counts, not percentages or density. Breaks are shared across both counts and geography levels. Zero is an estimate, not proof of no rental housing. Gray means no estimate."
     : `Monthly ${periodControl.value} dollars; not adjusted for inflation. Fixed dollar breaks are shared across periods. Gross rent includes utilities and fuels. Gray means no estimate.`;
   labels.forEach((label, i) => {
@@ -69,6 +86,12 @@ function countText(properties, measure, label) {
     if (annotation && annotation !== "null") text += ` ${suffix === "estimate_annotation" ? "Estimate" : "MOE"} annotation: ${annotation}.`;
   }
   return text;
+}
+function percentageText(properties, measure) {
+  const value = window.formatChicagoValue(properties[`${measure.id}_estimate`], measure);
+  const moe = window.formatChicagoValue(properties[`${measure.id}_moe`], measure, true);
+  const notes = window.chicagoValueNotes(properties, measure);
+  return `${measure.label}: ${value} ${moe === "Not available" ? "(MOE unavailable)" : `±${moe}`}. ${measure.description}.${notes ? ` ${notes}.` : ""}`;
 }
 function observeMapSize(map) {
   const container = map.getContainer();
@@ -247,6 +270,8 @@ async function start() {
     if (area) {
       lines.push(`${area.properties.NAME} · GEOID ${area.properties.GEOID}`);
       lines.push(`${periodLabel(area.properties.acs_end_year)} ACS · ${area.properties.boundary_year} boundaries · rents in ${area.properties.dollar_year} dollars.`);
+      const selectedMeasure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+      if (selectedMeasure.percent) lines.push(percentageText(area.properties, selectedMeasure));
       lines.push(rentText(area.properties, "median_contract_rent", "Median contract rent"));
       lines.push(rentText(area.properties, "median_gross_rent", "Median gross rent"));
       lines.push(countText(area.properties, "cash_rent_units", "Occupied units paying cash rent"));

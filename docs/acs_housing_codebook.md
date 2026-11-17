@@ -31,8 +31,8 @@ and derived-long CSV/RDS files are in `data/analytic/acs_combined/`. Combined
 GeoPackages have separate native-geography layers `acs_2014`, `acs_2019`, and
 `acs_2024`. The unique wide key is (`acs_end_year`, `GEOID`); long files also use
 `variable`. `housing_validation_summary.csv` reports definition/MOE statuses.
-The existing core `_rent` files and website measures are preserved. This change
-adds pipeline datasets; it does not yet add new frontend selectors or charts.
+The existing core `_rent` files and website measures are preserved. The map and citywide dashboard expose the derived percentages through grouped
+measure/topic pickers. Source counts remain available in the analytical files.
 
 ## Source counts and universes
 

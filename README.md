@@ -234,5 +234,22 @@ payment shares, with approximate 90% MOEs in percentage points. It records
 numerators, denominators, missingness reasons, and MOE methods. Combined analytic
 files are `data/analytic/acs_combined/TAG_housing.*`, with separate source and
 derived long files. See [the housing codebook](docs/acs_housing_codebook.md) for
-exact definitions and file layout. These datasets are ready for later frontend
-additions; existing map and citywide chart measures are unchanged.
+exact definitions and file layout. These derived measures are available in the map and citywide dashboard.
+
+
+## Dashboard housing topics
+
+The map's grouped measure picker includes all 12 derived percentages in addition
+to the four original measures. Shared percentage breaks are 10, 20, 30, 40, 50,
+and 75 percent across periods and geography levels. Missing or undefined shares
+are gray; valid zero shares remain in the lowest color class. Map popups show the
+selected share, its approximate MOE in percentage points, and its denominator definition.
+
+Below the map, the **Explore** picker switches the citywide cards, D3 charts, and
+data table among rent/rental housing, rent burden, bedrooms, and utilities. Its
+statistics-period selector remains independent of the map period. Percentage
+charts use a 0–100 reference scale, extended when necessary to show MOE bars.
+`html/measures.js` defines the common display labels, units, and denominators.
+Web exports now read extended `_housing` datasets and validate all 16 measures.
+Re-run both web export scripts after the housing derivation stage; upload the
+entire `html/` directory, including `measures.js` and refreshed JSON/GeoJSON files.

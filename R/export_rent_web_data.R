@@ -1,5 +1,6 @@
 # Export each ACS period with its matching geometry for the self-contained website.
 source("R/acs_config.R")
+source("R/housing_config.R")
 if (!requireNamespace("sf", quietly = TRUE)) stop("Install sf first.")
 dir.create("data/web", recursive = TRUE, showWarnings = FALSE)
 site_data_dir <- file.path("html", "data", "web")
@@ -7,15 +8,19 @@ dir.create(site_data_dir, recursive = TRUE, showWarnings = FALSE)
 for (year in acs_years) {
   config <- acs_config_for_year(year)
   for (kind in c("tract", "block_group")) {
-    input <- file.path(config$analytic_dir, paste0(kind, "_rent.gpkg"))
-    if (!file.exists(input)) stop("Run Rscript R/download_acs_rent.R first.")
+    input <- file.path(config$analytic_dir, paste0(kind, "_housing.gpkg"))
+    if (!file.exists(input)) stop("Run the core and supplementary ACS pipeline stages first.")
     x <- sf::st_read(input, quiet = TRUE) |> sf::st_transform(4326)
+    measures <- c(names(config$variables), names(housing_derivations))
+    suffixes <- c("estimate", "moe", "estimate_raw", "moe_raw", "estimate_annotation", "moe_annotation", "estimate_status", "moe_status", "moe_method")
+    fields <- c("GEOID", "NAME", "geography", "acs_start_year", "acs_end_year", "period", "dollar_year", "boundary_year", "moe_confidence", "synthetic_data", as.vector(outer(measures, suffixes, paste, sep = "_")))
+    x <- x[, intersect(fields, names(x))]
     output <- file.path("data/web", paste0(kind, "_rent_", year, ".geojson"))
     sf::st_write(x, output, driver = "GeoJSON", delete_dsn = TRUE, quiet = TRUE,
                  layer_options = c("RFC7946=YES", "COORDINATE_PRECISION=6"))
     check <- sf::st_read(output, quiet = TRUE)
     stopifnot(nrow(check) == nrow(x), identical(check$GEOID, x$GEOID))
-    for (measure in names(config$variables)) {
+    for (measure in measures) {
       for (suffix in c("estimate", "moe")) {
         column <- paste0(measure, "_", suffix)
         stopifnot(isTRUE(all.equal(check[[column]], x[[column]])))
