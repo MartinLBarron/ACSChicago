@@ -58,11 +58,11 @@
   </section>
 
   <section class="city-section" aria-labelledby="city-heading">
-    <div class="city-section-heading"><div><p class="eyebrow">02 / The citywide picture</p><h2 id="city-heading">Chicago, in perspective.</h2></div><p class="period-badge" id="city-period">2020–2024 ACS</p></div>
+    <div class="city-section-heading"><div><p class="eyebrow">02 / The citywide picture</p><h2 id="city-heading">Chicago, in perspective.</h2></div><div class="city-period-control"><label for="city-period">Statistics period</label><select class="period-badge" id="city-period"><option value="2024">2020–2024 ACS</option><option value="2019">2015–2019 ACS</option><option value="2014">2010–2014 ACS</option></select></div></div>
     <p class="city-intro">Published estimates for Chicago city, across all its neighborhoods. These figures come directly from the Census Bureau, rather than averaging the areas on the map.</p>
     <p id="city-status" role="status">Loading Chicago statistics…</p>
     <div id="city-cards" class="city-cards" aria-live="polite"></div>
-    <div class="trends-heading"><p class="eyebrow">Three periods / One city</p><h2>How the numbers have changed.</h2><p>Each point represents a five-year ACS estimate, not a single year. Lines connect the three non-overlapping periods; vertical bars show published 90% margins of error. The outlined point marks your selected period.</p></div>
+    <div class="trends-heading"><p class="eyebrow">Three periods / One city</p><h2>How the numbers have changed.</h2><p>Each point represents a five-year ACS estimate, not a single year. Lines connect the three non-overlapping periods; vertical bars show published 90% margins of error. Hover or focus a point to highlight it and see its estimate and margin of error.</p></div>
     <div class="chart-notice">Rent figures are in each period’s end-year dollars (2014, 2019, and 2024), without adjustment for inflation. Changes include inflation and should not be read as real rent growth.</div>
     <div id="city-charts" class="city-charts"></div>
     <details class="city-table"><summary>View the citywide estimates and margins of error as a table</summary><div id="city-data-table" class="table-scroll"></div></details>

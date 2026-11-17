@@ -13,7 +13,8 @@
     ? new Intl.NumberFormat("en-US", { ...(measure.money ? { style: "currency", currency: "USD" } : {}), maximumFractionDigits: 0 }).format(value)
     : "Not available";
   let rows = [];
-  let selectedYear = document.getElementById("period").value;
+  const statisticsPeriod = document.getElementById("city-period");
+  let selectedYear = statisticsPeriod.value;
   function annotations(row, measure) {
     return ["estimate_annotation", "moe_annotation"].flatMap(suffix => {
       const annotation = row[`${measure.id}_${suffix}`];
@@ -22,27 +23,38 @@
   }
   function summary(row, measure) {
     const moe = row[`${measure.id}_moe`];
-    return `${period(row)}: ${format(row[`${measure.id}_estimate`], measure)}; 90% MOE ${isValue(moe) ? `±${format(moe, measure)}` : "not available"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
+    return `${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${isValue(moe) ? `±${format(moe, measure)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
   }
   function renderCards() {
     const row = rows.find(row => String(row.acs_end_year) === selectedYear);
     const root = document.getElementById("city-cards");
     root.replaceChildren();
     if (!row) return;
-    document.getElementById("city-period").textContent = `${period(row)} ACS`;
     for (const measure of measures) {
       const card = document.createElement("article");
       card.className = "stat-card";
       const heading = document.createElement("h3"); heading.textContent = measure.label;
+      const valueLine = document.createElement("div"); valueLine.className = "stat-value-line";
       const value = document.createElement("strong"); value.textContent = format(row[`${measure.id}_estimate`], measure);
       const unit = document.createElement("p"); unit.className = "stat-unit";
       unit.textContent = measure.money ? `${measure.unit} · ${row.dollar_year} dollars` : measure.unit;
-      const moe = document.createElement("p"); moe.className = "stat-moe";
+      const moe = document.createElement("span"); moe.className = "stat-moe";
       const margin = row[`${measure.id}_moe`];
-      moe.textContent = isValue(margin) ? `±${format(margin, measure)} · 90% margin of error` : "90% margin of error not available";
+      if (isValue(margin)) {
+        const symbol = document.createElement("span");
+        symbol.className = "moe-symbol";
+        symbol.textContent = "±";
+        moe.append(symbol, document.createTextNode(format(margin, measure)));
+      } else {
+        moe.textContent = "MOE unavailable";
+      }
+      moe.setAttribute("aria-label", isValue(margin)
+        ? `90% margin of error: plus or minus ${format(margin, measure)}`
+        : "90% margin of error unavailable");
+      valueLine.append(value, moe);
       const description = document.createElement("p"); description.className = "stat-description";
       description.textContent = `${measure.description}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
-      card.append(heading, value, unit, moe, description); root.append(card);
+      card.append(heading, valueLine, unit, description); root.append(card);
     }
   }
   function renderCharts() {
@@ -81,14 +93,37 @@
       for (const bound of [low, high]) intervals.append("line").attr("x1", row => x(row.acs_end_year) - 5).attr("x2", row => x(row.acs_end_year) + 5).attr("y1", bound).attr("y2", bound);
       const points = svg.append("g").selectAll("circle").data(valid).join("circle")
         .attr("cx", row => x(row.acs_end_year)).attr("cy", row => y(estimate(row)))
-        .attr("r", row => String(row.acs_end_year) === selectedYear ? 6 : 4)
-        .attr("fill", row => String(row.acs_end_year) === selectedYear ? "#fbfbf7" : measure.color)
+        .attr("r", 4)
+        .attr("fill", measure.color)
         .attr("stroke", measure.color).attr("stroke-width", 2)
         .attr("tabindex", 0).attr("aria-label", row => summary(row, measure));
-      points.append("title").text(row => summary(row, measure));
+      const tooltip = article.append("div").attr("class", "chart-tooltip").attr("role", "tooltip")
+        .attr("id", `chart-tooltip-${index}`).attr("hidden", true);
       const readout = article.append("p").attr("class", "chart-readout").attr("aria-live", "polite")
         .text("Hover or focus a point for its estimate and margin of error.");
-      points.on("mouseenter focus", (_event, row) => readout.text(summary(row, measure)));
+      function showPoint(event, row) {
+        const point = d3.select(event.currentTarget);
+        point.attr("r", 7).attr("fill", "#fbfbf7").attr("stroke-width", 3)
+          .attr("aria-describedby", `chart-tooltip-${index}`);
+        tooltip.text(summary(row, measure)).attr("hidden", null);
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const container = article.node().getBoundingClientRect();
+        const left = Math.max(8, Math.min(bounds.left + bounds.width / 2 - container.left - tooltip.node().offsetWidth / 2,
+          container.width - tooltip.node().offsetWidth - 8));
+        const above = bounds.top - container.top - tooltip.node().offsetHeight - 12;
+        tooltip.style("left", `${left}px`).style("top", `${above >= 8 ? above : bounds.bottom - container.top + 12}px`);
+        readout.text(summary(row, measure));
+      }
+      function hidePoint(event) {
+        d3.select(event.currentTarget).attr("r", 4).attr("fill", measure.color).attr("stroke-width", 2)
+          .attr("aria-describedby", null);
+        tooltip.attr("hidden", true);
+      }
+      points.on("mouseenter focus", showPoint).on("mouseleave", event => {
+        if (document.activeElement !== event.currentTarget) hidePoint(event);
+      }).on("blur", hidePoint).on("keydown", event => {
+        if (event.key === "Escape") hidePoint(event);
+      });
     });
   }
   function renderTable() {
@@ -106,8 +141,8 @@
     }
     document.getElementById("city-data-table").replaceChildren(table);
   }
-  document.addEventListener("chicago:period-change", event => {
-    selectedYear = String(event.detail.year);
+  statisticsPeriod.addEventListener("change", () => {
+    selectedYear = statisticsPeriod.value;
     if (rows.length) { renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   async function startCityStats() {
@@ -118,7 +153,7 @@
     renderCards(); renderTable();
     if (typeof d3 === "undefined") throw new Error("Cards and table are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();
-    document.getElementById("city-status").textContent = "Cards follow the selected map period. Charts show all three periods.";
+    document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. Charts show all three periods.";
     let resizeFrame;
     window.addEventListener("resize", () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderCharts); });
   }

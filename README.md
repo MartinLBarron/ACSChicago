@@ -200,9 +200,10 @@ These published place estimates feed the citywide dashboard cards and charts.
 
 ## Chicago citywide cards and D3 trends
 
-Below the map, four citywide cards follow the selected period. Four D3 line
+Below the map, four citywide cards follow their own statistics-period selector,
+independent of the map. Four D3 line
 charts show each measure across all three periods, with published 90% MOE bars,
-selected-period outlines, keyboard-focusable point details, and an accessible
+statistics-period outlines, keyboard-focusable point details, and an accessible
 HTML data table. The graphs use independent unit scales starting at zero. They
 show period estimates, not annual measurements; rents remain in end-year dollars
 without inflation adjustment.
