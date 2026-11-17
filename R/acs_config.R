@@ -5,6 +5,8 @@ acs_config <- list(
   survey = "acs5",
   state = "17",
   crs = 26916L,
+  # Cook County's Lake Michigan water-only tract and its block group.
+  excluded_tract_geoids = "17031990000",
   variables = c(median_contract_rent = "B25058_001",
                 median_gross_rent = "B25064_001",
                 cash_rent_units = "B25063_002",

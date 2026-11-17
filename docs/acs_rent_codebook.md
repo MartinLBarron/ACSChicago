@@ -80,3 +80,13 @@ MOEs; the color scale remains monthly rent. Counts can help interpret missing
 medians, but an ACS estimated zero is not proof of no actual cash-rent units.
 A positive count with a missing median does not identify whether insufficient
 sample observations or the median precision suppression rule caused the gap.
+
+## Lake Michigan exclusion
+
+Tract `17031990000` and its block group `170319900000` are excluded from analytic
+outputs, selected 2024 GeoPackages, and the rent-map GeoJSON. TIGER reports zero
+land area and 1,717,072,182 square meters of water for each. This targeted exclusion
+is configured by parent tract GEOID in `R/acs_config.R`. Original Census responses
+and Illinois shapefiles remain unchanged. The remaining analytic coverage is
+868 tracts and 2,312 block groups. Positive city overlap remains the selection rule
+for other areas; the separate original 2025 boundary exports are not filtered.

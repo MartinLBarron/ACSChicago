@@ -33,6 +33,14 @@ select_chicago_geography <- function(kind, config, city_mask) {
   overlap <- suppressWarnings(sf::st_collection_extract(overlap, "POLYGON"))
   positive <- overlap$GEOID[as.numeric(sf::st_area(overlap)) > 0]
   selected <- candidates[candidates$GEOID %in% positive, ]
+  excluded <- substr(selected$GEOID, 1, 11) %in% config$excluded_tract_geoids
+  if (any(excluded)) {
+    stopifnot(all(selected$ALAND[excluded] == 0))
+    message("Excluding Lake Michigan water-only ", kind, ": ",
+            paste(selected$GEOID[excluded], collapse = ", "))
+  }
+  selected <- selected[!excluded, ]
+  stopifnot(!any(substr(selected$GEOID, 1, 11) %in% config$excluded_tract_geoids))
   selected <- selected[order(selected$GEOID), ]
   id_length <- if (kind == "tract") 11L else 12L
   stopifnot(nrow(selected) > 0L, !anyDuplicated(selected$GEOID),

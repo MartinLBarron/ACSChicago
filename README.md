@@ -132,3 +132,7 @@ Both housing-unit counts are selectable choropleth measures. Count legends use
 0, 1–99, 100–249, 250–499, 500–999, 1,000–1,999, and 2,000+ units, shared across
 tracts and block groups. These show absolute estimated counts, not percentages
 or density. Estimated zero has its own color class; missing estimates stay gray.
+
+The water-only Lake Michigan tract `17031990000` and its block group
+`170319900000` are excluded from the 2024 analytic datasets and rent map.
+The reproducible exclusion is in `R/acs_config.R`; raw sources are retained.
