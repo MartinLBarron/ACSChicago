@@ -5,7 +5,7 @@ Reproducible R pipeline for Chicago geographic boundaries.
 ## Interactive map
 
 The local MapLibre GL JS webpage in `html/` displays city limits, community areas,
-and 2024 ACS rent choropleths for whole block groups and tracts, with measure and
+and ACS rent choropleths for three periods, for whole block groups and tracts, with measure and
 geography selectors, boundary toggles, and click-to-inspect estimates and MOEs.
 After downloading the shapefiles, generate browser-ready WGS84 GeoJSON and serve
 the project root:
@@ -141,7 +141,7 @@ The reproducible exclusion is in `R/acs_config.R`; raw sources are retained.
 ## Shared hosting
 
 Run both export scripts (or `Rscript R/run_pipeline.R`) before uploading.
-The exporters keep research exports in `data/web/` and copy the four map assets
+The exporters keep research exports in `data/web/` and copy the eight map assets
 into `html/data/web/`, verifying matching checksums. Upload **all contents of
 `html/`** to the hosting document root, preserving its subdirectories:
 
@@ -151,6 +151,10 @@ map.js
 style.css
 data/web/chicago_city.geojson
 data/web/chicago_community_areas.geojson
+data/web/tract_rent_2014.geojson
+data/web/block_group_rent_2014.geojson
+data/web/tract_rent_2019.geojson
+data/web/block_group_rent_2019.geojson
 data/web/tract_rent_2024.geojson
 data/web/block_group_rent_2024.geojson
 ```
@@ -173,6 +177,13 @@ GeoPackages have separate layers for each year. The table key is
 
 These datasets retain native boundaries and end-year dollar units. They are
 repeated cross-sections, not a harmonized panel. Inflation and boundary changes
-must be addressed before interpreting historical rent differences. The existing
-web exports still use the latest release only. The [codebook](docs/acs_rent_codebook.md)
+must be addressed before interpreting historical rent differences. The web exports include all three releases, selected with the map period picker. The [codebook](docs/acs_rent_codebook.md)
 details these conventions. The 2005–2009 release is excluded by user decision.
+
+The dashboard period picker defaults to 2020–2024 and also offers 2015–2019 and
+2010–2014. Historical layers load on demand and are cached in browser memory.
+Period changes update both tract and block-group sources and preserve the selected
+measure, geography, and map position. Upload all eight files from `html/data/web/`
+when updating shared hosting. Dollar breaks stay fixed, but dollar units reflect
+the selected period's end year; the map explicitly labels the lack of inflation
+adjustment and the use of changing native boundaries.

@@ -121,8 +121,9 @@ All releases use the same cached contemporary City boundary as an overlap mask,
 not reconstructed historical city limits. The Lake Michigan parent-tract exclusion
 applies in all periods. Original responses and geometry archives remain unchanged.
 
-The website continues to show only 2020–2024. Expanding the download pipeline
-does not introduce a time selector or silently compare nominal-dollar rents.
+The website offers all three periods through a period selector, defaulting to
+2020–2024. Each selection loads matching native geometry and labels its end-year
+dollar units. It does not harmonize boundaries or adjust dollar amounts for inflation.
 
 Availability also changes with methodology: Census introduced the five-year
 dollar-median suppression rule (MOE greater than estimate) beginning with the

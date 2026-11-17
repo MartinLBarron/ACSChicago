@@ -21,6 +21,8 @@ const definitions = [
 ];
 const measureControl = document.getElementById("measure");
 const geographyControl = document.getElementById("geography");
+const periodControl = document.getElementById("period");
+const periodLabel = year => `${Number(year) - 4}–${year}`;
 function renderLegend() {
   document.getElementById("legend-title").textContent = measureControl.selectedOptions[0].textContent;
   document.getElementById("map-heading").textContent = measureControl.selectedOptions[0].textContent;
@@ -34,7 +36,7 @@ function renderLegend() {
   list.setAttribute("aria-label", isCount ? "Estimated housing-unit count color scale" : "Monthly rent color scale");
   document.getElementById("legend-note").textContent = isCount
     ? "Estimated housing-unit counts, not percentages or density. Breaks are shared across both counts and geography levels. Zero is an estimate, not proof of no rental housing. Gray means no estimate."
-    : "Monthly 2024 dollars. Rent breaks are shared across both measures and geography levels. Gross rent includes utilities and fuels. Gray means no estimate.";
+    : `Monthly ${periodControl.value} dollars; not adjusted for inflation. Fixed dollar breaks are shared across periods. Gross rent includes utilities and fuels. Gray means no estimate.`;
   labels.forEach((label, i) => {
     const row = document.createElement("li");
     const swatch = document.createElement("span");
@@ -83,10 +85,25 @@ async function start() {
   map.addControl(new maplibregl.ScaleControl());
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
-  const data = await Promise.all(definitions.map(async definition => {
-    const response = await fetch(`data/web/${definition.file}.geojson`);
-    if (!response.ok) throw new Error(`Could not load data/web/${definition.file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
+  async function fetchLayer(file) {
+    const response = await fetch(`data/web/${file}.geojson`);
+    if (!response.ok) throw new Error(`Could not load data/web/${file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
     return response.json();
+  }
+  const periodCache = new Map();
+  function loadPeriod(year) {
+    if (!periodCache.has(year)) {
+      const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`)])
+        .then(([blocks, tracts]) => ({ blocks, tracts }))
+        .catch(error => { periodCache.delete(year); throw error; });
+      periodCache.set(year, request);
+    }
+    return periodCache.get(year);
+  }
+  const initialPeriod = await loadPeriod(periodControl.value);
+  const data = await Promise.all(definitions.map(async definition => {
+    if (definition.id === "blocks" || definition.id === "tracts") return initialPeriod[definition.id];
+    return fetchLayer(definition.file);
   }));
   await loaded;
   definitions.forEach((definition, i) => {
@@ -138,14 +155,46 @@ async function start() {
       map.setLayoutProperty(`${id}-line`, "visibility", checked ? "visible" : "none");
     }
     renderLegend();
+    document.getElementById("map-period").textContent = `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
     const features = layerData[geographyControl.value].features;
     const unavailable = features.filter(feature => typeof feature.properties[field] !== "number" || feature.properties[field] < 0).length;
-    status.textContent = `${features.length.toLocaleString()} ${geographyControl.selectedOptions[0].textContent.toLowerCase()} · ${unavailable.toLocaleString()} without an estimate`;
+    status.textContent = `${periodLabel(periodControl.value)} · ${features.length.toLocaleString()} ${geographyControl.selectedOptions[0].textContent.toLowerCase()} · ${unavailable.toLocaleString()} without an estimate`;
   }
   document.getElementById("layers").disabled = false;
   document.getElementById("rent-controls").disabled = false;
   document.getElementById("reset").disabled = false;
   document.getElementById("reset").addEventListener("click", reset);
+  let displayedYear = periodControl.value;
+  let switchingPeriod = false;
+  periodControl.addEventListener("change", async () => {
+    const year = periodControl.value;
+    switchingPeriod = true;
+    if (areaPopup) areaPopup.remove();
+    document.getElementById("rent-controls").disabled = true;
+    status.textContent = `Loading ${periodLabel(year)}…`;
+    // Hide prior-period Census geometry until both new sources are ready.
+    for (const id of ["blocks", "tracts"]) {
+      map.setLayoutProperty(`${id}-fill`, "visibility", "none");
+      map.setLayoutProperty(`${id}-line`, "visibility", "none");
+    }
+    let failure;
+    try {
+      const next = await loadPeriod(year);
+      for (const id of ["blocks", "tracts"]) {
+        map.getSource(id).setData(next[id]);
+        layerData[id] = next[id];
+      }
+      displayedYear = year;
+    } catch (error) {
+      periodControl.value = displayedYear;
+      failure = error.message;
+    } finally {
+      switchingPeriod = false;
+      document.getElementById("rent-controls").disabled = false;
+      updateMap();
+      if (failure) status.textContent = `${failure} Still displaying ${periodLabel(displayedYear)}.`;
+    }
+  });
   measureControl.addEventListener("change", updateMap);
   geographyControl.addEventListener("change", updateMap);
   document.querySelectorAll("[data-layer]").forEach(input => {
@@ -154,6 +203,7 @@ async function start() {
     });
   });
   map.on("click", event => {
+    if (switchingPeriod) return;
     const features = map.queryRenderedFeatures(event.point, { layers: ["communities-fill", `${geographyControl.value}-fill`] });
     const community = features.find(feature => feature.layer.id === "communities-fill");
     const area = features.find(feature => feature.layer.id === `${geographyControl.value}-fill`);
@@ -163,6 +213,7 @@ async function start() {
     if (community) lines.push(`Community: ${community.properties.community} (area ${community.properties.area_numbe})`);
     if (area) {
       lines.push(`${area.properties.NAME} · GEOID ${area.properties.GEOID}`);
+      lines.push(`${periodLabel(area.properties.acs_end_year)} ACS · ${area.properties.boundary_year} boundaries · rents in ${area.properties.dollar_year} dollars.`);
       lines.push(rentText(area.properties, "median_contract_rent", "Median contract rent"));
       lines.push(rentText(area.properties, "median_gross_rent", "Median gross rent"));
       lines.push(countText(area.properties, "cash_rent_units", "Occupied units paying cash rent"));
