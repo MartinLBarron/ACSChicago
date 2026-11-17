@@ -11,17 +11,13 @@
 </head>
 <body>
   <a class="skip-link" href="#rent-controls">Skip to map controls</a>
-  <header class="site-header">
+  <header class="site-header" id="page-top">
     <a class="brand" href="#atlas"><span class="chicago-stars" aria-hidden="true">✶ ✶ ✶ ✶</span><span>Chicago <span class="brand-light">Rent</span></span></a>
-    <nav aria-label="Main navigation"><a href="#atlas" aria-current="page">The atlas</a><a href="#about-data">About the data</a></nav>
-    <span class="header-edition">An open-data field guide</span>
+    <nav aria-label="Main navigation"><a href="index.html" aria-current="page">Dashboard</a><a href="data.html">About the data</a><a href="about.html">About the project</a></nav>
   </header>
   <main id="atlas">
     <section class="intro">
-      <div><div class="eyebrow intro-kicker"><span class="live-dot"></span> Chicago, Illinois <span>/</span> 2020–2024 ACS</div>
-      <h1>One city. A geography of <em>rent.</em></h1>
-      <p>Explore the cost of renting and the homes behind the numbers, one Census area at a time.</p></div>
-      <div class="intro-stat"><strong>77</strong><span>community areas.<br>One Chicago.</span></div>
+      <h1>Explore rent in Chicago.</h1>
     </section>
     <section class="workbench" aria-label="Interactive Chicago rent atlas">
     <aside aria-label="Map controls">
@@ -42,7 +38,7 @@
     </fieldset>
     <button id="reset" disabled>Show all of Chicago</button>
     <p id="status" role="status">Loading boundaries…</p>
-    <a class="sidebar-about" href="#about-data">A note on the numbers <span aria-hidden="true">↗</span></a>
+    <a class="sidebar-about" href="data.html">A note on the numbers <span aria-hidden="true">↗</span></a>
   </aside>
   <section class="map-region" aria-label="Chicago rent map">
     <div id="map" aria-label="Interactive choropleth map of Chicago rents"></div>
@@ -54,13 +50,8 @@
     </section>
   </section>
   </section>
-  <section id="about-data" class="reading-note">
-    <div><p class="eyebrow">A note on the numbers</p><h2>Small areas. Important uncertainty.</h2><p>These are survey estimates, not exact counts. Select an area to see its margin of error. Differences in color do not establish statistically significant differences.</p></div>
-    <div class="source-notes">Sources: <a href="https://data.cityofchicago.org/d/qqq8-j68g">City of Chicago</a>,
-      <a href="https://data.cityofchicago.org/d/igwz-8jzy">community areas</a>, and
-      <a href="https://www.census.gov/geographies/mapping-files/2024/geo/tiger-line-file.html">Census TIGER/Line</a>.
-      Rent and housing counts: ACS 2020–2024 (B25058, B25064, B25063, B25003), matched to 2024 TIGER boundaries. Colors show estimates, not statistical significance. Whole block groups and tracts with positive city overlap are shown; some extend beyond city limits.</div>  </section>
+
   </main>
-  <footer class="site-footer"><span>Chicago Rent / A public-interest housing atlas</span><span>US Census Bureau · 2020–2024 ACS</span><span class="chicago-stars" aria-hidden="true">✶ ✶ ✶ ✶</span></footer>
+  <footer class="site-footer"><span>Chicago Rent / a public-interest housing dashboard</span><span>© 2026 Martin Barron</span><a class="chicago-stars" href="#page-top" aria-label="Return to top of page">✶ ✶ ✶ ✶</a></footer>
 </body>
 </html>

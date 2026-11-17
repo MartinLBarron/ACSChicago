@@ -16,8 +16,7 @@ button, label, select { cursor: pointer; }
 nav { display: flex; gap: 28px; align-self: stretch; }
 nav a { display: flex; align-items: center; text-decoration: none; font-size: 12px; border-bottom: 2px solid transparent; }
 nav a[aria-current] { border-color: var(--ink); font-weight: 600; }
-.header-edition, .eyebrow { text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; font-weight: 600; color: var(--muted); }
-.header-edition { margin-left: auto; }
+.eyebrow { text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; font-weight: 600; color: var(--muted); }
 .intro { margin: 0 4%; padding: 34px 0; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .intro-kicker { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .live-dot { height: 5px; width: 5px; background: #518467; border-radius: 50%; }
@@ -63,11 +62,28 @@ button:disabled { opacity: .5; cursor: wait; }
 .reading-note h2 { font: normal 28px/1.15 var(--serif); margin: 0 0 10px; }
 .reading-note p:not(.eyebrow), .source-notes { font-size: 12px; line-height: 1.8; color: var(--muted); margin: 0; }
 .site-footer { margin: 0 4%; min-height: 85px; display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 10px; }
-@media (max-width: 1100px) { .header-edition { display: none; } .workbench { grid-template-columns: 240px minmax(0, 1fr); } .map-legend { left: 14px; width: 225px; padding: 14px; } }
+@media (max-width: 1100px) { .workbench { grid-template-columns: 240px minmax(0, 1fr); } .map-legend { left: 14px; width: 225px; padding: 14px; } }
 @media (max-width: 850px) { .workbench { height: 760px; max-height: none; } .map-region { min-height: 0; } .intro-stat { display: none; } }
-@media (max-width: 600px) { .site-header { min-height: 74px; gap: 16px; flex-wrap: wrap; padding: 14px 0; } .brand { font-size: 21px; gap: 10px; } .brand .chicago-stars { font-size: 15px; } nav { gap: 16px; } nav a { font-size: 11px; padding: 5px 0; } .intro { padding: 26px 0; } h1 { font-size: 38px; } .workbench { grid-template-columns: 1fr; height: auto; } .map-region { height: 75svh; min-height: 560px; } aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 20px; } #rent-controls { display: grid; grid-template-columns: 1fr; } #layers label { display: inline-flex; margin-right: 14px; } #layers { margin-top: 18px; } #reset { width: auto; margin-top: 15px; } #status { margin-bottom: 14px; } .map-title { top: 16px; left: 14px; } .map-title h2 { font-size: 27px; } .reading-note { grid-template-columns: 1fr; gap: 20px; } .site-footer { padding: 20px 0; flex-direction: column; align-items: flex-start; gap: 7px; } .site-footer .chicago-stars { display: none; } }
+@media (max-width: 600px) { .site-header { min-height: 74px; gap: 16px; flex-wrap: wrap; padding: 14px 0; } .brand { font-size: 21px; gap: 10px; } .brand .chicago-stars { font-size: 15px; } nav { gap: 16px; } nav a { font-size: 11px; padding: 5px 0; } .intro { padding: 26px 0; } h1 { font-size: 38px; } .workbench { grid-template-columns: 1fr; height: auto; } .map-region { height: 75svh; min-height: 560px; } aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 20px; } #rent-controls { display: grid; grid-template-columns: 1fr; } #layers label { display: inline-flex; margin-right: 14px; } #layers { margin-top: 18px; } #reset { width: auto; margin-top: 15px; } #status { margin-bottom: 14px; } .map-title { top: 16px; left: 14px; } .map-title h2 { font-size: 27px; } .reading-note { grid-template-columns: 1fr; gap: 20px; } .site-footer { padding: 20px 0; flex-direction: column; align-items: flex-start; gap: 7px; }  }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
 
 .area-popup { font: 12px/1.6 'DM Sans', system-ui, sans-serif; color: var(--ink); max-height: 320px; overflow-y: auto; }
 .area-popup p { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .maplibregl-popup-content { background: var(--paper); padding: 18px; border: 1px solid var(--line); border-radius: 3px; }
+
+.project-page { margin: 0 4%; padding: 65px 0 90px; min-height: calc(100svh - 170px); border-bottom: 1px solid var(--line); }
+.project-page > .eyebrow { margin: 0 0 18px; }
+.project-lede { color: var(--muted); max-width: 580px; margin: 22px 0 35px; font-size: 16px; }
+.project-placeholder { max-width: 700px; padding: 30px; background: var(--paper); border: 1px solid var(--line); }
+.project-placeholder h2 { font: normal 30px/1.2 var(--serif); margin: 0 0 14px; }
+.project-placeholder p { color: var(--muted); margin: 0 0 22px; }
+.project-placeholder a { color: #2b6550; }
+@media (max-width: 850px) { .site-header { gap: 20px; flex-wrap: wrap; padding: 15px 0; } nav { flex-wrap: wrap; gap: 18px; } nav a { min-height: 36px; } }
+
+.data-page { max-width: 960px; }
+.data-page h2 { font: normal 30px/1.2 var(--serif); margin: 30px 0 16px; }
+.data-page p:not(.eyebrow) { color: var(--muted); max-width: 700px; font-size: 15px; line-height: 1.8; }
+.data-page .source-notes { margin-top: 32px; padding-top: 25px; border-top: 1px solid var(--line); max-width: 700px; font-size: 14px; }
+.chicago-reset-control button { display: grid; place-items: center; color: var(--ink); }
+
+.site-footer a.chicago-stars { text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }

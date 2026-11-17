@@ -79,7 +79,7 @@ async function start() {
       layers: [{ id: "basemap", type: "raster", source: "osm", paint: { "raster-saturation": -0.8, "raster-opacity": 0.65 } }]
     }, center: [-87.68, 41.84], zoom: 9.5
   });
-  map.addControl(new maplibregl.NavigationControl(), "top-right");
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   map.addControl(new maplibregl.ScaleControl());
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
@@ -104,6 +104,22 @@ async function start() {
   }
   layerData.city.features.forEach(feature => extend(feature.geometry.coordinates));
   const reset = () => map.fitBounds(bounds, { padding: 35, duration: 0 });
+  const chicagoControl = {
+    onAdd() {
+      this.container = document.createElement("div");
+      this.container.className = "maplibregl-ctrl maplibregl-ctrl-group chicago-reset-control";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.title = "Recenter and zoom to Chicago";
+      button.setAttribute("aria-label", "Recenter and zoom to Chicago");
+      button.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2.6 8.4M3 4v6h6"/></svg>';
+      button.addEventListener("click", reset);
+      this.container.append(button);
+      return this.container;
+    },
+    onRemove() { this.container.remove(); }
+  };
+  map.addControl(chicagoControl, "top-right");
   reset();
   let areaPopup;
   function updateMap() {
