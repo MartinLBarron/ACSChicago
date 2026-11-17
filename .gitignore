@@ -45,6 +45,7 @@ vignettes/*.pdf
 .Renviron
 
 # Generated caches and local dependencies
+html/data/web/*.geojson
 data/web/*
 !data/web/.gitkeep
 data/raw_data/*

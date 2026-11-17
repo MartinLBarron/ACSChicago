@@ -84,8 +84,8 @@ async function start() {
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
   const data = await Promise.all(definitions.map(async definition => {
-    const response = await fetch(`../data/web/${definition.file}.geojson`);
-    if (!response.ok) throw new Error(`Missing ${definition.file}: run the R pipeline and serve the project root.`);
+    const response = await fetch(`data/web/${definition.file}.geojson`);
+    if (!response.ok) throw new Error(`Could not load data/web/${definition.file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
     return response.json();
   }));
   await loaded;

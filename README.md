@@ -13,11 +13,12 @@ the project root:
 ```sh
 Rscript R/export_web_data.R
 Rscript R/export_rent_web_data.R
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory html
 ```
 
-Open <http://localhost:8000/html/>. Serve the project root so the page can access
-`data/web/`; opening the HTML directly as a file will not work. MapLibre's pinned
+Open <http://localhost:8000/>. The `html/` directory is a self-contained website;
+its map loads `html/data/web/` through relative `data/web/` paths. Opening the HTML
+directly as a file will not work. MapLibre's pinned
 CDN assets and OpenStreetMap basemap require internet access. Regenerate GeoJSON
 after refreshing shapefiles. All R source remains in `R/` and data in `data/`.
 
@@ -136,3 +137,23 @@ or density. Estimated zero has its own color class; missing estimates stay gray.
 The water-only Lake Michigan tract `17031990000` and its block group
 `170319900000` are excluded from the 2024 analytic datasets and rent map.
 The reproducible exclusion is in `R/acs_config.R`; raw sources are retained.
+
+## Shared hosting
+
+Run both export scripts (or `Rscript R/run_pipeline.R`) before uploading.
+The exporters keep research exports in `data/web/` and copy the four map assets
+into `html/data/web/`, verifying matching checksums. Upload **all contents of
+`html/`** to the hosting document root, preserving its subdirectories:
+
+```text
+index.html
+map.js
+style.css
+data/web/chicago_city.geojson
+data/web/chicago_community_areas.geojson
+data/web/tract_rent_2024.geojson
+data/web/block_group_rent_2024.geojson
+```
+
+The server needs no R installation, packages, raw inputs, or shapefiles. Generated
+GeoJSON copies are ignored by Git; include them explicitly in manual uploads.

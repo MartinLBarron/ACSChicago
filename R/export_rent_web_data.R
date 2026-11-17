@@ -2,6 +2,8 @@
 source("R/acs_config.R")
 if (!requireNamespace("sf", quietly = TRUE)) stop("Install sf first.")
 dir.create("data/web", recursive = TRUE, showWarnings = FALSE)
+site_data_dir <- file.path("html", "data", "web")
+dir.create(site_data_dir, recursive = TRUE, showWarnings = FALSE)
 for (kind in c("tract", "block_group")) {
   input <- file.path(acs_config$analytic_dir, paste0(kind, "_rent.gpkg"))
   if (!file.exists(input)) stop("Run Rscript R/download_acs_rent.R first.")
@@ -17,5 +19,8 @@ for (kind in c("tract", "block_group")) {
       stopifnot(isTRUE(all.equal(check[[column]], x[[column]])))
     }
   }
+  site_output <- file.path(site_data_dir, basename(output))
+  stopifnot(file.copy(output, site_output, overwrite = TRUE),
+            unname(tools::md5sum(output)) == unname(tools::md5sum(site_output)))
   message("Exported ", kind, ": ", nrow(x), " areas with estimates and MOEs")
 }
