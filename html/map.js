@@ -53,7 +53,7 @@ function renderLegend() {
     ? `${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed breaks across all periods. Gray includes missing inputs or no eligible units. MOEs are in percentage points.`
     : isCount
     ? "Estimated housing-unit counts, not percentages or density. Breaks are shared across both counts and geography levels. Zero is an estimate, not proof of no rental housing. Gray means no estimate."
-    : `Monthly ${periodControl.value} dollars; not adjusted for inflation. Fixed dollar breaks are shared across periods. Gross rent includes utilities and fuels. Gray means no estimate.`;
+    : `Monthly ${periodControl.value} dollars; not adjusted for inflation. ${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed dollar breaks across periods. ${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).group === "bedrooms" && Number(periodControl.value) < 2015 ? "Not published for this period; Census introduced the table in 2015." : "Gray means no estimate."}`;
   labels.forEach((label, i) => {
     const row = document.createElement("li");
     const swatch = document.createElement("span");
@@ -272,6 +272,10 @@ async function start() {
       lines.push(`${periodLabel(area.properties.acs_end_year)} ACS · ${area.properties.boundary_year} boundaries · rents in ${area.properties.dollar_year} dollars.`);
       const selectedMeasure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
       if (selectedMeasure.percent) lines.push(percentageText(area.properties, selectedMeasure));
+      if (selectedMeasure.money && selectedMeasure.group === "bedrooms") {
+        lines.push(rentText(area.properties, selectedMeasure.id, selectedMeasure.label));
+        lines.push(selectedMeasure.description);
+      }
       lines.push(rentText(area.properties, "median_contract_rent", "Median contract rent"));
       lines.push(rentText(area.properties, "median_gross_rent", "Median gross rent"));
       lines.push(countText(area.properties, "cash_rent_units", "Occupied units paying cash rent"));

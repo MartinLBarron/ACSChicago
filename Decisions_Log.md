@@ -1,27 +1,135 @@
-# Decision Log
+# Rent burden, renter bedrooms, and utility payment
 
-## 2026-11-17
-- User selected the latest available ACS five-year release, 2020–2024 (API year 2024), rather than multiple annual releases or the unreleased 2025 five-year data.
-- User selected median monthly contract rent (B25058_001) and gross rent (B25064_001), each retaining its published 90% margin of error.
-- User selected ACS-year-matched TIGER boundaries and whole geographies with positive Chicago area overlap. Therefore ACS outputs use 2024 TIGER/Line boundaries; existing 2025 map layers remain separate.
-- Original API responses and annotations are cached alongside tidycensus results. Negative special codes become missing analytic dollar values while original codes remain in companion columns. Implementation by Codex.
-- The cached official City boundary defines Chicago overlap. Partial suburban areas and O'Hare remain included under the user's previously approved selection rule. Rents describe whole Census areas, not just their Chicago portions.
+Official ACS five-year estimates for 2010–2014, 2015–2019, and 2020–2024,
+retrieved for the same selected tracts/block groups and Chicago city place as the
+core rent pipeline. Whole areas with positive Chicago overlap are retained,
+excluding Lake Michigan tract 17031990000 and its block group. Chicago place
+statistics are retrieved directly, not aggregated from smaller geographies.
 
-- User requested rent choropleths and delegated reasonable breaks. Codex selected fixed monthly-dollar thresholds of 750, 1000, 1250, 1500, 2000, and 2500, shared across measures and geography levels for direct comparison. Sequential YlGnBu colors show estimates; missing estimates are gray. Default view is gross rent by tract. MOEs and Census annotations are shown on click; colors do not encode significance. Rent mapping uses matching 2024 analytic geometry, replacing 2025 Census geometry in the displayed map.
-- User requested occupied units paying cash rent (B25063_002) and all renter-occupied units (B25003_003). Both are added for 2020–2024 tracts and block groups, retaining estimates, 90% MOEs, raw codes, and annotations. Added counts are cached separately to preserve original rent source files. Count units are explicitly distinguished from monthly dollar values. Map click details include counts without classifying missing-median causes as certain.
+## Stages and outputs
 
-- User requested both housing-unit counts as selectable map measures. Count maps use shared classes 0, 1–99, 100–249, 250–499, 500–999, 1,000–1,999, and 2,000+ across both geography levels and count measures. Zero is shown separately from missing data. Counts are labeled as absolute estimated units, not rates or density. Existing dollar breaks remain for rents. Implementation by Codex.
-- User requested removal of the large Lake Michigan offshore Census area. Confirmed 2024 tract 17031990000 and block group 170319900000 have ALAND = 0 and AWATER = 1,717,072,182 square meters. Exclude that tract and its child block group before creating analytic datasets and web exports; retain original source downloads. The exact tract exclusion is configured in R/acs_config.R and asserts zero land for excluded selected areas. Other geography selection rules remain in effect.
-- User requested the same measures across non-overlapping releases, then explicitly dropped 2005–2009 because of tidycensus's historical block-group restriction. Adopt 2010–2014, 2015–2019, and 2020–2024, using the same measures, published 90% MOEs, raw codes, annotations, positive City overlap selection, and Lake Michigan exclusion.
-- Each release uses its matching TIGER year. Combine as repeated cross-sections keyed by period and GEOID, not a harmonized longitudinal panel. Preserve rents and MOEs in each period's published end-year dollars and label dollar_year; no inflation conversion has been selected. Existing website remains on 2020–2024. Implementation by Codex.
+1. `R/download_acs_housing.R` retrieves and caches source data using tidycensus
+   plus companion original API JSON, and verifies E/M values against the API.
+2. `R/derive_acs_housing.R` computes derived percentages and MOEs offline.
+   The full `R/run_pipeline.R` runs both stages after the core ACS downloads.
 
-- User requested a map period picker. Display all three periods on demand with matching boundary vintages; default to 2020–2024. Preserve shared breaks and selected measure/geography, label period and dollar year, and retain the Lake Michigan exclusion. Original nominal-dollar estimates and MOEs are unchanged.
-- User approved retrieving published Chicago city place-level statistics for all three existing periods and all four measures. Use state 17 / place 14000 / GEOID 1714000 without county restriction. Preserve published estimates, 90% MOEs, raw codes, and annotations using the shared validation/formatting pipeline. Write separate citywide tables per period and combined; do not aggregate tract/block-group medians. Frontend summary cards remain a separate task.
+Source metadata, original API JSON, tidycensus RDS results, and checksum manifests
+are stored in `data/raw_data/acs_YEAR/housing/`. Existing rent caches are preserved.
+Each period's `data/analytic/acs_YEAR/` directory contains:
 
-- User requested Chicago-wide statistic boxes and D3 trend graphs below the map. Use four citywide cards linked to the map period and four small-multiple line charts, keeping monthly dollars separate from housing-unit counts. Show published 90% MOEs, nominal-dollar labeling, period labels, and an accessible table with annotations. Default to the latest period and highlight it on all charts. No inflation adjustment or significance claim is introduced.
+- `housing_source_codebook.csv`: actual release-specific labels and variable codes.
+- `TAG_housing_source.csv` / `.rds`: 21 source counts plus six bedroom-specific rent medians per area in wide form.
+- `TAG_housing_source_long.csv` / `.rds`: one row per area/source variable.
+- `TAG_housing_derived_long.csv` / `.rds`: one row per area/derived percentage.
+- `TAG_housing.csv` / `.rds`: original four rent/count measures, 21 supplementary source counts and six published
+  bedroom-specific medians, and derived percentages joined in one wide analytic dataset.
+- `TAG_housing.gpkg`: matching geometry and the extended analytic data for tracts
+  and block groups only. Citywide data are tabular.
 
-- User requested an independent period selector in the citywide statistics header. City cards and highlighted trend points now follow that selector, defaulting to 2020–2024; map period and citywide statistics period do not update each other. Charts continue showing all three periods.
-- User requested raw rent-burden, bedroom-count, and utility-payment data plus derived variables, and explicitly confirmed the proposed definitions: rent burden at 30%+ and 50%+ excluding not-computed cases, renter-bedroom shares from studio through 5+, and no-extra-utility-payment share. Retrieve B25070 001–011, B25042 009–015, and B25069 001–003 for all three periods/geographies, retaining original E/M/EA/MA data.
-- Derive percentages with table-specific denominators and approximate 90% MOEs using tidycensus moe_sum/moe_prop; propagate missing values, expose zero-denominator and missing-MOE cases, and record the ratio fallback. Also retain the complementary extra-utility-payment share, 3+-bedroom share, and rent-burden not-computed share for coverage. Source and derived stages are separate; original core rent datasets and frontend measures are preserved. Implementation by Codex.
+TAG is `tract`, `block_group`, or `chicago_city`. Combined extended, source-long,
+and derived-long CSV/RDS files are in `data/analytic/acs_combined/`. Combined
+GeoPackages have separate native-geography layers `acs_2014`, `acs_2019`, and
+`acs_2024`. The unique wide key is (`acs_end_year`, `GEOID`); long files also use
+`variable`. `housing_validation_summary.csv` reports definition/MOE statuses.
+The existing core `_rent` files and website measures are preserved. The map and citywide dashboard expose the derived percentages through grouped
+measure/topic pickers. Source counts remain available in the analytical files.
 
-- User requested displaying the new variables. Expose all 12 derived percentages in the map, using shared percentage breaks at 10/20/30/40/50/75, and thematic citywide cards/charts/table. Keep source counts in analytical files; display percentage MOEs in percentage points and document denominator differences. Citywide period/topic controls remain independent of map controls. Existing monetary and count units/legends are retained.
+## Source counts and universes
+
+All counts and their MOEs have units of **housing units**. B25031 medians and
+their MOEs have units of monthly end-year dollars.
+
+| Source | Fields | Population described |
+| --- | --- | --- |
+| B25070 | 001 total; 002–010 rent/income bands; 011 not computed | Renter-occupied housing units |
+| B25042 | 009 renter total; 010–015 studio, 1, 2, 3, 4, 5+ bedrooms | Renter-occupied housing units, including no-cash-rent units |
+| B25069 | 001 total; 002 extra utility payment; 003 no extra payment for any utilities | Renter-occupied housing units |
+| B25031 | 002–007 studio/no bedroom, 1, 2, 3, 4, 5+ bedrooms | Renter-occupied housing units paying cash rent; only available from the 2015 release |
+
+Source fields preserve `_estimate`, `_moe`, `_estimate_raw`, `_moe_raw`,
+`_estimate_annotation`, and `_moe_annotation`. Negative API special codes become
+missing usable values, while raw codes and annotations are retained. Missing
+MOEs are not replaced by zero. Source metadata are checked separately for each
+release; no estimate is inferred from a missing code.
+
+## Derived percentages
+
+| Variable | Numerator | Denominator |
+| --- | --- | --- |
+| rent_burden_30plus_pct | B25070 007–010: 30% or more of income | Sum of B25070 002–010: computed rent/income categories |
+| rent_burden_50plus_pct | B25070 010: 50% or more | Same computed-category denominator |
+| rent_burden_not_computed_pct | B25070 011 | B25070 001 total |
+| renter_bedrooms_0_pct through renter_bedrooms_5plus_pct | Individual B25042 010–015 categories | B25042 009 renter total |
+| renter_bedrooms_3plus_pct | B25042 013–015 | B25042 009 renter total |
+| utilities_included_pct | B25069 003: no extra payment for any utilities | B25069 001 total |
+| utilities_extra_pct | B25069 002: extra for one or more utilities | B25069 001 total |
+
+All percentages are 0–100; MOEs are **percentage points**, not relative percent.
+The burden denominator excludes the not-computed category. The separate
+not-computed share exposes that coverage limitation. Utilities-included means
+**no additional utility payment**, not a measured utility expenditure or an
+inference from subtracting median gross and contract rent. Bedroom percentages
+measure housing composition, not median rents by bedroom size. No average bedroom
+count is computed because the top category is open-ended (5+).
+
+## Uncertainty and undefined values
+
+Count sums use `tidycensus::moe_sum(moe, estimate = estimates)` with missing values
+propagated. For multiple components with zero estimates, only the largest of their
+MOEs contributes, following the implemented Census guidance. A single published
+count retains its original MOE.
+
+Percentages use `100 * tidycensus::moe_prop(n, d, moe_n, moe_d)`. This uses the
+subset-proportion approximation, with the package's ratio fallback when the
+subset variance expression is nonpositive. These are approximate 90% MOEs;
+component covariances are not available. All burden denominator MOEs are computed
+by summing the disjoint computed categories, rather than treating total minus
+not-computed as independent quantities. Calculated MOEs are not capped at 100.
+
+Derived long outputs retain numerator/denominator estimates and MOEs, formula
+component names, `estimate_status`, `moe_status`, and `moe_method`. The wide files
+retain each derived percentage's estimate, MOE, statuses, and method. Estimates
+are missing if any required source count is missing, the denominator is zero, or
+the numerator exceeds its denominator. An otherwise valid percentage can retain
+its estimate while its MOE is missing. Missing counts are not summed with `na.rm`.
+A zero estimate is not proof that the true population count is zero.
+
+Source partition totals are checked within each table. Core rent columns and
+selected GEOIDs are checked unchanged by the final joins. Small synthetic fixtures
+in `R/check_housing_derivations.R` verify sum MOEs, subset/fallback formulas,
+missing inputs, and zero denominators. Re-run the full pipeline end-to-end to
+confirm reproducibility; cached sources and checksums make repeat runs comparable.
+
+## Documentation
+
+- [B25070: rent as a percentage of income](https://api.census.gov/data/2024/acs/acs5/groups/B25070.html)
+- [B25042: tenure by bedrooms](https://api.census.gov/data/2024/acs/acs5/groups/B25042.html)
+- [B25069: utilities included in rent](https://api.census.gov/data/2024/acs/acs5/groups/B25069.html)
+- [tidycensus proportion MOEs](https://walker-data.com/tidycensus/reference/moe_prop.html)
+- [tidycensus sum MOEs](https://walker-data.com/tidycensus/reference/moe_sum.html)
+
+
+## Published rent medians by bedrooms (B25031)
+
+`median_gross_rent_bedrooms_0`, `_1`, `_2`, `_3`, `_4`, and `_5plus` correspond to
+B25031_002 through B25031_007. Each retains estimate, MOE, raw E/M values,
+annotations, and `source_status`. Medians are retrieved directly, not derived
+from the bedroom-composition table or averaged across areas. Source metadata and
+API responses for this group have separate cached filenames containing
+`bedroom_rent`, preserving prior source files.
+
+The table was introduced in the 2015 release, so 2010–2014 has explicit structural
+gaps with `source_status = table_not_published`, missing numeric/raw values, and
+no fabricated Census annotations. No API request for B25031 is made in 2014.
+That year's source codebook lists only actually published source fields.
+2019/2024 table entries have `source_status = published`, even where an individual
+median is unavailable or bounded. The original API annotations remain essential
+for interpreting top/bottom-coded medians. See the [Census introduction note](https://www.census.gov/programs-surveys/acs/technical-documentation/table-and-geography-changes/2015/5-year.html).
+
+The public Bedrooms view now displays these six medians instead of composition
+shares. The latter remain in analytic files. Web exports contain 15 displayed
+measures (four core measures, six bedroom rent medians, and five burden/utility
+percentages). Both geographic levels and the citywide dashboard retain the same
+period pickers. There is no corresponding published ACS detailed table for
+median contract rent by bedrooms, and aggregate medians do not supply the missing
+joint distribution needed to calculate it.

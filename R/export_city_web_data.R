@@ -5,8 +5,8 @@ input <- "data/analytic/acs_combined/chicago_city_housing.rds"
 if (!file.exists(input)) stop("Run the core and supplementary ACS pipeline stages first.")
 x <- readRDS(input)
 x <- x[order(x$acs_end_year), ]
-measures <- c(names(acs_config$variables), names(housing_derivations))
-suffixes <- c("estimate", "moe", "estimate_raw", "moe_raw", "estimate_annotation", "moe_annotation", "estimate_status", "moe_status", "moe_method")
+measures <- housing_display_variables(acs_config$variables)
+suffixes <- c("estimate", "moe", "estimate_raw", "moe_raw", "estimate_annotation", "moe_annotation", "estimate_status", "moe_status", "moe_method", "source_status")
 fields <- c("GEOID", "NAME", "geography", "acs_start_year", "acs_end_year", "period", "dollar_year", "boundary_year", "moe_confidence", "synthetic_data", as.vector(outer(measures, suffixes, paste, sep = "_")))
 x <- x[intersect(fields, names(x))]
 stopifnot(nrow(x) == length(acs_years), setequal(x$acs_end_year, acs_years),

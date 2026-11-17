@@ -18,11 +18,11 @@ are stored in `data/raw_data/acs_YEAR/housing/`. Existing rent caches are preser
 Each period's `data/analytic/acs_YEAR/` directory contains:
 
 - `housing_source_codebook.csv`: actual release-specific labels and variable codes.
-- `TAG_housing_source.csv` / `.rds`: 21 source counts per area in wide form.
+- `TAG_housing_source.csv` / `.rds`: 21 source counts plus six bedroom-specific rent medians per area in wide form.
 - `TAG_housing_source_long.csv` / `.rds`: one row per area/source variable.
 - `TAG_housing_derived_long.csv` / `.rds`: one row per area/derived percentage.
-- `TAG_housing.csv` / `.rds`: original four rent/count measures, 21 supplementary
-  source counts, and derived percentages joined in one wide analytic dataset.
+- `TAG_housing.csv` / `.rds`: original four rent/count measures, 21 supplementary source counts and six published
+  bedroom-specific medians, and derived percentages joined in one wide analytic dataset.
 - `TAG_housing.gpkg`: matching geometry and the extended analytic data for tracts
   and block groups only. Citywide data are tabular.
 
@@ -36,13 +36,15 @@ measure/topic pickers. Source counts remain available in the analytical files.
 
 ## Source counts and universes
 
-All counts and their MOEs have units of **housing units**.
+All counts and their MOEs have units of **housing units**. B25031 medians and
+their MOEs have units of monthly end-year dollars.
 
 | Source | Fields | Population described |
 | --- | --- | --- |
 | B25070 | 001 total; 002–010 rent/income bands; 011 not computed | Renter-occupied housing units |
 | B25042 | 009 renter total; 010–015 studio, 1, 2, 3, 4, 5+ bedrooms | Renter-occupied housing units, including no-cash-rent units |
 | B25069 | 001 total; 002 extra utility payment; 003 no extra payment for any utilities | Renter-occupied housing units |
+| B25031 | 002–007 studio/no bedroom, 1, 2, 3, 4, 5+ bedrooms | Renter-occupied housing units paying cash rent; only available from the 2015 release |
 
 Source fields preserve `_estimate`, `_moe`, `_estimate_raw`, `_moe_raw`,
 `_estimate_annotation`, and `_moe_annotation`. Negative API special codes become
@@ -105,3 +107,29 @@ confirm reproducibility; cached sources and checksums make repeat runs comparabl
 - [B25069: utilities included in rent](https://api.census.gov/data/2024/acs/acs5/groups/B25069.html)
 - [tidycensus proportion MOEs](https://walker-data.com/tidycensus/reference/moe_prop.html)
 - [tidycensus sum MOEs](https://walker-data.com/tidycensus/reference/moe_sum.html)
+
+
+## Published rent medians by bedrooms (B25031)
+
+`median_gross_rent_bedrooms_0`, `_1`, `_2`, `_3`, `_4`, and `_5plus` correspond to
+B25031_002 through B25031_007. Each retains estimate, MOE, raw E/M values,
+annotations, and `source_status`. Medians are retrieved directly, not derived
+from the bedroom-composition table or averaged across areas. Source metadata and
+API responses for this group have separate cached filenames containing
+`bedroom_rent`, preserving prior source files.
+
+The table was introduced in the 2015 release, so 2010–2014 has explicit structural
+gaps with `source_status = table_not_published`, missing numeric/raw values, and
+no fabricated Census annotations. No API request for B25031 is made in 2014.
+That year's source codebook lists only actually published source fields.
+2019/2024 table entries have `source_status = published`, even where an individual
+median is unavailable or bounded. The original API annotations remain essential
+for interpreting top/bottom-coded medians. See the [Census introduction note](https://www.census.gov/programs-surveys/acs/technical-documentation/table-and-geography-changes/2015/5-year.html).
+
+The public Bedrooms view now displays these six medians instead of composition
+shares. The latter remain in analytic files. Web exports contain 15 displayed
+measures (four core measures, six bedroom rent medians, and five burden/utility
+percentages). Both geographic levels and the citywide dashboard retain the same
+period pickers. There is no corresponding published ACS detailed table for
+median contract rent by bedrooms, and aggregate medians do not supply the missing
+joint distribution needed to calculate it.

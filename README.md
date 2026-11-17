@@ -239,8 +239,8 @@ exact definitions and file layout. These derived measures are available in the m
 
 ## Dashboard housing topics
 
-The map's grouped measure picker includes all 12 derived percentages in addition
-to the four original measures. Shared percentage breaks are 10, 20, 30, 40, 50,
+The map's grouped measure picker includes median gross rent by bedrooms,
+rent-burden percentages, utility-payment shares, and the four original measures. Shared percentage breaks are 10, 20, 30, 40, 50,
 and 75 percent across periods and geography levels. Missing or undefined shares
 are gray; valid zero shares remain in the lowest color class. Map popups show the
 selected share, its approximate MOE in percentage points, and its denominator definition.
@@ -250,6 +250,23 @@ data table among rent/rental housing, rent burden, bedrooms, and utilities. Its
 statistics-period selector remains independent of the map period. Percentage
 charts use a 0–100 reference scale, extended when necessary to show MOE bars.
 `html/measures.js` defines the common display labels, units, and denominators.
-Web exports now read extended `_housing` datasets and validate all 16 measures.
+Web exports now read extended `_housing` datasets and validate all 15 displayed measures.
 Re-run both web export scripts after the housing derivation stage; upload the
 entire `html/` directory, including `measures.js` and refreshed JSON/GeoJSON files.
+
+
+## Median gross rent by bedroom count
+
+The Bedrooms composition view has been replaced by **Rent by bedroom** on the map
+and citywide dashboard. It displays six published medians from B25031_002–007:
+studio/no bedroom, 1, 2, 3, 4, and 5+ bedrooms. These are gross rents including
+renter-paid utilities/fuels, not contract rent. They use the existing shared dollar
+breaks and nominal end-year dollar labels. Published 90% MOEs, raw codes, and
+annotations are retained. Bedroom-composition counts and shares remain in the
+analytic files for modeling.
+
+B25031 was introduced with the 2015 release. The pipeline requests it for 2019
+and 2024; 2014 entries have null values and `source_status = table_not_published`,
+not imputed medians or synthetic API codes. The interface explains the gap.
+These structural missing rows are explicitly distinguished from missing medians
+in published tables. All requested periods and existing geography rules remain.

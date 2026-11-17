@@ -199,7 +199,7 @@ prepare_acs_dataset <- function(tidy, api, boundaries, kind, config) {
   }
   selected <- selected |>
     dplyr::mutate(variable_code = unname(config$variables[variable]),
-                  unit = ifelse(variable %in% c("median_contract_rent", "median_gross_rent"),
+                  unit = ifelse(grepl("^median_.*rent", variable),
                                 paste("monthly", config$year, "dollars"), "housing units"),
                   acs_start_year = config$year - 4L, acs_end_year = config$year,
                   period = paste0(config$year - 4L, "–", config$year),
