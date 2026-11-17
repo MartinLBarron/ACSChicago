@@ -1,7 +1,6 @@
 /* global maplibregl */
 "use strict";
 const status = document.getElementById("status");
-const details = document.getElementById("details");
 // Each family shares breaks across tract and block-group views.
 const rentBreaks = [750, 1000, 1250, 1500, 2000, 2500];
 // A separate zero class distinguishes estimated zero from missing data.
@@ -24,6 +23,7 @@ const measureControl = document.getElementById("measure");
 const geographyControl = document.getElementById("geography");
 function renderLegend() {
   document.getElementById("legend-title").textContent = measureControl.selectedOptions[0].textContent;
+  document.getElementById("map-heading").textContent = measureControl.selectedOptions[0].textContent;
   const list = document.getElementById("legend");
   list.replaceChildren();
   const { isCount } = selectedScale();
@@ -105,7 +105,9 @@ async function start() {
   layerData.city.features.forEach(feature => extend(feature.geometry.coordinates));
   const reset = () => map.fitBounds(bounds, { padding: 35, duration: 0 });
   reset();
+  let areaPopup;
   function updateMap() {
+    if (areaPopup) areaPopup.remove();
     const field = `${measureControl.value}_estimate`;
     const numeric = ["to-number", ["get", field], -1];
     const step = ["step", numeric, colors[0]];
@@ -123,7 +125,6 @@ async function start() {
     const features = layerData[geographyControl.value].features;
     const unavailable = features.filter(feature => typeof feature.properties[field] !== "number" || feature.properties[field] < 0).length;
     status.textContent = `${features.length.toLocaleString()} ${geographyControl.selectedOptions[0].textContent.toLowerCase()} · ${unavailable.toLocaleString()} without an estimate`;
-    details.textContent = "Click an area to inspect rent and housing-unit estimates with their 90% margins of error.";
   }
   document.getElementById("layers").disabled = false;
   document.getElementById("rent-controls").disabled = false;
@@ -140,7 +141,8 @@ async function start() {
     const features = map.queryRenderedFeatures(event.point, { layers: ["communities-fill", `${geographyControl.value}-fill`] });
     const community = features.find(feature => feature.layer.id === "communities-fill");
     const area = features.find(feature => feature.layer.id === `${geographyControl.value}-fill`);
-    details.replaceChildren();
+    const details = document.createElement("div");
+    details.className = "area-popup";
     const lines = [];
     if (community) lines.push(`Community: ${community.properties.community} (area ${community.properties.area_numbe})`);
     if (area) {
@@ -153,6 +155,9 @@ async function start() {
     }
     if (!area) lines.push("No selected Census area at this location.");
     lines.forEach(line => { const paragraph = document.createElement("p"); paragraph.textContent = line; details.append(paragraph); });
+    if (areaPopup) areaPopup.remove();
+    areaPopup = new maplibregl.Popup({ maxWidth: "320px" })
+      .setLngLat(event.lngLat).setDOMContent(details).addTo(map);
   });
   updateMap();
 }
