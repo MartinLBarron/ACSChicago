@@ -121,10 +121,10 @@ get_county_rent <- function(kind, county, config) {
        api = dplyr::left_join(rent$api, counts$api[count_columns], by = "GEOID"))
 }
 
-get_chicago_place_rent <- function(config) {
-  json_path <- file.path(config$raw_dir, "chicago_place_api.json")
+get_chicago_place_rent <- function(config, cache_suffix = "") {
+  json_path <- file.path(config$raw_dir, paste0("chicago_place", cache_suffix, "_api.json"))
   cache_api_response("place", NULL, config, json_path)
-  rds_path <- file.path(config$raw_dir, "chicago_place_tidycensus.rds")
+  rds_path <- file.path(config$raw_dir, paste0("chicago_place", cache_suffix, "_tidycensus.rds"))
   if (!file.exists(rds_path)) {
     # Request Illinois places through tidycensus, then keep the whole Chicago place.
     # No county restriction: Chicago spans more than one county.
@@ -151,6 +151,26 @@ build_rent_dataset <- function(kind, boundaries, config) {
   }
   tidy <- dplyr::bind_rows(lapply(downloads, `[[`, "tidy"))
   api <- dplyr::bind_rows(lapply(downloads, `[[`, "api"))
+  prepared <- prepare_acs_dataset(tidy, api, boundaries, kind, config)
+  selected <- prepared$long
+  wide <- prepared$wide
+  tag <- if (kind == "place") "chicago_city" else gsub(" ", "_", kind)
+  readr::write_csv(selected, file.path(config$analytic_dir, paste0(tag, "_rent_long.csv")))
+  readr::write_csv(wide, file.path(config$analytic_dir, paste0(tag, "_rent.csv")))
+  saveRDS(wide, file.path(config$analytic_dir, paste0(tag, "_rent.rds")))
+  saveRDS(selected, file.path(config$analytic_dir, paste0(tag, "_rent_long.rds")))
+  if (kind != "place") {
+    spatial <- boundaries[, "GEOID", drop = FALSE] |> dplyr::left_join(wide, by = "GEOID")
+    sf::st_write(spatial, file.path(config$analytic_dir, paste0(tag, "_rent.gpkg")),
+                 delete_dsn = TRUE, quiet = TRUE)
+  }
+  data.frame(acs_end_year = config$year, geography = kind, areas = nrow(wide),
+             missing_estimates = sum(is.na(selected$estimate)),
+             missing_moes = sum(is.na(selected$moe)))
+}
+
+# Shared source validation and formatting for core and supplementary ACS tables.
+prepare_acs_dataset <- function(tidy, api, boundaries, kind, config) {
   stopifnot(!anyDuplicated(api$GEOID),
             all(boundaries$GEOID %in% api$GEOID))
   selected <- tidy |> dplyr::filter(GEOID %in% boundaries$GEOID)
@@ -179,8 +199,8 @@ build_rent_dataset <- function(kind, boundaries, config) {
   }
   selected <- selected |>
     dplyr::mutate(variable_code = unname(config$variables[variable]),
-                  unit = ifelse(variable %in% c("cash_rent_units", "renter_occupied_units"),
-                                "housing units", paste("monthly", config$year, "dollars")),
+                  unit = ifelse(variable %in% c("median_contract_rent", "median_gross_rent"),
+                                paste("monthly", config$year, "dollars"), "housing units"),
                   acs_start_year = config$year - 4L, acs_end_year = config$year,
                   period = paste0(config$year - 4L, "–", config$year),
                   dollar_year = config$year,
@@ -197,21 +217,9 @@ build_rent_dataset <- function(kind, boundaries, config) {
       names_glue = "{variable}_{.value}"
     )
   stopifnot(nrow(wide) == nrow(boundaries), !anyDuplicated(wide$GEOID))
-  for (measure in c("cash_rent_units", "renter_occupied_units")) {
+  for (measure in intersect(c("cash_rent_units", "renter_occupied_units"), names(config$variables))) {
     values <- wide[[paste0(measure, "_estimate")]]
     stopifnot(all(is.na(values) | (values >= 0 & values == floor(values))))
   }
-  tag <- if (kind == "place") "chicago_city" else gsub(" ", "_", kind)
-  readr::write_csv(selected, file.path(config$analytic_dir, paste0(tag, "_rent_long.csv")))
-  readr::write_csv(wide, file.path(config$analytic_dir, paste0(tag, "_rent.csv")))
-  saveRDS(wide, file.path(config$analytic_dir, paste0(tag, "_rent.rds")))
-  saveRDS(selected, file.path(config$analytic_dir, paste0(tag, "_rent_long.rds")))
-  if (kind != "place") {
-    spatial <- boundaries[, "GEOID", drop = FALSE] |> dplyr::left_join(wide, by = "GEOID")
-    sf::st_write(spatial, file.path(config$analytic_dir, paste0(tag, "_rent.gpkg")),
-                 delete_dsn = TRUE, quiet = TRUE)
-  }
-  data.frame(acs_end_year = config$year, geography = kind, areas = nrow(wide),
-             missing_estimates = sum(is.na(selected$estimate)),
-             missing_moes = sum(is.na(selected$moe)))
+  list(long = selected, wide = wide)
 }

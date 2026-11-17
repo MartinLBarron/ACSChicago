@@ -214,3 +214,25 @@ It runs at the end of `R/run_pipeline.R` and can also be run independently after
 ACS retrieval. Include this JSON, `city-stats.js`, and the pinned D3 library in
 `html/vendor/` in uploads, along with the existing HTML/CSS/map assets and GeoJSON.
 The four cards and HTML table remain available if the chart library fails to load.
+
+## Rent burden, bedrooms, and utilities
+
+The full pipeline now retrieves supplementary source counts from B25070 (rent
+burden), B25042 (renter bedrooms), and B25069 (utility payment) for every period,
+tract/block group, and Chicago place. To run these stages independently after
+core ACS retrieval:
+
+```sh
+Rscript R/download_acs_housing.R
+Rscript R/derive_acs_housing.R
+```
+
+`R/housing_config.R` defines source variables and formulas. Raw counts retain
+estimates, MOEs, special codes, and annotations in a separate cache. The derived
+stage computes 30%+/50%+ rent-burden shares, renter-bedroom shares, and utility
+payment shares, with approximate 90% MOEs in percentage points. It records
+numerators, denominators, missingness reasons, and MOE methods. Combined analytic
+files are `data/analytic/acs_combined/TAG_housing.*`, with separate source and
+derived long files. See [the housing codebook](docs/acs_housing_codebook.md) for
+exact definitions and file layout. These datasets are ready for later frontend
+additions; existing map and citywide chart measures are unchanged.
