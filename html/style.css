@@ -30,3 +30,10 @@ a { color: #155c86; }
 }
 
 .tracts { background: #b16b08; }
+
+select { width: 100%; padding: 9px; font: inherit; color: #192d40; background: white; border: 1px solid #b7c6d2; border-radius: 4px; }
+#legend { list-style: none; padding: 0; font-size: 14px; }
+#legend li { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+.swatch { width: 24px; height: 18px; border: 1px solid #79838a; flex-shrink: 0; }
+.note { font-size: 12px; }
+#details p { font-size: 14px; overflow-wrap: anywhere; }

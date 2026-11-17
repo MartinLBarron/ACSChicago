@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chicago boundary explorer</title>
+  <title>Chicago rent explorer</title>
   <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
   <script defer src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
@@ -11,10 +11,22 @@
 </head>
 <body>
   <aside>
-    <h1>Chicago boundaries</h1>
-    <p>Explore the city, its 77 community areas, and 2025 Census block groups and tracts.</p>
+    <h1>Chicago rents</h1>
+    <p>Rent and rental housing · ACS 2020–2024<br>2024 Census boundaries</p>
+    <fieldset disabled id="rent-controls">
+      <legend>Rent map</legend>
+      <label for="measure">Measure</label>
+      <select id="measure"><option value="median_gross_rent">Median gross rent</option><option value="median_contract_rent">Median contract rent</option><option value="cash_rent_units">Occupied units paying cash rent</option><option value="renter_occupied_units">Renter-occupied units</option></select>
+      <label for="geography">Geography</label>
+      <select id="geography"><option value="tracts">Census tracts</option><option value="blocks">Block groups</option></select>
+    </fieldset>
+    <section aria-labelledby="legend-title">
+      <h2 id="legend-title">Median gross rent</h2>
+      <ul id="legend" aria-label="Monthly rent color scale"></ul>
+      <p class="note" id="legend-note">Monthly 2024 dollars. Gray means no estimate.</p>
+    </section>
     <fieldset disabled id="layers">
-      <legend>Visible layers</legend>
+      <legend>Boundary outlines</legend>
       <label><input type="checkbox" data-layer="city" checked><span class="key city"></span>City limits</label>
       <label><input type="checkbox" data-layer="communities" checked><span class="key communities"></span>Community areas</label>
       <label><input type="checkbox" data-layer="blocks" checked><span class="key blocks"></span>Block groups</label>
@@ -23,14 +35,14 @@
     <button id="reset" disabled>Show all of Chicago</button>
     <p id="status" role="status">Loading boundaries…</p>
     <section aria-labelledby="detail-title">
-      <h2 id="detail-title">Inspect a boundary</h2>
-      <p id="details">Click the map for community names, tract and block group GEOIDs.</p>
+      <h2 id="detail-title">Inspect an area</h2>
+      <div id="details" aria-live="polite">Click an area for estimates and 90% margins of error.</div>
     </section>
     <footer>Sources: <a href="https://data.cityofchicago.org/d/qqq8-j68g">City of Chicago</a>,
       <a href="https://data.cityofchicago.org/d/igwz-8jzy">community areas</a>, and
-      <a href="https://www.census.gov/geographies/mapping-files/2025/geo/tiger-line-file.html">Census TIGER/Line 2025</a>.
-      Whole block groups and tracts with positive city overlap are shown; some extend beyond city limits.</footer>
+      <a href="https://www.census.gov/geographies/mapping-files/2024/geo/tiger-line-file.html">Census TIGER/Line</a>.
+      Rent and housing counts: ACS 2020–2024 (B25058, B25064, B25063, B25003), matched to 2024 TIGER boundaries. Colors show estimates, not statistical significance. Whole block groups and tracts with positive city overlap are shown; some extend beyond city limits.</footer>
   </aside>
-  <main id="map" aria-label="Interactive map of Chicago boundaries"></main>
+  <main id="map" aria-label="Interactive choropleth map of Chicago rents"></main>
 </body>
 </html>

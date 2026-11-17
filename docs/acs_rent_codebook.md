@@ -18,7 +18,7 @@ Under `data/analytic/acs_2024/`, `tract_rent` and `block_group_rent` each have:
 - `.csv`: one row per selected whole Census area, with both measures side by side.
 - `.rds`: the same table with R types preserved.
 - `.gpkg`: the table joined to full 2024 geometry (EPSG:26916).
-- `_long.csv`: two rows per area, one per measure, including the variable code.
+- `_long.csv`: four rows per area, one per measure, including variable code and unit.
 
 `validation_summary.csv` records row counts and missing E/M values;
 `package_versions.csv` records direct dependency versions. Raw JSON responses,
@@ -56,3 +56,27 @@ The City snapshot is not a historical 2024 city-limit reconstruction. No areal
 allocation of rent values is performed. Use these matching 2024 geometries for
 mapping the rent estimates, rather than assuming the existing 2025 map has
 identical GEOIDs or geometry.
+
+## Housing-unit counts
+
+Both tract and block-group datasets also include:
+
+| Prefix | ACS variable | Definition |
+| --- | --- | --- |
+| cash_rent_units | B25063_002 | Estimated renter-occupied housing units paying cash rent |
+| renter_occupied_units | B25003_003 | Estimated renter-occupied housing units, including those occupied without payment of cash rent |
+
+Each prefix has `_estimate`, `_moe` (published 90%), `_estimate_raw`, `_moe_raw`,
+`_estimate_annotation`, and `_moe_annotation` columns, as with the rent measures.
+Count estimates and their MOEs are in **housing units**, not dollars. Long files
+have four rows per area and a `unit` column distinguishing housing units from
+monthly 2024 dollars. Wide files retain one row per area.
+Counts use the same ACS period, selected GEOIDs, and boundaries as the rents.
+
+Original rent downloads are retained unchanged. Additional API JSON and
+tidycensus RDS files use the `_housing_counts` suffix. All inputs are covered by
+the existing checksum manifest. The map's click details include both counts and
+MOEs; the color scale remains monthly rent. Counts can help interpret missing
+medians, but an ACS estimated zero is not proof of no actual cash-rent units.
+A positive count with a missing median does not identify whether insufficient
+sample observations or the median precision suppression rule caused the gap.

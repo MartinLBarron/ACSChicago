@@ -6,7 +6,9 @@ acs_config <- list(
   state = "17",
   crs = 26916L,
   variables = c(median_contract_rent = "B25058_001",
-                median_gross_rent = "B25064_001"),
+                median_gross_rent = "B25064_001",
+                cash_rent_units = "B25063_002",
+                renter_occupied_units = "B25003_003"),
   raw_dir = "data/raw_data/acs_2024",
   shape_dir = "data/shape/acs_2024",
   analytic_dir = "data/analytic/acs_2024"

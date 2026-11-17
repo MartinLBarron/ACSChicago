@@ -76,8 +76,8 @@ read_api_response <- function(path) {
   result
 }
 
-get_county_rent <- function(kind, county, config) {
-  tag <- paste0(gsub(" ", "_", kind), "_", county)
+get_county_variables <- function(kind, county, config, cache_suffix = "") {
+  tag <- paste0(gsub(" ", "_", kind), "_", county, cache_suffix)
   json_path <- file.path(config$raw_dir, paste0(tag, "_api.json"))
   cache_api_response(kind, county, config, json_path)
   rds_path <- file.path(config$raw_dir, paste0(tag, "_tidycensus.rds"))
@@ -93,6 +93,22 @@ get_county_rent <- function(kind, county, config) {
   list(tidy = readRDS(rds_path), api = read_api_response(json_path))
 }
 
+get_county_rent <- function(kind, county, config) {
+  # Keep original rent downloads unchanged; cache the added counts separately.
+  rent_config <- config
+  rent_config$variables <- config$variables[c("median_contract_rent", "median_gross_rent")]
+  count_config <- config
+  count_config$variables <- config$variables[c("cash_rent_units", "renter_occupied_units")]
+  rent <- get_county_variables(kind, county, rent_config)
+  counts <- get_county_variables(kind, county, count_config, "_housing_counts")
+  stopifnot(setequal(rent$api$GEOID, counts$api$GEOID),
+            !anyDuplicated(rent$api$GEOID), !anyDuplicated(counts$api$GEOID))
+  # Add only count fields, retaining geography identifiers from the rent response.
+  count_columns <- c("GEOID", setdiff(names(counts$api), names(rent$api)))
+  list(tidy = dplyr::bind_rows(rent$tidy, counts$tidy),
+       api = dplyr::left_join(rent$api, counts$api[count_columns], by = "GEOID"))
+}
+
 build_rent_dataset <- function(kind, boundaries, config) {
   # County requests are inferred from selected geometries, including border areas.
   counties <- sort(unique(substr(boundaries$GEOID, 3, 5)))
@@ -106,7 +122,7 @@ build_rent_dataset <- function(kind, boundaries, config) {
             setequal(selected$GEOID, boundaries$GEOID),
             nrow(selected) == nrow(boundaries) * length(config$variables),
             setequal(selected$variable, names(config$variables)))
-  # Keep raw codes alongside usable dollar amounts; never treat negative codes as rent.
+  # Keep raw codes alongside usable values; negative codes are not dollars or counts.
   for (measure in names(config$variables)) {
     code <- config$variables[[measure]]
     rows <- selected$variable == measure
@@ -127,6 +143,8 @@ build_rent_dataset <- function(kind, boundaries, config) {
   }
   selected <- selected |>
     dplyr::mutate(variable_code = unname(config$variables[variable]),
+                  unit = ifelse(variable %in% c("cash_rent_units", "renter_occupied_units"),
+                                "housing units", "monthly 2024 dollars"),
                   acs_start_year = config$year - 4L, acs_end_year = config$year,
                   boundary_year = config$year, moe_confidence = 90L,
                   geography = kind, synthetic_data = SYNTHETIC_DATA) |>
@@ -141,6 +159,10 @@ build_rent_dataset <- function(kind, boundaries, config) {
       names_glue = "{variable}_{.value}"
     )
   stopifnot(nrow(wide) == nrow(boundaries), !anyDuplicated(wide$GEOID))
+  for (measure in c("cash_rent_units", "renter_occupied_units")) {
+    values <- wide[[paste0(measure, "_estimate")]]
+    stopifnot(all(is.na(values) | (values >= 0 & values == floor(values))))
+  }
   tag <- gsub(" ", "_", kind)
   readr::write_csv(selected, file.path(config$analytic_dir, paste0(tag, "_rent_long.csv")))
   readr::write_csv(wide, file.path(config$analytic_dir, paste0(tag, "_rent.csv")))

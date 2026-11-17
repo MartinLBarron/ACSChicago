@@ -5,12 +5,14 @@ Reproducible R pipeline for Chicago geographic boundaries.
 ## Interactive map
 
 The local MapLibre GL JS webpage in `html/` displays city limits, community areas,
-and whole 2025 block groups and tracts, with layer toggles and click-to-inspect details.
+and 2024 ACS rent choropleths for whole block groups and tracts, with measure and
+geography selectors, boundary toggles, and click-to-inspect estimates and MOEs.
 After downloading the shapefiles, generate browser-ready WGS84 GeoJSON and serve
 the project root:
 
 ```sh
 Rscript R/export_web_data.R
+Rscript R/export_rent_web_data.R
 python3 -m http.server 8000
 ```
 
@@ -113,5 +115,20 @@ files, column definitions, and interpretation, and [the decision log](Decisions_
 for the agreed choices. Raw data are cached; reruns reuse them and check recorded
 hashes. Archive the cache and manifest together before intentionally refreshing.
 Check reproducibility by running the pipeline end-to-end multiple times.
-The existing web map still displays 2025 geography; the new analytic GeoPackages
-contain matching 2024 geometry and rent data for a later map update.
+The rent map uses the matching 2024 analytic GeoPackages. Rebuild its GeoJSON
+with `Rscript R/export_rent_web_data.R` after refreshing the analytic data.
+Shared fixed monthly-dollar breaks are $750, $1,000, $1,250, $1,500, $2,000, and
+$2,500. Gray means no estimate; click an area for both measures, their published
+90% MOEs, and Census annotations. Repeated pipeline runs should reproduce the
+same exports. The original 2025 boundary downloads remain available separately.
+
+The analytic datasets also contain `cash_rent_units` (B25063_002) and
+`renter_occupied_units` (B25003_003), each with its estimate, 90% MOE, raw codes,
+and annotations. These are housing-unit counts. The map displays them on click
+to support interpretation of missing rent estimates; a zero is an ACS estimate,
+not a verified absence of rental housing.
+
+Both housing-unit counts are selectable choropleth measures. Count legends use
+0, 1–99, 100–249, 250–499, 500–999, 1,000–1,999, and 2,000+ units, shared across
+tracts and block groups. These show absolute estimated counts, not percentages
+or density. Estimated zero has its own color class; missing estimates stay gray.
