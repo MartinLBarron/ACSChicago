@@ -87,9 +87,13 @@
         .attr("stroke", measure.color).attr("stroke-width", 2)
         .attr("tabindex", 0).attr("aria-label", row => summary(row, measure));
       function drawProgress(progress) {
+        const pointY = row => y(estimate(row) * progress);
+        drawPositions(pointY);
+      }
+      function drawPositions(pointY) {
         trendLine.attr("d", d3.line().defined(row => isValue(estimate(row)))
-          .x(row => x(row.acs_end_year)).y(row => y(estimate(row) * progress))(rows));
-        points.attr("cy", row => y(estimate(row) * progress));
+          .x(row => x(row.acs_end_year)).y(pointY)(rows));
+        points.attr("cy", pointY);
 
       }
       let observer;
@@ -104,12 +108,21 @@
       } else {
         drawProgress(0);
         observer = new IntersectionObserver(entries => {
-          if (!entries.some(entry => entry.isIntersecting)) return;
+          if (!entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.9)) return;
           observer.disconnect();
           revealedCharts.add(measure.id);
-          trendLine.transition("reveal").duration(900).ease(d3.easeCubicOut)
-            .tween("position", () => drawProgress).on("end", () => drawProgress(1));
-        }, { threshold: 0.2 });
+          const duration = 750 + Math.random() * 500;
+          const pointDurations = new Map(valid.map(row => [row.acs_end_year,
+            duration * (0.85 + Math.random() * 0.3)]));
+          const totalDuration = Math.max(...pointDurations.values(), duration);
+          trendLine.transition("reveal").delay(300).duration(totalDuration).ease(d3.easeLinear)
+            .tween("position", () => progress => {
+              const elapsed = progress * totalDuration;
+              drawPositions(row => y(estimate(row) * d3.easeCubicOut(
+                Math.min(1, elapsed / pointDurations.get(row.acs_end_year))
+              )));
+            }).on("end", () => drawProgress(1));
+        }, { threshold: 0.9 });
         observer.observe(svg.node());
       }
       chartCleanups.push(() => { observer?.disconnect(); trendLine.interrupt("reveal"); });
