@@ -235,8 +235,8 @@ or included in active source manifests. Earlier raw cache files are retained
 locally as unused historical downloads, rather than modified or deleted.
 
 The website offers five measures: the original four rent/count measures plus the
-50%+ burden share. The citywide Explore control offers rent/rental housing and
-rent burden, with its period selector independent of the map. Percentage breaks
+50%+ burden share. The citywide section shows all five cards and charts together, with its period
+selector independent of the map. Percentage breaks
 remain 10/20/30/40/50/75; percentages have approximate MOEs in percentage points.
 Web exports contain only active measures. Re-upload the full `html/` folder after
 regeneration to remove retired fields and controls from hosting.
@@ -246,3 +246,6 @@ with separate source and derived long files. See the
 [housing codebook](docs/acs_housing_codebook.md) for definitions and uncertainty
 handling. The full `R/run_pipeline.R` executes all stages. Re-run end-to-end to
 check reproducibility; original raw inputs are cached and checksummed.
+
+The map measure selector is a flat list of all five measures. The citywide
+section has no topic filter: every measure has its own card and trend chart.

@@ -21,16 +21,14 @@ const definitions = [
   { id: "city", file: "chicago_city", color: "#b83246", width: 3 }
 ];
 const measureControl = document.getElementById("measure");
-// Group all selectable measures using the shared map/dashboard definitions.
+// Keep all measures together in a single flat list.
 const initialMeasure = measureControl.value;
 measureControl.replaceChildren();
-for (const [group, label] of Object.entries(window.ChicagoMeasureGroups)) {
-  const options = document.createElement("optgroup"); options.label = label;
-  for (const measure of window.ChicagoMeasures.filter(measure => measure.group === group)) {
-    const option = document.createElement("option"); option.value = measure.id;
-    option.textContent = measure.label; options.append(option);
-  }
-  measureControl.append(options);
+for (const measure of window.ChicagoMeasures) {
+  const option = document.createElement("option");
+  option.value = measure.id;
+  option.textContent = measure.label;
+  measureControl.append(option);
 }
 measureControl.value = initialMeasure;
 const geographyControl = document.getElementById("geography");

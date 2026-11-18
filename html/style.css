@@ -98,7 +98,7 @@ button:disabled { opacity: .5; cursor: wait; }
 .city-period-control label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 5px; }
 .city-period-control select { min-height: 42px; }
 #city-status { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
-.city-cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 15px; }
+.city-cards { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 15px; }
 .stat-card { padding: 22px 20px; background: var(--paper); border: 1px solid var(--line); border-radius: 3px; }
 .stat-card h3 { font-size: 12px; font-weight: 500; min-height: 38px; margin: 0 0 12px; }
 .stat-card strong { display: block; font: normal clamp(30px,3vw,44px)/1.15 var(--serif); color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -135,8 +135,3 @@ button:disabled { opacity: .5; cursor: wait; }
 @media (max-width: 1000px) { .city-cards { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 650px) { .city-section-heading { align-items: flex-start; flex-direction: column; gap: 4px; } .city-section h2 { font-size: 32px; } .city-charts { grid-template-columns: 1fr; } .stat-card { padding: 17px 13px; } .stat-card strong { font-size: 31px; } .trend-chart { padding: 18px 12px 8px; } }
 @media (max-width: 360px) { .city-cards { grid-template-columns: 1fr; } }
-
-.city-topic-control { display: flex; align-items: center; gap: 12px; margin: 22px 0 8px; }
-.city-topic-control label { font-size: 12px; color: var(--muted); }
-.city-topic-control select { width: min(300px, 100%); }
-#city-topic-note { max-width: 780px; margin: 0 0 18px; font-size: 12px; }

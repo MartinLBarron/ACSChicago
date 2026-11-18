@@ -2,8 +2,6 @@
 "use strict";
 (() => {
   const allMeasures = window.ChicagoMeasures;
-  const topicControl = document.getElementById("city-topic");
-  const measuresForTopic = () => allMeasures.filter(measure => measure.group === topicControl.value);
   const isValue = value => typeof value === "number" && Number.isFinite(value) && value >= 0;
   const period = row => `${row.acs_start_year}–${row.acs_end_year}`;
   const format = window.formatChicagoValue;
@@ -20,7 +18,7 @@
     const root = document.getElementById("city-cards");
     root.replaceChildren();
     if (!row) return;
-    for (const measure of measuresForTopic()) {
+    for (const measure of allMeasures) {
       const card = document.createElement("article");
       card.className = "stat-card";
       const heading = document.createElement("h3"); heading.textContent = measure.label;
@@ -54,7 +52,7 @@
     chartCleanups.forEach(cleanup => cleanup());
     chartCleanups = [];
     const root = d3.select("#city-charts"); root.selectAll("*").remove();
-    measuresForTopic().forEach((measure, index) => {
+    allMeasures.forEach((measure, index) => {
       const article = root.append("article").attr("class", "trend-chart");
       article.append("h3").text(measure.label);
       article.append("p").attr("class", "chart-unit").text(measure.money ? "Monthly dollars · not inflation-adjusted" : measure.percent ? "Percent of eligible units · MOEs in percentage points" : "Estimated housing units");
@@ -155,18 +153,8 @@
       });
     });
   }
-  function renderTopicNote() {
-    const notes = {
-      core: "Counts describe occupied rental homes; rents are monthly amounts in each period’s end-year dollars.",
-      burden: "The 50%+ rent-burden share excludes renters without a computed rent/income ratio.",
-    };
-    document.getElementById("city-topic-note").textContent = notes[topicControl.value];
-  }
   reducedMotion.addEventListener("change", () => {
     if (rows.length && typeof d3 !== "undefined") renderCharts();
-  });
-  topicControl.addEventListener("change", () => {
-    if (rows.length) { renderTopicNote(); renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   statisticsPeriod.addEventListener("change", () => {
     selectedYear = statisticsPeriod.value;
@@ -177,7 +165,7 @@
     if (!response.ok) throw new Error(`Citywide statistics could not load (HTTP ${response.status}). Upload data/web/chicago_city_statistics.json.`);
     rows = await response.json(); rows.sort((a, b) => a.acs_end_year - b.acs_end_year);
     if (rows.length !== 3 || rows.some(row => row.GEOID !== "1714000") || new Set(rows.map(row => row.acs_end_year)).size !== 3) throw new Error("Unexpected citywide statistics. Re-run the city web export.");
-    renderTopicNote(); renderCards();
+    renderCards();
     if (typeof d3 === "undefined") throw new Error("Cards are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();
     document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. Charts show all three periods.";
