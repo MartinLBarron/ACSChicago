@@ -8,6 +8,16 @@ acs_config <- list(
   crs = 26916L,
   # Cook County's Lake Michigan water-only tract and its block group.
   excluded_tract_geoids = "17031990000",
+  # Explicit suburban PUMA exclusions requested for the Chicago map.
+  # Keys are decennial PUMA definitions, not ACS release years.
+  excluded_puma_geoids = list(
+    `2010` = c("Oak Lawn" = "1703411", "Addison" = "1703207",
+               "Northlake" = "1703422", "Elk Grove Village" = "1703419",
+               "Des Plaines" = "1703420"),
+    `2020` = c("Oak Lawn" = "1703114", "Addison" = "1704302",
+               "Northlake" = "1703109", "Elk Grove Village" = "1703104",
+               "Des Plaines" = "1703108")
+  ),
   variables = c(median_contract_rent = "B25058_001",
                 median_gross_rent = "B25064_001",
                 cash_rent_units = "B25063_002",

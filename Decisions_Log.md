@@ -155,3 +155,58 @@ vacant homes. Preserve source estimates/MOEs and raw annotations, derive a
 90% percentage-point MOE using the existing percentage helper, and retain
 undefined-denominator and missing-data statuses. Cache tenure separately and
 validate owner plus renter counts against total occupied units.
+
+### 2026-11-18 — Period-matched PUMA outlines
+
+Add an optional, initially hidden TIGER/Line PUMA boundary overlay. Use
+2010-defined PUMAs for ACS 2014 and 2019 and 2020-defined PUMAs for ACS 2024.
+Retain whole areas with positive Chicago overlap, matching the existing
+geographic selection policy. Preserve raw ZIPs with checksum manifests and
+export selected geometry to the self-contained website root. Names, codes,
+and definition vintages appear in click popups when enabled. No PUMA rent
+estimates or microdata are added by this change.
+
+### 2026-11-18 — Select PUMAs using matching TIGER city limits
+
+The initial filter used City portal Chicago limits directly (not the union
+of selected tracts or block groups), but differences in City/TIGER linework
+admitted neighboring PUMAs through sliver intersections. Select against
+Chicago place GEOID 1714000 from each matching-year TIGER PLACE archive,
+cache that archive with the PUMA source manifest, and use a native-coordinate
+GEOS polygon-interior test. Exclude point/edge contact without arbitrary
+area thresholds. Keep entire qualifying PUMAs, including real cross-city
+areas. Regenerated outputs retain 23 PUMAs in each of 2014, 2019, and 2024
+(previously 28, 28, and 29).
+
+### 2026-11-18 — Exclude five specified suburban PUMAs
+
+Explicitly exclude the PUMAs covering Oak Lawn, Addison, Northlake, Elk Grove
+Village, and Des Plaines, as requested. Identified each by the largest
+municipal-boundary overlap in the matching TIGER release. Configure exclusions
+by decennial definition in `R/acs_config.R`:
+
+| Place | 2010-definition GEOID | 2020-definition GEOID |
+|---|---|---|
+| Oak Lawn | 1703411 | 1703114 |
+| Addison | 1703207 | 1704302 |
+| Northlake | 1703422 | 1703109 |
+| Elk Grove Village | 1703419 | 1703104 |
+| Des Plaines | 1703420 | 1703108 |
+
+Apply after city-limit overlap selection; retain all other qualifying PUMAs.
+Regenerated map layers contain 18 PUMAs per period. Record selection/exclusion
+in `data/shape/puma_YEAR/puma_selection.csv`. These explicit whole-PUMA
+exclusions override the prior include-all-city-overlaps rule and remove some
+Chicago territory contained within mixed city/suburban PUMAs; notably the
+older Northlake/Des Plaines PUMAs include O'Hare/Edison Park. No tract or
+block-group records are excluded by this change.
+
+### 2026-11-18 — Published PUMA rent aggregates
+
+Extend the shared ACS core, supplementary, derived, combined, and web-export
+stages to PUMAs. Fetch Illinois-level PUMA requests, retaining only each
+period's 18 selected GEOIDs and preserving estimates, MOEs, raw codes, and
+annotations. Use published PUMA medians/counts and the existing two derived
+percentage definitions and uncertainty methods. Add PUMA areas to the map
+geography selector, retaining independent PUMA outline control and the five
+requested exclusions. Keep all outlines above choropleth fills.

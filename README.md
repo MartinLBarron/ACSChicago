@@ -255,3 +255,42 @@ City/national comparison data are also collected by
 nine comparison cities, plus the United States, for all three ACS periods.
 See [the housing codebook](docs/acs_housing_codebook.md#city-and-national-comparisons)
 for geography definitions, outputs, and validation.
+
+### PUMA boundary overlay
+
+The map's optional **PUMAs** checkbox displays whole Public Use Microdata
+Areas with positive Chicago overlap, selected directly against matching-year
+TIGER Chicago city limits (place GEOID `1714000`). Edge/point contact is
+excluded using native-coordinate polygon-interior tests, avoiding slivers
+from mixing City portal and TIGER linework. `R/download_puma_boundaries.R`, included
+in the full pipeline, downloads Illinois TIGER/Line PUMAs for 2014, 2019,
+and 2024. The first two use 2010-defined PUMAs; 2024 uses 2020-defined PUMAs.
+PUMA and Illinois place archives and checksum manifests are in `data/raw_data/puma_YEAR/`; extracted
+shapefiles and selected Chicago-overlap GeoPackages are in
+`data/shape/puma_YEAR/`. GeoJSON exports named `chicago_pumas_YEAR.geojson`
+are written to both `data/web/` and `html/data/web/`.
+
+The five PUMAs covering Oak Lawn, Addison, Northlake, Elk Grove Village,
+and Des Plaines are explicitly excluded using vintage-specific GEOIDs in
+`R/acs_config.R`. This leaves 18 map PUMAs per period. The per-year
+`puma_selection.csv` records city overlap, requested exclusion, and retention.
+The exclusions apply to whole PUMAs, so some Chicago territory within these
+mixed city/suburban PUMAs is omitted from this optional overlay, including
+O'Hare/Edison Park coverage in the older definition.
+
+PUMAs are available both as an optional outline overlay and as a rent-map
+geography. The geography picker shades PUMA areas using published PUMA
+estimates and our derived shares; it does not average tract or block-group
+values.
+Clicking with the overlay enabled shows the PUMA name, code, and definition
+vintage. Period switching updates tracts, block groups, and PUMAs together.
+PUMAs are designed to contain at least 100,000 people and may extend beyond
+city limits; they are not the 77 community areas. Their definitions changed
+between the two decennial vintages, so codes alone are not stable longitudinal
+identifiers. Sources: [Census PUMA guidance](https://www.census.gov/programs-surveys/geography/guidance/geo-areas/pumas.html)
+and [ACS geography vintages](https://www.census.gov/programs-surveys/acs/geography-acs/geography-boundaries-by-year.html).
+
+PUMA aggregates follow the same core → supplementary → derived → web-export
+stages as tracts and block groups. Validate the finished PUMA data with
+`Rscript R/check_puma_data.R`. See the housing codebook for table-level
+caching and the documented recovery from Census server timeouts.

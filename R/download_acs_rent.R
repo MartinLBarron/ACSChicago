@@ -32,9 +32,14 @@ run_acs_period <- function(config) {
   chicago_id <- data.frame(GEOID = paste0(config$state, config$chicago_place))
   city_report <- build_rent_dataset("place", chicago_id, config)
   report <- dplyr::bind_rows(report, city_report)
+  puma_path <- sprintf("data/shape/puma_%d/chicago_pumas.gpkg", config$year)
+  if (!file.exists(puma_path)) stop("Run R/download_puma_boundaries.R first.")
+  pumas <- sf::st_read(puma_path, quiet = TRUE)
+  message("Preparing ACS ", config$year, " PUMA rent data")
+  report <- dplyr::bind_rows(report, build_rent_dataset("puma", pumas, config))
   readr::write_csv(report, file.path(config$analytic_dir, "validation_summary.csv"))
   inputs <- c(city_path, list.files(config$raw_dir, full.names = TRUE,
-                                  pattern = "\\.(zip|json|rds)$"))
+                                  pattern = "(\\.(zip|json|rds)$|_retrieval\\.csv$)"))
   manifest <- data.frame(path = inputs, md5 = unname(tools::md5sum(inputs)),
                          cached_at_utc = format(file.info(inputs)$mtime, tz = "UTC", usetz = TRUE))
   readr::write_csv(manifest, manifest_path)

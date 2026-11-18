@@ -137,3 +137,58 @@ The measure is calculated for all three periods, for Chicago-overlapping
 tracts and block groups, Chicago city, all nine comparison cities, and the
 United States. Standard analytic and web exports include it. Frontend
 measure controls are maintained separately.
+
+## PUMA aggregates and choropleths
+
+All six active measures are also produced for the 18 retained whole PUMAs
+in each ACS release. The core stage downloads published PUMA median contract
+rent, median gross rent, cash-rent units, and renter-occupied units. The
+supplementary stage downloads PUMA tenure and B25070 counts; the shared
+calculation stage derives renter-occupied share and severe rent burden with
+approximate 90% percentage-point MOEs. Values are not constructed from tract
+or block-group estimates.
+
+PUMAs nest in states, not counties. `get_puma_variables()` requests Illinois
+PUMAs using tidycensus geography `public use microdata area`; the API companion
+response preserves E/M/EA/MA fields. Raw core responses are `puma_api.json`
+and `puma_tidycensus.rds` within each `data/raw_data/acs_YEAR/` directory.
+Supplementary responses are `housing/puma_tenure_*` and
+`housing/puma_burden_*`. Existing manifests cover these additional files.
+
+The boundary stage must run before the core ACS stage. PUMA membership is
+read from `data/shape/puma_YEAR/chicago_pumas.gpkg`, including the five
+explicit suburban exclusions. The 2014 and 2019 releases use 2010-defined
+PUMAs; 2024 uses 2020-defined PUMAs. Estimates refer to whole retained PUMAs,
+which can include some area outside Chicago. Exclusions mean this layer
+is not a complete partition of Chicago.
+
+Annual and combined core, source, derived, and spatial outputs use the same
+naming as the tract datasets, with the prefix `puma_`. The combined dataset
+contains 54 area-period rows. Use `GEOID` and `acs_end_year` together as the
+key. `puma_rent_YEAR.geojson` exports the six estimates/MOEs, raw fields,
+status fields, PUMA codes, and definition vintages into both web directories.
+The map's **PUMA areas** geography option uses these observations; the
+**PUMAs** boundary checkbox independently controls outlines.
+
+### PUMA request reliability
+
+PUMA tidycensus requests use full-table endpoints, filtered back to the
+configured variables, and cache each completed table batch. The Census server
+returned repeated HTTP 524 timeouts for some variable/table requests during
+the initial run. If tidycensus exhausts its retries with a server/network
+failure, the PUMA reader can recover the same E/M values from its successfully
+cached official Census API companion response. Configuration errors still
+fail. This fallback neither imputes values nor aggregates smaller areas.
+
+Fallback batches use `_TABLE_api_tidy.rds`; successful tidycensus batches use
+`_TABLE_tidycensus.rds`. Per-group `_retrieval.csv` files record the method
+and original response path. All methods preserve source E/M/EA/MA values,
+and published measures are validated against the original response. Percentage
+MOEs are still calculated with tidycensus. Run `Rscript R/check_puma_data.R`
+after export to validate membership, published values/MOEs, and web outputs.
+
+New PUMA companion downloads are split into `_TABLE_api.json` responses
+and restricted to retained PUMA codes, reducing request size. Earlier
+combined `puma_api.json` caches remain supported and are never overwritten.
+`read_puma_api()` joins the original table responses by GEOID for validation;
+it does not write a fabricated combined raw response.

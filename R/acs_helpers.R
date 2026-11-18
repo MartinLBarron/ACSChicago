@@ -57,9 +57,14 @@ cache_api_response <- function(kind, county, config, path) {
   if (file.exists(path)) return(invisible(path))
   codes <- unname(config$variables)
   fields <- c("NAME", as.vector(outer(codes, c("E", "M", "EA", "MA"), paste0)))
-  geography <- if (kind == "us") "us:*" else if (kind == "place") paste0("place:", config$chicago_place) else
-    if (kind == "tract") "tract:*" else "block group:*"
-  within <- if (kind == "us") NULL else if (kind == "place") paste0("state:", config$state) else
+  geography <- switch(kind,
+    puma = paste0("public use microdata area:", if (is.null(config$puma_codes)) "*" else paste(config$puma_codes, collapse = ",")),
+    us = "us:*",
+    place = paste0("place:", config$chicago_place),
+    tract = "tract:*", `block group` = "block group:*",
+    stop("Unsupported ACS geography: ", kind)
+  )
+  within <- if (kind == "us") NULL else if (kind %in% c("place", "puma")) paste0("state:", config$state) else
     paste0("state:", config$state, " county:", county)
   response <- tryCatch(httr::GET(
     sprintf("https://api.census.gov/data/%d/acs/acs5", config$year),
@@ -82,10 +87,97 @@ read_api_response <- function(path) {
   values <- jsonlite::fromJSON(path)
   result <- as.data.frame(values[-1, , drop = FALSE], stringsAsFactors = FALSE)
   names(result) <- values[1, ]
-  result$GEOID <- if ("us" %in% names(result)) "1" else if ("place" %in% names(result)) paste0(result$state, result$place) else
-    paste0(result$state, result$county, result$tract,
-                         if ("block group" %in% names(result)) result[["block group"]] else "")
+  if ("public use microdata area" %in% names(result)) {
+    result$GEOID <- paste0(result$state, result[["public use microdata area"]])
+  } else if ("us" %in% names(result)) {
+    result$GEOID <- "1"
+  } else if ("place" %in% names(result)) {
+    result$GEOID <- paste0(result$state, result$place)
+  } else {
+    result$GEOID <- paste0(result$state, result$county, result$tract,
+      if ("block group" %in% names(result)) result[["block group"]] else "")
+  }
   result
+}
+
+# Recover a tidy batch from the preserved official response after API timeouts.
+# This is not an aggregation or imputation: E/M values are read without alteration.
+puma_api_batch <- function(api, variables) {
+  columns <- as.vector(outer(unname(variables), c("E", "M"), paste0))
+  stopifnot(all(c("GEOID", "NAME", columns) %in% names(api)))
+  result <- dplyr::bind_rows(lapply(names(variables), function(variable) {
+    code <- variables[[variable]]
+    data.frame(GEOID = api$GEOID, NAME = api$NAME, variable = variable,
+      estimate = as.numeric(api[[paste0(code, "E")]]),
+      moe = as.numeric(api[[paste0(code, "M")]]))
+  }))
+  attr(result, "download_method") <- "official_api_timeout_fallback"
+  result
+}
+
+# Read either the original combined response or the newer table-level caches.
+read_puma_api <- function(config, cache_suffix = "") {
+  stem <- file.path(config$raw_dir, paste0("puma", cache_suffix))
+  legacy <- paste0(stem, "_api.json")
+  if (file.exists(legacy)) return(read_api_response(legacy))
+  tables <- unique(substr(unname(config$variables), 1, 6))
+  responses <- lapply(tables, function(table) read_api_response(paste0(stem, "_", table, "_api.json")))
+  api <- responses[[1]]
+  for (response in responses[-1]) {
+    stopifnot(setequal(api$GEOID, response$GEOID), !anyDuplicated(response$GEOID))
+    api <- dplyr::left_join(api, response[c("GEOID", setdiff(names(response), names(api)))], by = "GEOID")
+  }
+  api
+}
+
+# PUMAs nest within states, not counties. Download small, resumable table batches.
+get_puma_variables <- function(config, cache_suffix = "") {
+  stem <- file.path(config$raw_dir, paste0("puma", cache_suffix))
+  legacy_path <- paste0(stem, "_api.json")
+  rds_path <- paste0(stem, "_tidycensus.rds")
+  tables <- split(config$variables, substr(unname(config$variables), 1, 6))
+  if (!file.exists(rds_path)) {
+    result <- dplyr::bind_rows(lapply(names(tables), function(table) {
+      batch_config <- config
+      batch_config$variables <- tables[[table]]
+      boundaries <- sf::st_read(sprintf("data/shape/puma_%d/chicago_pumas.gpkg", config$year), quiet = TRUE)
+      batch_config$puma_codes <- boundaries$puma_code
+      api_path <- if (file.exists(legacy_path)) legacy_path else paste0(stem, "_", table, "_api.json")
+      cache_api_response("puma", NULL, batch_config, api_path)
+      batch_path <- paste0(stem, "_", table, "_tidycensus.rds")
+      fallback_path <- paste0(stem, "_", table, "_api_tidy.rds")
+      if (file.exists(fallback_path)) return(readRDS(fallback_path))
+      if (!file.exists(batch_path)) {
+        message("Downloading PUMA ", config$year, " ", table)
+        batch <- tryCatch(tidycensus::get_acs(
+          geography = "public use microdata area", state = config$state,
+          table = table, year = config$year, survey = config$survey,
+          geometry = FALSE, output = "tidy", moe_level = 90,
+          key = Sys.getenv("CENSUS_API_KEY"), show_call = FALSE
+        ), error = function(error) {
+          if (!grepl("524|502|503|504|timeout|timed out|temporarily unavailable|Unable to connect",
+                     conditionMessage(error), ignore.case = TRUE)) stop(error)
+          message("PUMA ", config$year, " ", table, ": using preserved official API response after server timeout")
+          fallback <- puma_api_batch(read_api_response(api_path), tables[[table]])
+          saveRDS(fallback, fallback_path)
+          fallback
+        })
+        if (identical(attr(batch, "download_method"), "official_api_timeout_fallback")) return(batch)
+        batch <- batch |>
+          dplyr::filter(variable %in% unname(tables[[table]])) |>
+          dplyr::mutate(variable = names(tables[[table]])[match(variable, tables[[table]])])
+        saveRDS(batch, batch_path)
+      }
+      readRDS(batch_path)
+    }))
+    saveRDS(result, rds_path)
+  }
+  audit <- data.frame(acs_end_year = config$year, table = names(tables),
+    method = ifelse(file.exists(paste0(stem, "_", names(tables), "_api_tidy.rds")),
+      "official_api_timeout_fallback", "tidycensus"),
+    response_path = if (file.exists(legacy_path)) legacy_path else paste0(stem, "_", names(tables), "_api.json"))
+  readr::write_csv(audit, paste0(stem, "_retrieval.csv"))
+  list(tidy = readRDS(rds_path), api = read_puma_api(config, cache_suffix))
 }
 
 get_county_variables <- function(kind, county, config, cache_suffix = "") {
@@ -144,6 +236,8 @@ get_chicago_place_rent <- function(config, cache_suffix = "") {
 build_rent_dataset <- function(kind, boundaries, config) {
   if (kind == "place") {
     downloads <- list(get_chicago_place_rent(config))
+  } else if (kind == "puma") {
+    downloads <- list(get_puma_variables(config))
   } else {
     # County requests are inferred from selected geometries, including border areas.
     counties <- sort(unique(substr(boundaries$GEOID, 3, 5)))

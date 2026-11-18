@@ -5,12 +5,13 @@ const status = document.getElementById("status");
 const rentBreaks = [750, 1000, 1250, 1500, 2000, 2500];
 // A separate zero class distinguishes estimated zero from missing data.
 const countBreaks = [1, 100, 250, 500, 1000, 2000];
+const pumaCountBreaks = [1, 10000, 20000, 30000, 40000, 50000];
 const countMeasures = new Set(["cash_rent_units", "renter_occupied_units"]);
 function selectedScale() {
   const isCount = countMeasures.has(measureControl.value);
   const measure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
   const isPercent = measure?.percent || false;
-  return { isCount, isPercent, breaks: isPercent ? measure.breaks || [10, 20, 30, 40, 50, 75] : isCount ? countBreaks : rentBreaks };
+  return { isCount, isPercent, breaks: isPercent ? measure.breaks || [10, 20, 30, 40, 50, 75] : isCount ? (geographyControl.value === "pumas" ? pumaCountBreaks : countBreaks) : rentBreaks };
 }
 const colors = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#0c2c84"];
 const missingColor = "#bdbdbd";
@@ -19,6 +20,7 @@ const definitions = [
   { id: "blocks", file: "block_group_rent_2024", color: "#655c79", width: 0.5 },
   { id: "tracts", file: "tract_rent_2024", color: "#403a50", width: 0.8 },
   { id: "communities", file: "chicago_community_areas", color: "#126875", width: 1.8 },
+  { id: "pumas", file: "puma_rent_2024", color: "#a66523", width: 2 },
   { id: "city", file: "chicago_city", color: "#b83246", width: 3 }
 ];
 const measureControl = document.getElementById("measure");
@@ -44,14 +46,14 @@ function renderLegend() {
   const labels = isPercent
     ? [`Under ${breaks[0]}%`, ...breaks.slice(0, -1).map((value, index) => `${value}% to under ${breaks[index + 1]}%`), `${breaks[breaks.length - 1]}% or more`, "Unavailable / no eligible units"]
     : isCount
-    ? ["0 units (estimated)", "1–99 units", "100–249 units", "250–499 units", "500–999 units", "1,000–1,999 units", "2,000 or more units", "No estimate available"]
+    ? ["0 units (estimated)", ...breaks.slice(0, -1).map((value, index) => `${value.toLocaleString("en-US")}–${(breaks[index + 1] - 1).toLocaleString("en-US")} units`), `${breaks[breaks.length - 1].toLocaleString("en-US")} or more units`, "No estimate available"]
     : ["Under $750", "$750 to under $1,000", "$1,000 to under $1,250", "$1,250 to under $1,500",
       "$1,500 to under $2,000", "$2,000 to under $2,500", "$2,500 or more", "No estimate available"];
   list.setAttribute("aria-label", isPercent ? "Percentage color scale" : isCount ? "Estimated housing-unit count color scale" : "Monthly rent color scale");
   document.getElementById("legend-note").textContent = isPercent
     ? `${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed breaks across all periods. Gray includes missing inputs or no eligible units. MOEs are in percentage points.`
     : isCount
-    ? "Estimated housing-unit counts, not percentages or density. Breaks are shared across both counts and geography levels. Zero is an estimate, not proof of no rental housing. Gray means no estimate."
+    ? "Estimated housing-unit counts, not percentages or density. Breaks are fixed across periods; PUMAs use wider count bins than tracts and block groups. Zero is an estimate, not proof of no rental housing. Gray means no estimate."
     : `Monthly ${periodControl.value} dollars; not adjusted for inflation. ${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed dollar breaks across periods. Gray means no estimate.`;
   labels.forEach((label, i) => {
     const row = document.createElement("li");
@@ -137,15 +139,15 @@ async function start() {
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
   async function fetchLayer(file) {
-    const response = await fetch(`data/web/${file}.geojson?v=20261118-renter-share`);
+    const response = await fetch(`data/web/${file}.geojson?v=20261118-puma-aggregates`);
     if (!response.ok) throw new Error(`Could not load data/web/${file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
     return response.json();
   }
   const periodCache = new Map();
   function loadPeriod(year) {
     if (!periodCache.has(year)) {
-      const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`)])
-        .then(([blocks, tracts]) => ({ blocks, tracts }))
+      const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`), fetchLayer(`puma_rent_${year}`)])
+        .then(([blocks, tracts, pumas]) => ({ blocks, tracts, pumas }))
         .catch(error => { periodCache.delete(year); throw error; });
       periodCache.set(year, request);
     }
@@ -153,7 +155,7 @@ async function start() {
   }
   const initialPeriod = await loadPeriod(periodControl.value);
   const data = await Promise.all(definitions.map(async definition => {
-    if (definition.id === "blocks" || definition.id === "tracts") return initialPeriod[definition.id];
+    if (["blocks", "tracts", "pumas"].includes(definition.id)) return initialPeriod[definition.id];
     return fetchLayer(definition.file);
   }));
   await loaded;
@@ -162,8 +164,11 @@ async function start() {
     map.addLayer({ id: `${definition.id}-fill`, type: "fill", source: definition.id,
       paint: { "fill-color": missingColor, "fill-opacity": 0 } });
     map.addLayer({ id: `${definition.id}-line`, type: "line", source: definition.id,
+      layout: { visibility: document.querySelector(`[data-layer="${definition.id}"]`).checked ? "visible" : "none" },
       paint: { "line-color": definition.color, "line-width": definition.width } });
   });
+  // Keep all optional outlines above every choropleth fill, including PUMAs.
+  definitions.forEach(definition => map.moveLayer(`${definition.id}-line`));
   const layerData = Object.fromEntries(definitions.map((definition, i) => [definition.id, data[i]]));
   const bounds = new maplibregl.LngLatBounds();
   function extend(coordinates) {
@@ -201,11 +206,13 @@ async function start() {
     selectedScale().breaks.forEach((boundary, i) => step.push(boundary, colors[i + 1]));
     // Null must be tested explicitly: it must never become a zero observation.
     const fill = ["case", ["all", ["!=", ["get", field], null], [">=", numeric, 0]], step, missingColor];
-    for (const id of ["blocks", "tracts"]) {
+    for (const id of ["blocks", "tracts", "pumas"]) {
       map.setPaintProperty(`${id}-fill`, "fill-color", fill);
-      map.setPaintProperty(`${id}-fill`, "fill-opacity", 0.82);
-      map.setLayoutProperty(`${id}-fill`, "visibility", id === geographyControl.value ? "visible" : "none");
       const checked = document.querySelector(`[data-layer="${id}"]`).checked;
+      const selected = id === geographyControl.value;
+      // A transparent PUMA fill supplies hit-testing when only outlines are shown.
+      map.setPaintProperty(`${id}-fill`, "fill-opacity", id === "pumas" && !selected ? 0 : 0.82);
+      map.setLayoutProperty(`${id}-fill`, "visibility", selected || (id === "pumas" && checked) ? "visible" : "none");
       map.setLayoutProperty(`${id}-line`, "visibility", checked ? "visible" : "none");
     }
     renderLegend();
@@ -227,15 +234,15 @@ async function start() {
     if (areaPopup) areaPopup.remove();
     document.getElementById("rent-controls").disabled = true;
     status.textContent = `Loading ${periodLabel(year)}…`;
-    // Hide prior-period Census geometry until both new sources are ready.
-    for (const id of ["blocks", "tracts"]) {
+    // Hide prior-period Census geometry until all new sources are ready.
+    for (const id of ["blocks", "tracts", "pumas"]) {
       map.setLayoutProperty(`${id}-fill`, "visibility", "none");
       map.setLayoutProperty(`${id}-line`, "visibility", "none");
     }
     let failure;
     try {
       const next = await loadPeriod(year);
-      for (const id of ["blocks", "tracts"]) {
+      for (const id of ["blocks", "tracts", "pumas"]) {
         map.getSource(id).setData(next[id]);
         layerData[id] = next[id];
       }
@@ -255,17 +262,22 @@ async function start() {
   document.querySelectorAll("[data-layer]").forEach(input => {
     input.addEventListener("change", () => {
       map.setLayoutProperty(`${input.dataset.layer}-line`, "visibility", input.checked ? "visible" : "none");
+      if (input.dataset.layer === "pumas") {
+        map.setLayoutProperty("pumas-fill", "visibility", input.checked || geographyControl.value === "pumas" ? "visible" : "none");
+      }
     });
   });
   map.on("click", event => {
     if (switchingPeriod) return;
-    const features = map.queryRenderedFeatures(event.point, { layers: ["communities-fill", `${geographyControl.value}-fill`] });
+    const features = map.queryRenderedFeatures(event.point, { layers: [...new Set(["communities-fill", `${geographyControl.value}-fill`, "pumas-fill"])] });
     const community = features.find(feature => feature.layer.id === "communities-fill");
     const area = features.find(feature => feature.layer.id === `${geographyControl.value}-fill`);
+    const puma = features.find(feature => feature.layer.id === "pumas-fill");
     const details = document.createElement("div");
     details.className = "area-popup";
     const lines = [];
     if (community) lines.push(`Community: ${community.properties.community} (area ${community.properties.area_numbe})`);
+    if (puma && (geographyControl.value === "pumas" || document.querySelector('[data-layer="pumas"]').checked)) lines.push(`PUMA ${puma.properties.puma_code}: ${puma.properties.NAME} · ${puma.properties.puma_definition_year} definition`);
     if (area) {
       lines.push(`${area.properties.NAME} · GEOID ${area.properties.GEOID}`);
       lines.push(`${periodLabel(area.properties.acs_end_year)} ACS · ${area.properties.boundary_year} boundaries · rents in ${area.properties.dollar_year} dollars.`);

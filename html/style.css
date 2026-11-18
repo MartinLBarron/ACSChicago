@@ -37,6 +37,7 @@ select { width: 100%; min-height: 42px; padding: 9px 7px; font-size: 12px; borde
 #layers label { display: flex; align-items: center; gap: 9px; min-height: 40px; font-size: 12px; clear: both; }
 input[type=checkbox] { width: 16px; height: 16px; accent-color: #35684f; }
 .key { display: inline-block; width: 16px; height: 3px; }
+.key.pumas { background: #a66523; }
 .city { background: #b83246; }.communities { background: #126875; }.blocks { background: #655c79; }.tracts { background: #403a50; }
 button { color: var(--ink); background: #f0f3e8; border: 1px solid #d5dfc8; border-radius: 3px; padding: 10px 12px; }
 button:hover { background: #e4ebd9; }

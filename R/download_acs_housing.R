@@ -15,7 +15,7 @@ for (year in acs_years) {
   tables <- unique(substr(unname(housing_variables), 1, 6))
   active_pattern <- paste0("(^(", paste(tables, collapse = "|"), ")_metadata\\.json$|_(",
                            paste(names(available_groups), collapse = "|"),
-                           ")_(api\\.json|tidycensus\\.rds)$)")
+                           ")_([A-Z][0-9]{5}_)?(api\\.json|retrieval\\.csv|(tidycensus|api_tidy)\\.rds)$)")
   if (file.exists(manifest_path)) {
     previous <- readr::read_csv(manifest_path, show_col_types = FALSE)
     previous <- previous[grepl(active_pattern, basename(previous$path)), ]
@@ -36,18 +36,19 @@ for (year in acs_years) {
                label = vapply(paste0(codes, "E"), function(code) metadata[[code]]$label, character(1)))
   })
   readr::write_csv(dplyr::bind_rows(metadata_rows), file.path(config$analytic_dir, "housing_source_codebook.csv"))
-  for (tag in c("tract", "block_group", "chicago_city")) {
+  for (tag in c("tract", "block_group", "puma", "chicago_city")) {
     kind <- if (tag == "chicago_city") "place" else gsub("_", " ", tag)
     core_path <- file.path(config$analytic_dir, paste0(tag, "_rent.rds"))
     if (!file.exists(core_path)) stop("Run Rscript R/download_acs_rent.R first.")
     core <- readRDS(core_path)
-    counties <- if (kind == "place") NA_character_ else sort(unique(substr(core$GEOID, 3, 5)))
+    counties <- if (kind %in% c("place", "puma")) NA_character_ else sort(unique(substr(core$GEOID, 3, 5)))
     message("Downloading supplementary ACS ", year, " ", kind)
     groups <- lapply(names(available_groups), function(group) {
       group_config <- config
       group_config$variables <- available_groups[[group]]
       responses <- lapply(counties, function(county) {
         if (kind == "place") get_chicago_place_rent(group_config, paste0("_", group)) else
+          if (kind == "puma") get_puma_variables(group_config, paste0("_", group)) else
           get_county_variables(kind, county, group_config, paste0("_", group))
       })
       list(tidy = dplyr::bind_rows(lapply(responses, `[[`, "tidy")),

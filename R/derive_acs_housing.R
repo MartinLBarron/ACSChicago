@@ -7,7 +7,7 @@ metadata_columns <- c("GEOID", "NAME", "geography", "acs_start_year", "acs_end_y
 reports <- list()
 for (year in acs_years) {
   config <- acs_config_for_year(year)
-  for (tag in c("tract", "block_group", "chicago_city")) {
+  for (tag in c("tract", "block_group", "puma", "chicago_city")) {
     path <- file.path(config$analytic_dir, paste0(tag, "_housing_source.rds"))
     if (!file.exists(path)) stop("Run Rscript R/download_acs_housing.R first.")
     x <- readRDS(path)
@@ -64,7 +64,7 @@ for (year in acs_years) {
 # Stack native-geography datasets, retaining year in the key.
 output_dir <- "data/analytic/acs_combined"
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-for (tag in c("tract", "block_group", "chicago_city")) {
+for (tag in c("tract", "block_group", "puma", "chicago_city")) {
   for (suffix in c("housing", "housing_source_long", "housing_derived_long")) {
     combined <- dplyr::bind_rows(lapply(acs_years, function(year) {
       readRDS(file.path(acs_config_for_year(year)$analytic_dir, paste0(tag, "_", suffix, ".rds")))

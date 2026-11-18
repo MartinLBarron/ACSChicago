@@ -3,7 +3,7 @@
 source("R/acs_config.R")
 output_dir <- file.path("data", "analytic", "acs_combined")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-for (kind in c("tract", "block_group", "chicago_city")) {
+for (kind in c("tract", "block_group", "puma", "chicago_city")) {
   tables <- lapply(acs_years, function(year) {
     config <- acs_config_for_year(year)
     path <- file.path(config$analytic_dir, paste0(kind, "_rent.rds"))
