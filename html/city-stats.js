@@ -47,7 +47,12 @@
       card.append(heading, valueLine, unit, description); root.append(card);
     }
   }
+  const revealedCharts = new Set();
+  let chartCleanups = [];
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   function renderCharts() {
+    chartCleanups.forEach(cleanup => cleanup());
+    chartCleanups = [];
     const root = d3.select("#city-charts"); root.selectAll("*").remove();
     measuresForTopic().forEach((measure, index) => {
       const article = root.append("article").attr("class", "trend-chart");
@@ -63,7 +68,7 @@
       const svg = article.append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("role", "img")
         .attr("aria-labelledby", `trend-title-${index} trend-desc-${index}`);
       svg.append("title").attr("id", `trend-title-${index}`).text(`${measure.label} across three ACS periods`);
-      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.money ? "Nominal monthly dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}Vertical bars show 90% margins of error. ${rows.map(row => summary(row, measure)).join(". ")}`);
+      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.money ? "Nominal monthly dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}${rows.map(row => summary(row, measure)).join(". ")}`);
       svg.append("g").attr("class", "chart-grid").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(4).tickSize(-(width - margin.left - margin.right)).tickFormat(""))
         .call(g => g.select(".domain").remove());
@@ -73,25 +78,46 @@
         .call(d3.axisLeft(y).ticks(4).tickSize(0).tickPadding(10).tickFormat(measure.money ? d3.format("$,.0f") : measure.percent ? value => `${value}%` : d3.format("~s")))
         .call(g => g.select(".domain").remove());
       const estimate = row => row[`${measure.id}_estimate`];
-      svg.append("path").datum(rows).attr("class", "trend-line").attr("stroke", measure.color)
+      const trendLine = svg.append("path").datum(rows).attr("class", "trend-line").attr("stroke", measure.color)
         .attr("d", d3.line().defined(row => isValue(estimate(row))).x(row => x(row.acs_end_year)).y(row => y(estimate(row))));
-      const intervals = svg.append("g").attr("stroke", measure.color).attr("stroke-width", 1.5)
-        .selectAll("g").data(valid.filter(row => isValue(row[`${measure.id}_moe`]))).join("g");
-      const low = row => y(Math.max(0, estimate(row) - row[`${measure.id}_moe`]));
-      const high = row => y(estimate(row) + row[`${measure.id}_moe`]);
-      intervals.append("line").attr("x1", row => x(row.acs_end_year)).attr("x2", row => x(row.acs_end_year)).attr("y1", low).attr("y2", high);
-      for (const bound of [low, high]) intervals.append("line").attr("x1", row => x(row.acs_end_year) - 5).attr("x2", row => x(row.acs_end_year) + 5).attr("y1", bound).attr("y2", bound);
       const points = svg.append("g").selectAll("circle").data(valid).join("circle")
         .attr("cx", row => x(row.acs_end_year)).attr("cy", row => y(estimate(row)))
         .attr("r", 4)
         .attr("fill", measure.color)
         .attr("stroke", measure.color).attr("stroke-width", 2)
         .attr("tabindex", 0).attr("aria-label", row => summary(row, measure));
+      function drawProgress(progress) {
+        trendLine.attr("d", d3.line().defined(row => isValue(estimate(row)))
+          .x(row => x(row.acs_end_year)).y(row => y(estimate(row) * progress))(rows));
+        points.attr("cy", row => y(estimate(row) * progress));
+
+      }
+      let observer;
+      function finishReveal() {
+        observer?.disconnect();
+        trendLine.interrupt("reveal");
+        revealedCharts.add(measure.id);
+        drawProgress(1);
+      }
+      if (reducedMotion.matches || revealedCharts.has(measure.id) || !("IntersectionObserver" in window)) {
+        finishReveal();
+      } else {
+        drawProgress(0);
+        observer = new IntersectionObserver(entries => {
+          if (!entries.some(entry => entry.isIntersecting)) return;
+          observer.disconnect();
+          revealedCharts.add(measure.id);
+          trendLine.transition("reveal").duration(900).ease(d3.easeCubicOut)
+            .tween("position", () => drawProgress).on("end", () => drawProgress(1));
+        }, { threshold: 0.2 });
+        observer.observe(svg.node());
+      }
+      chartCleanups.push(() => { observer?.disconnect(); trendLine.interrupt("reveal"); });
       const tooltip = article.append("div").attr("class", "chart-tooltip").attr("role", "tooltip")
         .attr("id", `chart-tooltip-${index}`).attr("hidden", true);
-      const readout = article.append("p").attr("class", "chart-readout").attr("aria-live", "polite")
-        .text("Hover or focus a point for its estimate and margin of error.");
+      const readout = article.append("p").attr("class", "sr-only").attr("aria-live", "polite");
       function showPoint(event, row) {
+        finishReveal();
         const point = d3.select(event.currentTarget);
         point.attr("r", 7).attr("fill", "#fbfbf7").attr("stroke-width", 3)
           .attr("aria-describedby", `chart-tooltip-${index}`);
@@ -116,21 +142,6 @@
       });
     });
   }
-  function renderTable() {
-    const table = document.createElement("table");
-    const caption = table.createCaption(); caption.textContent = "Chicago city estimates and margins of error. Derived percentage MOEs are approximate and in percentage points; rents are in end-year dollars.";
-    const head = table.createTHead().insertRow();
-    for (const label of ["Measure", "Period", "Units", "Estimate", "90% MOE", "Annotations"]) {
-      const th = document.createElement("th"); th.scope = "col"; th.textContent = label; head.append(th);
-    }
-    const body = table.createTBody();
-    for (const measure of measuresForTopic()) for (const row of rows) {
-      const tr = body.insertRow();
-      const values = [measure.label, period(row), measure.money ? `${row.dollar_year} dollars/month` : measure.percent ? "Percent (MOE: pp)" : "Housing units", format(row[`${measure.id}_estimate`], measure), format(row[`${measure.id}_moe`], measure, true), annotations(row, measure) || "None"];
-      values.forEach(value => { const td = tr.insertCell(); td.textContent = value; });
-    }
-    document.getElementById("city-data-table").replaceChildren(table);
-  }
   function renderTopicNote() {
     const notes = {
       core: "Counts describe occupied rental homes; rents are monthly amounts in each period’s end-year dollars.",
@@ -140,8 +151,11 @@
     };
     document.getElementById("city-topic-note").textContent = notes[topicControl.value];
   }
+  reducedMotion.addEventListener("change", () => {
+    if (rows.length && typeof d3 !== "undefined") renderCharts();
+  });
   topicControl.addEventListener("change", () => {
-    if (rows.length) { renderTopicNote(); renderCards(); renderTable(); if (typeof d3 !== "undefined") renderCharts(); }
+    if (rows.length) { renderTopicNote(); renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   statisticsPeriod.addEventListener("change", () => {
     selectedYear = statisticsPeriod.value;
@@ -152,8 +166,8 @@
     if (!response.ok) throw new Error(`Citywide statistics could not load (HTTP ${response.status}). Upload data/web/chicago_city_statistics.json.`);
     rows = await response.json(); rows.sort((a, b) => a.acs_end_year - b.acs_end_year);
     if (rows.length !== 3 || rows.some(row => row.GEOID !== "1714000") || new Set(rows.map(row => row.acs_end_year)).size !== 3) throw new Error("Unexpected citywide statistics. Re-run the city web export.");
-    renderTopicNote(); renderCards(); renderTable();
-    if (typeof d3 === "undefined") throw new Error("Cards and table are available, but D3 could not load. Check your connection to load the charts.");
+    renderTopicNote(); renderCards();
+    if (typeof d3 === "undefined") throw new Error("Cards are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();
     document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. Charts show all three periods.";
     let resizeFrame;
