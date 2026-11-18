@@ -71,3 +71,6 @@ po/*~
 rsconnect/
 
 html/data/web/*.json
+
+# Local model outputs include survey designs and microdata-derived objects
+/output/

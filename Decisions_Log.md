@@ -210,3 +210,60 @@ annotations. Use published PUMA medians/counts and the existing two derived
 percentage definitions and uncertainty methods. Add PUMA areas to the map
 geography selector, retaining independent PUMA outline control and the five
 requested exclusions. Keep all outlines above choropleth fills.
+
+### 2026-11-18 — First housing PUMS stage for future modeling
+
+At Martin's request, collect only the latest requested ACS five-year PUMS
+release (2020–2024), with `get_pums(recode = TRUE, return_vacant = TRUE)`.
+Download an Illinois housing-unit extract, using SPORDER = 1 and TYPEHUGQ = 1
+for occupied housing, plus the package's separate vacant-unit requests.
+Retain housing weights and all 80 housing replicate weights. Start with rent,
+tenure/vacancy, bedrooms, rooms, building size, construction year, household
+size, housing-dollar adjustment factor, and rent allocation flags. Preserve
+source values and labels; no dollar adjustment or model sample is created yet.
+
+Filter locally to the 18 retained 2024-map PUMAs, including all five prior
+explicit exclusions. Keep vacant, owner-occupied, and no-cash-rent units.
+Use the release's unified 2020 PUMA codes; Census already crosswalked 2020/2021
+records. PUMS identifies PUMAs, not Chicago's 77 community areas, so it cannot
+support assigning these observations directly to community-area neighborhoods.
+Store all microdata locally outside the website and log aggregate QA counts
+only. No regression is fitted in this step.
+
+Validation completed: the Illinois cache contains 267,378 housing records
+(252,463 occupied and 14,915 vacant). The retained-PUMA dataset contains
+43,977 records (40,217 occupied and 3,760 vacant) across all 18 PUMAs. Source
+column identity and unique housing IDs passed. Negative replicate weights
+are permitted by Census and preserved; validation treats full and replicate
+weights separately. Cached end-to-end reruns produced identical checksums for
+the Illinois RDS and both Chicago dataset formats.
+
+### 2026-11-18 — First descriptive contract-rent models
+
+Martin approved modeling positive cash-rent units' log monthly contract rent
+adjusted to 2024 dollars, with bedrooms, rooms, building size, construction-year
+category, and household size, compared with the same specification plus PUMA
+fixed effects. Use one common sample, housing weights, and all 80 housing
+replicate weights. No random-effects or causal neighborhood model is added.
+
+Apply RNTP × ADJHSG / 1,000,000 exactly once in a separate model sample. Keep
+imputed/top-coded observations; report exclusions, allocation counts, and sparse
+categories. Set categorical treatment coding explicitly. Use the survey package
+ACS SDR design with MSE centering, 4/80 scaling, and 95% pointwise intervals.
+Report weighted in-sample R², incremental/partial R², their replicate-weight
+uncertainty, a joint PUMA test, and area contrasts centered on the weighted
+PUMA distribution (recentered in every replicate). Outcomes are individual
+unit log rents; transformed coefficients describe geometric-rent ratios.
+
+Store the sample/audit under data/analytic/pums_2024 and model results under
+the gitignored output/models/contract_rent_2024. No website changes or exports.
+PUMA associations do not identify community-area or causal neighborhood effects.
+
+The first fitted models use 18,437 cash-rent units (609,338 housing-weighted
+units). Weighted log-rent R² is 0.0951 for housing controls and 0.2798 after
+adding PUMA indicators: increment 0.1847 (95% interval 0.1702–0.1991), partial
+R² 0.2041. The joint design-based PUMA F test is F(17,37) = 214.58.
+These describe in-sample conditional area associations. Diagnostics flag five
+categories with fewer than 30 observations and maximum weighted leverage
+0.731, so sparse-category sensitivity and additional model checks remain
+appropriate before treating this as a finished research result.

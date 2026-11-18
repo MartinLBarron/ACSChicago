@@ -294,3 +294,30 @@ PUMA aggregates follow the same core → supplementary → derived → web-expor
 stages as tracts and block groups. Validate the finished PUMA data with
 `Rscript R/check_puma_data.R`. See the housing codebook for table-level
 caching and the documented recovery from Census server timeouts.
+
+### PUMS housing microdata (2020–2024)
+
+The modeling pipeline starts with a separate local housing-unit extract:
+
+```sh
+Rscript R/download_pums.R
+Rscript R/prepare_pums.R
+Rscript R/check_pums.R
+```
+
+The download uses `tidycensus::get_pums(recode = TRUE, return_vacant = TRUE)`
+for Illinois, with housing and replicate weights. Preparation retains the
+same 18 PUMAs selected for the 2024 map. See the
+[PUMS housing codebook](docs/pums_housing_codebook.md) for variables, output
+paths, sampling-unit safeguards, and geographic limitations. The full pipeline
+includes these steps. Microdata are not published to the website.
+
+### First contract-rent models
+
+After PUMS preparation, run `Rscript R/model_contract_rent.R` and
+`Rscript R/check_rent_model.R`. The full pipeline includes the model step.
+It compares housing-weighted log contract rent models with and without PUMA
+fixed effects, using ACS replicate weights for uncertainty. The local report
+is `output/models/contract_rent_2024/report.md`. See
+[the model documentation](docs/contract_rent_model.md) for sample rules,
+inflation adjustment, interpretation, diagnostics, and reproducibility checks.
