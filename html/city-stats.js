@@ -42,7 +42,15 @@
       valueLine.append(value, moe);
       const description = document.createElement("p"); description.className = "stat-description";
       description.textContent = `${measure.description}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
-      card.append(heading, valueLine, unit, description); root.append(card);
+      const action = document.createElement("button");
+      action.className = "stat-card-action";
+      action.type = "button";
+      action.setAttribute("aria-label", `Compare ${measure.label.toLowerCase()} across cities, ${period(row)}`);
+      action.setAttribute("aria-haspopup", "dialog");
+      action.addEventListener("click", () => window.openChicagoComparison(measure, selectedYear, action));
+      const cue = document.createElement("span"); cue.className = "stat-compare-cue";
+      cue.textContent = "Compare cities ↗";
+      card.append(heading, valueLine, unit, description, cue, action); root.append(card);
     }
   }
   const revealedCharts = new Set();
