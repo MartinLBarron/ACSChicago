@@ -7,13 +7,18 @@ if (!nzchar(Sys.getenv("CENSUS_API_KEY"))) stop("Set CENSUS_API_KEY in .Renviron
 options(timeout = max(600, getOption("timeout")))
 for (year in acs_years) {
   config <- acs_config_for_year(year)
-  available_groups <- housing_groups_for_year(year)
+  available_groups <- housing_variable_groups
   # A separate cache preserves the earlier rent responses and manifests unchanged.
   config$raw_dir <- file.path(config$raw_dir, "housing")
   dir.create(config$raw_dir, recursive = TRUE, showWarnings = FALSE)
   manifest_path <- file.path(config$raw_dir, "manifest.csv")
+  tables <- unique(substr(unname(housing_variables), 1, 6))
+  active_pattern <- paste0("(^(", paste(tables, collapse = "|"), ")_metadata\\.json$|_(",
+                           paste(names(available_groups), collapse = "|"),
+                           ")_(api\\.json|tidycensus\\.rds)$)")
   if (file.exists(manifest_path)) {
     previous <- readr::read_csv(manifest_path, show_col_types = FALSE)
+    previous <- previous[grepl(active_pattern, basename(previous$path)), ]
     stopifnot(all(file.exists(previous$path)),
               all(unname(tools::md5sum(previous$path)) == previous$md5))
   }
@@ -58,30 +63,8 @@ for (year in acs_years) {
     config$variables <- do.call(c, unname(available_groups))
     prepared <- prepare_acs_dataset(tidy, api, core["GEOID"], kind, config)
     prepared$long$source_status <- "published"
-    unavailable <- setdiff(names(housing_variables), names(config$variables))
-    if (length(unavailable)) {
-      # Explicit structural gaps, not API missing-value codes or fabricated medians.
-      template <- prepared$long[prepared$long$variable == names(config$variables)[1], ]
-      placeholders <- lapply(unavailable, function(variable) {
-        row <- template
-        row$variable <- variable
-        row$variable_code <- unname(housing_variables[[variable]])
-        row$estimate <- row$moe <- NA_real_
-        for (field in c("estimate_raw", "moe_raw", "estimate_annotation", "moe_annotation")) row[[field]] <- NA_character_
-        row$unit <- paste("monthly", year, "dollars")
-        row$source_status <- "table_not_published"
-        row
-      })
-      prepared$long <- dplyr::bind_rows(prepared$long, dplyr::bind_rows(placeholders)) |>
-        dplyr::arrange(GEOID, variable)
-    }
     for (variable in names(housing_variables)) {
-      if (variable %in% unavailable) {
-        for (suffix in c("estimate", "moe")) prepared$wide[[paste0(variable, "_", suffix)]] <- NA_real_
-        for (suffix in c("estimate_raw", "moe_raw", "estimate_annotation", "moe_annotation")) prepared$wide[[paste0(variable, "_", suffix)]] <- NA_character_
-      }
-      prepared$wide[[paste0(variable, "_source_status")]] <-
-        if (variable %in% unavailable) "table_not_published" else "published"
+      prepared$wide[[paste0(variable, "_source_status")]] <- "published"
     }
     stopifnot(all(is.na(prepared$long$estimate) | prepared$long$estimate == floor(prepared$long$estimate)))
     # Save source components separately; derived values are computed in the next stage.
@@ -91,7 +74,7 @@ for (year in acs_years) {
       saveRDS(prepared[[shape]], file.path(config$analytic_dir, paste0(name, ".rds")))
     }
   }
-  inputs <- list.files(config$raw_dir, pattern = "\\.(json|rds)$", full.names = TRUE)
+  inputs <- list.files(config$raw_dir, pattern = active_pattern, full.names = TRUE)
   manifest <- data.frame(path = inputs, md5 = unname(tools::md5sum(inputs)),
     cached_at_utc = format(file.info(inputs)$mtime, tz = "UTC", usetz = TRUE))
   readr::write_csv(manifest, manifest_path)

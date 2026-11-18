@@ -46,9 +46,7 @@ derive_housing_percentage <- function(x, definition) {
 validate_housing_partitions <- function(x) {
   # Validate identities within tables, rather than mixing universes across tables.
   partitions <- list(
-    burden_total = names(housing_variable_groups$burden)[-1],
-    bedrooms_renter_total = names(housing_variable_groups$bedrooms)[-1],
-    utilities_total = c("utilities_extra", "utilities_included")
+    burden_total = names(housing_variable_groups$burden)[-1]
   )
   for (total in names(partitions)) {
     components <- as.matrix(x[paste0(partitions[[total]], "_estimate")])

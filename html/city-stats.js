@@ -158,9 +158,7 @@
   function renderTopicNote() {
     const notes = {
       core: "Counts describe occupied rental homes; rents are monthly amounts in each period’s end-year dollars.",
-      burden: "Burden shares exclude renters without a computed rent/income ratio. The not-computed share uses all renter-occupied units as its denominator.",
-      bedrooms: "Published median gross rent by bedroom count for homes paying cash rent. Includes renter-paid utilities and fuels; this is not contract rent. Values use each period’s end-year dollars. Census did not publish this table for 2010–2014.",
-      utilities: "No extra utility payment is a share of all renter-occupied units. It does not measure utility spending."
+      burden: "The 50%+ rent-burden share excludes renters without a computed rent/income ratio.",
     };
     document.getElementById("city-topic-note").textContent = notes[topicControl.value];
   }

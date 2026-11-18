@@ -133,3 +133,6 @@ percentages). Both geographic levels and the citywide dashboard retain the same
 period pickers. There is no corresponding published ACS detailed table for
 median contract rent by bedrooms, and aggregate medians do not supply the missing
 joint distribution needed to calculate it.
+- **Supersedes the prior expansion of displayed and collected housing measures:** User requested removal of 30%+ rent burden, all rent-by-bedroom measures, and all utility measures from the website and data collection pipeline. Retain the original four core measures, 50%+ burden, and not-computed coverage share. Drop bedroom composition sources as unused. Keep B25070 category counts needed for the remaining burden denominator/MOE; do not calculate the retired 30%+ summary. Regenerate active analytic and web exports. Historical raw downloads remain unchanged but are excluded from active source manifests and inputs.
+
+- User also removed the not-computed share from the website and derived outputs. The only derived public measure is now 50%+ rent burden. Keep the underlying not-computed count for source-table validation and exclusion from the burden denominator.

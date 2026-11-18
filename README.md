@@ -215,58 +215,34 @@ ACS retrieval. Include this JSON, `city-stats.js`, and the pinned D3 library in
 `html/vendor/` in uploads, along with the existing HTML/CSS/map assets and GeoJSON.
 The four cards and HTML table remain available if the chart library fails to load.
 
-## Rent burden, bedrooms, and utilities
+## Rent burden
 
-The full pipeline now retrieves supplementary source counts from B25070 (rent
-burden), B25042 (renter bedrooms), and B25069 (utility payment) for every period,
-tract/block group, and Chicago place. To run these stages independently after
-core ACS retrieval:
+The supplementary pipeline retrieves B25070 source counts for every period,
+tract/block group, and Chicago place. To run these stages after core ACS retrieval:
 
 ```sh
 Rscript R/download_acs_housing.R
 Rscript R/derive_acs_housing.R
+Rscript R/export_rent_web_data.R
+Rscript R/export_city_web_data.R
 ```
 
-`R/housing_config.R` defines source variables and formulas. Raw counts retain
-estimates, MOEs, special codes, and annotations in a separate cache. The derived
-stage computes 30%+/50%+ rent-burden shares, renter-bedroom shares, and utility
-payment shares, with approximate 90% MOEs in percentage points. It records
-numerators, denominators, missingness reasons, and MOE methods. Combined analytic
-files are `data/analytic/acs_combined/TAG_housing.*`, with separate source and
-derived long files. See [the housing codebook](docs/acs_housing_codebook.md) for
-exact definitions and file layout. These derived measures are available in the map and citywide dashboard.
+`R/housing_config.R` defines the active source variables and formulas. The active
+supplement now contains only the **50%+ rent-burden share** only. All B25070 categories remain necessary
+for the computed-ratio denominator and its MOE; the 30%+ summary is no longer
+calculated. Bedrooms and utility-payment tables are no longer requested, used,
+or included in active source manifests. Earlier raw cache files are retained
+locally as unused historical downloads, rather than modified or deleted.
 
+The website offers five measures: the original four rent/count measures plus the
+50%+ burden share. The citywide Explore control offers rent/rental housing and
+rent burden, with its period selector independent of the map. Percentage breaks
+remain 10/20/30/40/50/75; percentages have approximate MOEs in percentage points.
+Web exports contain only active measures. Re-upload the full `html/` folder after
+regeneration to remove retired fields and controls from hosting.
 
-## Dashboard housing topics
-
-The map's grouped measure picker includes median gross rent by bedrooms,
-rent-burden percentages, utility-payment shares, and the four original measures. Shared percentage breaks are 10, 20, 30, 40, 50,
-and 75 percent across periods and geography levels. Missing or undefined shares
-are gray; valid zero shares remain in the lowest color class. Map popups show the
-selected share, its approximate MOE in percentage points, and its denominator definition.
-
-Below the map, the **Explore** picker switches the citywide cards, D3 charts, and
-data table among rent/rental housing, rent burden, bedrooms, and utilities. Its
-statistics-period selector remains independent of the map period. Percentage
-charts use a 0–100 reference scale, extended when necessary to show MOE bars.
-`html/measures.js` defines the common display labels, units, and denominators.
-Web exports now read extended `_housing` datasets and validate all 15 displayed measures.
-Re-run both web export scripts after the housing derivation stage; upload the
-entire `html/` directory, including `measures.js` and refreshed JSON/GeoJSON files.
-
-
-## Median gross rent by bedroom count
-
-The Bedrooms composition view has been replaced by **Rent by bedroom** on the map
-and citywide dashboard. It displays six published medians from B25031_002–007:
-studio/no bedroom, 1, 2, 3, 4, and 5+ bedrooms. These are gross rents including
-renter-paid utilities/fuels, not contract rent. They use the existing shared dollar
-breaks and nominal end-year dollar labels. Published 90% MOEs, raw codes, and
-annotations are retained. Bedroom-composition counts and shares remain in the
-analytic files for modeling.
-
-B25031 was introduced with the 2015 release. The pipeline requests it for 2019
-and 2024; 2014 entries have null values and `source_status = table_not_published`,
-not imputed medians or synthetic API codes. The interface explains the gap.
-These structural missing rows are explicitly distinguished from missing medians
-in published tables. All requested periods and existing geography rules remain.
+Combined analytic outputs remain `data/analytic/acs_combined/TAG_housing.*`,
+with separate source and derived long files. See the
+[housing codebook](docs/acs_housing_codebook.md) for definitions and uncertainty
+handling. The full `R/run_pipeline.R` executes all stages. Re-run end-to-end to
+check reproducibility; original raw inputs are cached and checksummed.
