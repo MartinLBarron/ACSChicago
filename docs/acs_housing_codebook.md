@@ -112,3 +112,28 @@ Rscript R/download_acs_comparisons.R
 The full `R/run_pipeline.R` includes this stage. Reruns reuse cached responses
 and verify prior manifest checksums. Dollar amounts remain nominal end-year
 dollars; city boundaries and housing composition can differ across periods.
+
+## Renter-occupied share
+
+`renter_occupied_pct` is **100 × B25003_003 / B25003_001**: the percentage
+of occupied homes that are renter occupied. Vacant homes, including vacant
+rentals, are excluded from the denominator. Renter-occupied units include
+homes occupied without payment of cash rent.
+
+The `tenure` source group collects B25003_001 (`occupied_units`), B25003_002
+(`owner_occupied_units`), and B25003_003 (`tenure_renter_units`), with both
+estimates and 90% MOEs and the original E/M/EA/MA API fields. The separate
+source name for renters lets us check agreement with the existing core
+`renter_occupied_units` measure. Tenure totals must equal owner plus renter
+counts. Source caches use a `_tenure` suffix, preserving earlier caches.
+
+The percentage uses the same `derive_housing_percentage()` subset-proportion
+MOE method as rent burden, with the ratio fallback when needed. Its MOE is
+in percentage points. Zero occupied units produce an unavailable percentage,
+not zero; missing source estimates and MOEs retain explicit status fields.
+Derived-long outputs retain numerator and denominator estimates and MOEs.
+
+The measure is calculated for all three periods, for Chicago-overlapping
+tracts and block groups, Chicago city, all nine comparison cities, and the
+United States. Standard analytic and web exports include it. Frontend
+measure controls are maintained separately.

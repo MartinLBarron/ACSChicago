@@ -57,14 +57,28 @@ for (year in acs_years) {
     peer <- comparison_places[i, ]
     message("ACS comparisons: ", year, " ", peer$comparison_id)
     core <- get_comparison_variables(peer, config, "rent")
-    burden_config <- config
-    burden_config$variables <- housing_variables
-    source <- get_comparison_variables(peer, burden_config, "burden")
+    # Keep variable-group caches separate so adding tenure never changes burden caches.
+    groups <- lapply(names(housing_variable_groups), function(group) {
+      group_config <- config
+      group_config$variables <- housing_variable_groups[[group]]
+      get_comparison_variables(peer, group_config, group)
+    })
+    source <- list(long = dplyr::bind_rows(lapply(groups, `[[`, "long")),
+                   wide = groups[[1]]$wide)
+    for (group in groups[-1]) {
+      source$wide <- dplyr::left_join(source$wide,
+        group$wide[c("GEOID", setdiff(names(group$wide), names(source$wide)))], by = "GEOID")
+    }
     validate_housing_partitions(source$wide)
-    derived <- derive_housing_percentage(source$wide, housing_derivations$rent_burden_50plus_pct)
+    stopifnot(identical(source$wide$tenure_renter_units_estimate, core$wide$renter_occupied_units_estimate),
+              identical(source$wide$tenure_renter_units_moe, core$wide$renter_occupied_units_moe))
+    derived <- dplyr::bind_cols(lapply(names(housing_derivations), function(variable) {
+      values <- derive_housing_percentage(source$wide, housing_derivations[[variable]])
+      names(values) <- paste0(variable, "_", names(values))
+      values
+    }))
     x <- dplyr::left_join(core$wide,
       source$wide[c("GEOID", setdiff(names(source$wide), names(core$wide)))], by = "GEOID")
-    names(derived) <- paste0("rent_burden_50plus_pct_", names(derived))
     x <- dplyr::bind_cols(x, derived)
     x$comparison_id <- peer$comparison_id
     annual[[i]] <- x

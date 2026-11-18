@@ -32,6 +32,12 @@ for (year in acs_years) {
         names_glue = "{variable}_{.value}")
     core <- readRDS(file.path(config$analytic_dir, paste0(tag, "_rent.rds")))
     stopifnot(setequal(core$GEOID, x$GEOID), !anyDuplicated(x$GEOID))
+    # The separately cached tenure renter count must reproduce the core count.
+    matched <- match(core$GEOID, x$GEOID)
+    for (suffix in c("estimate", "moe")) {
+      stopifnot(identical(core[[paste0("renter_occupied_units_", suffix)]],
+                         x[[paste0("tenure_renter_units_", suffix)]][matched]))
+    }
     # Preserve core estimates and source components, then add derived percentages.
     extended <- core |>
       dplyr::left_join(x[c("GEOID", setdiff(names(x), metadata_columns))], by = "GEOID") |>

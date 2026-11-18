@@ -146,3 +146,12 @@ and the five active measures, preserving source E/M codes, annotations, and
 90% MOEs. Severe burden follows the existing derived-variable method. This
 is an editorial peer set, without geographic or housing-composition matching.
 The collection stage exports comparison data but does not change the interface.
+
+### 2026-11-18 — Renter share of occupied homes
+
+Add `renter_occupied_pct`, 100 × B25003_003 / B25003_001, to the collection
+and calculation pipeline for all active geographies and periods. Exclude
+vacant homes. Preserve source estimates/MOEs and raw annotations, derive a
+90% percentage-point MOE using the existing percentage helper, and retain
+undefined-denominator and missing-data statuses. Cache tenure separately and
+validate owner plus renter counts against total occupied units.

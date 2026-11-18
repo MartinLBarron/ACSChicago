@@ -22,3 +22,14 @@ stopifnot(summed$estimate == 5, isTRUE(all.equal(summed$moe, sqrt(20))))
 zeros$b_moe <- NA_real_
 stopifnot(is.na(sum_housing_components(zeros, c("a", "b", "c"))$moe))
 message("Derived-percent, fallback, missing-data, zero-denominator, and zero-count MOE checks passed.")
+
+# Tenure uses occupied units (not all housing units) as the denominator.
+source("R/housing_config.R")
+tenure <- data.frame(occupied_units_estimate = c(100, 0), occupied_units_moe = c(10, 4),
+  owner_occupied_units_estimate = c(60, 0), owner_occupied_units_moe = c(6, 3),
+  tenure_renter_units_estimate = c(40, 0), tenure_renter_units_moe = c(5, 3))
+share <- derive_housing_percentage(tenure, housing_derivations$renter_occupied_pct)
+stopifnot(share$estimate[1] == 40, isTRUE(all.equal(share$moe[1], 3)),
+  share$denominator_estimate[1] == 100, share$numerator_estimate[1] == 40,
+  is.na(share$estimate[2]), share$estimate_status[2] == "zero_denominator")
+message("Renter-share denominator and percentage-point MOE checks passed.")
