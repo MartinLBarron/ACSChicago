@@ -8,8 +8,9 @@ const countBreaks = [1, 100, 250, 500, 1000, 2000];
 const countMeasures = new Set(["cash_rent_units", "renter_occupied_units"]);
 function selectedScale() {
   const isCount = countMeasures.has(measureControl.value);
-  const isPercent = window.ChicagoMeasures.find(measure => measure.id === measureControl.value)?.percent || false;
-  return { isCount, isPercent, breaks: isPercent ? [10, 20, 30, 40, 50, 75] : isCount ? countBreaks : rentBreaks };
+  const measure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+  const isPercent = measure?.percent || false;
+  return { isCount, isPercent, breaks: isPercent ? measure.breaks || [10, 20, 30, 40, 50, 75] : isCount ? countBreaks : rentBreaks };
 }
 const colors = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#0c2c84"];
 const missingColor = "#bdbdbd";
@@ -39,9 +40,9 @@ function renderLegend() {
   document.getElementById("map-heading").textContent = measureControl.selectedOptions[0].textContent;
   const list = document.getElementById("legend");
   list.replaceChildren();
-  const { isCount, isPercent } = selectedScale();
+  const { isCount, isPercent, breaks } = selectedScale();
   const labels = isPercent
-    ? ["Under 10%", "10% to under 20%", "20% to under 30%", "30% to under 40%", "40% to under 50%", "50% to under 75%", "75% or more", "Unavailable / no eligible units"]
+    ? [`Under ${breaks[0]}%`, ...breaks.slice(0, -1).map((value, index) => `${value}% to under ${breaks[index + 1]}%`), `${breaks[breaks.length - 1]}% or more`, "Unavailable / no eligible units"]
     : isCount
     ? ["0 units (estimated)", "1–99 units", "100–249 units", "250–499 units", "500–999 units", "1,000–1,999 units", "2,000 or more units", "No estimate available"]
     : ["Under $750", "$750 to under $1,000", "$1,000 to under $1,250", "$1,250 to under $1,500",
@@ -136,7 +137,7 @@ async function start() {
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
   async function fetchLayer(file) {
-    const response = await fetch(`data/web/${file}.geojson`);
+    const response = await fetch(`data/web/${file}.geojson?v=20261118-renter-share`);
     if (!response.ok) throw new Error(`Could not load data/web/${file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
     return response.json();
   }

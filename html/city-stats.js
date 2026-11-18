@@ -63,7 +63,7 @@
     allMeasures.forEach((measure, index) => {
       const article = root.append("article").attr("class", "trend-chart");
       article.append("h3").text(measure.label);
-      article.append("p").attr("class", "chart-unit").text(measure.money ? "Monthly dollars · not inflation-adjusted" : measure.percent ? "Percent of eligible units · MOEs in percentage points" : "Estimated housing units");
+      article.append("p").attr("class", "chart-unit").text(measure.money ? "Monthly dollars · not inflation-adjusted" : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
       const width = Math.max(290, article.node().getBoundingClientRect().width - 40);
       const height = 270;
       const margin = { top: 24, right: 24, bottom: 45, left: measure.money ? 62 : 72 };
@@ -169,7 +169,7 @@
     if (rows.length) { renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   async function startCityStats() {
-    const response = await fetch("data/web/chicago_city_statistics.json");
+    const response = await fetch("data/web/chicago_city_statistics.json?v=20261118-renter-share");
     if (!response.ok) throw new Error(`Citywide statistics could not load (HTTP ${response.status}). Upload data/web/chicago_city_statistics.json.`);
     rows = await response.json(); rows.sort((a, b) => a.acs_end_year - b.acs_end_year);
     if (rows.length !== 3 || rows.some(row => row.GEOID !== "1714000") || new Set(rows.map(row => row.acs_end_year)).size !== 3) throw new Error("Unexpected citywide statistics. Re-run the city web export.");

@@ -5,6 +5,7 @@ window.ChicagoMeasures = [
   { id: "median_gross_rent", label: "Median gross rent", unit: "per month", money: true, group: "core", color: "#2b6550", description: "Includes renter-paid utilities and fuels" },
   { id: "cash_rent_units", label: "Occupied units paying cash rent", unit: "housing units", group: "core", color: "#986345", description: "Occupied rental homes with cash rent" },
   { id: "renter_occupied_units", label: "Renter-occupied units", unit: "housing units", group: "core", color: "#986345", description: "Includes homes occupied without cash rent" },
+  { id: "renter_occupied_pct", label: "Renter-occupied share", unit: "percent of occupied homes", percent: true, group: "core", breaks: [20, 35, 50, 65, 80, 90], description: "Percentage of occupied homes that are rented; excludes vacant homes" },
   { id: "rent_burden_50plus_pct", label: "Rent burden: 50% or more", percent: true, group: "burden", description: "Share of renters with computed rent/income ratios spending 50% or more of income on gross rent" }
 ].map(measure => ({ unit: "percent of eligible units", color: "#2b6550", ...measure }));
 window.ChicagoMeasureGroups = { core: "Rent and rental housing", burden: "Rent burden" };

@@ -6,13 +6,13 @@
   <title>Chicago rent explorer</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
-  <link href="style.css" rel="stylesheet">
+  <link href="style.css?v=20261118-renter-share" rel="stylesheet">
   <script defer src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
-  <script defer src="measures.js"></script>
-  <script defer src="map.js"></script>
+  <script defer src="measures.js?v=20261118-renter-share"></script>
+  <script defer src="map.js?v=20261118-renter-share"></script>
   <script defer src="vendor/d3.v7.9.0.min.js"></script>
-  <script defer src="city-stats.js"></script>
-  <script defer src="comparisons.js"></script>
+  <script defer src="city-stats.js?v=20261118-renter-share"></script>
+  <script defer src="comparisons.js?v=20261118-renter-share"></script>
 </head>
 <body>
   <a class="skip-link" href="#rent-controls">Skip to map controls</a>
@@ -33,7 +33,7 @@
       <select id="period"><option value="2024">2020–2024</option><option value="2019">2015–2019</option><option value="2014">2010–2014</option></select>
       <p class="note">Each period uses matching Census boundaries. Rent is in that period’s end-year dollars, without adjustment for inflation.</p>
       <label for="measure">Measure</label>
-      <select id="measure"><option value="median_gross_rent">Median gross rent</option><option value="median_contract_rent">Median contract rent</option><option value="cash_rent_units">Occupied units paying cash rent</option><option value="renter_occupied_units">Renter-occupied units</option></select>
+      <select id="measure"><option value="median_gross_rent">Median gross rent</option><option value="median_contract_rent">Median contract rent</option><option value="cash_rent_units">Occupied units paying cash rent</option><option value="renter_occupied_units">Renter-occupied units</option><option value="renter_occupied_pct">Renter-occupied share</option></select>
       <label for="geography">Geography</label>
       <select id="geography"><option value="tracts">Census tracts</option><option value="blocks">Block groups</option></select>
     </fieldset>
