@@ -75,3 +75,40 @@ Source: [Census B25070](https://api.census.gov/data/2024/acs/acs5/groups/B25070.
 
 The not-computed share is also retired. Its underlying count remains a source
 component used for table partition checks, not a displayed or derived percentage.
+
+## City and national comparisons
+
+`R/download_acs_comparisons.R` retrieves Chicago, Philadelphia, Milwaukee,
+Detroit, Minneapolis, Boston, Houston, New York city (all five boroughs),
+Los Angeles, Miami city (not Miami-Dade County), and the United States for
+2010–2014, 2015–2019, and 2020–2024. Each city is a whole Census place,
+without county restrictions, using that release's geography. The national
+benchmark uses ACS `us` geography. This is an editorial comparison set,
+not a statistically matched sample of cities.
+
+The four core rent/count measures and all eleven B25070 source cells are
+collected via tidycensus. Original API E/M codes and EA/MA annotations are
+cached alongside tidycensus RDS responses under
+`data/raw_data/acs_YEAR/comparisons/`, with checksum manifests. Severe rent
+burden uses the existing computed-ratio denominator and approximate 90% MOE
+method, including zero-denominator and missing-source handling. Retired
+bedroom, utility, and other derived measures are not collected.
+
+Annual `comparison_housing.csv/.rds` files are in each ACS analytic folder.
+Combined wide, source-long, and derived files are in
+`data/analytic/acs_combined/` with the `comparison_housing` prefix. The combined
+wide dataset has 33 observations (11 geographies × 3 releases). Its key is
+`GEOID` plus `acs_end_year`; `comparison_id` provides stable readable IDs.
+`comparison_statistics.json` is exported to `data/web/` and `html/data/web/`
+for future frontend use. The current interface is unchanged. Chicago's five
+estimates and MOEs are checked against the existing dashboard dataset.
+
+Run after the Chicago housing derivation stage:
+
+```sh
+Rscript R/download_acs_comparisons.R
+```
+
+The full `R/run_pipeline.R` includes this stage. Reruns reuse cached responses
+and verify prior manifest checksums. Dollar amounts remain nominal end-year
+dollars; city boundaries and housing composition can differ across periods.

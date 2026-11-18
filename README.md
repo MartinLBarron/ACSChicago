@@ -249,3 +249,9 @@ check reproducibility; original raw inputs are cached and checksummed.
 
 The map measure selector is a flat list of all five measures. The citywide
 section has no topic filter: every measure has its own card and trend chart.
+
+City/national comparison data are also collected by
+`R/download_acs_comparisons.R` (included in the full pipeline): Chicago and
+nine comparison cities, plus the United States, for all three ACS periods.
+See [the housing codebook](docs/acs_housing_codebook.md#city-and-national-comparisons)
+for geography definitions, outputs, and validation.

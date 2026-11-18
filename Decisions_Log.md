@@ -136,3 +136,13 @@ joint distribution needed to calculate it.
 - **Supersedes the prior expansion of displayed and collected housing measures:** User requested removal of 30%+ rent burden, all rent-by-bedroom measures, and all utility measures from the website and data collection pipeline. Retain the original four core measures, 50%+ burden, and not-computed coverage share. Drop bedroom composition sources as unused. Keep B25070 category counts needed for the remaining burden denominator/MOE; do not calculate the retired 30%+ summary. Regenerate active analytic and web exports. Historical raw downloads remain unchanged but are excluded from active source manifests and inputs.
 
 - User also removed the not-computed share from the website and derived outputs. The only derived public measure is now 50%+ rent burden. Keep the underlying not-computed count for source-table validation and exclusion from the burden denominator.
+
+### 2026-11-17 — City and national ACS rent benchmarks
+
+Added direct ACS place estimates for Philadelphia, Milwaukee, Detroit,
+Minneapolis, Boston, Houston, New York, Los Angeles, and Miami, alongside
+Chicago and the United States benchmark. Use all three existing ACS5 periods
+and the five active measures, preserving source E/M codes, annotations, and
+90% MOEs. Severe burden follows the existing derived-variable method. This
+is an editorial peer set, without geographic or housing-composition matching.
+The collection stage exports comparison data but does not change the interface.

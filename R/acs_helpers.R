@@ -57,9 +57,9 @@ cache_api_response <- function(kind, county, config, path) {
   if (file.exists(path)) return(invisible(path))
   codes <- unname(config$variables)
   fields <- c("NAME", as.vector(outer(codes, c("E", "M", "EA", "MA"), paste0)))
-  geography <- if (kind == "place") paste0("place:", config$chicago_place) else
+  geography <- if (kind == "us") "us:*" else if (kind == "place") paste0("place:", config$chicago_place) else
     if (kind == "tract") "tract:*" else "block group:*"
-  within <- if (kind == "place") paste0("state:", config$state) else
+  within <- if (kind == "us") NULL else if (kind == "place") paste0("state:", config$state) else
     paste0("state:", config$state, " county:", county)
   response <- tryCatch(httr::GET(
     sprintf("https://api.census.gov/data/%d/acs/acs5", config$year),
@@ -82,7 +82,7 @@ read_api_response <- function(path) {
   values <- jsonlite::fromJSON(path)
   result <- as.data.frame(values[-1, , drop = FALSE], stringsAsFactors = FALSE)
   names(result) <- values[1, ]
-  result$GEOID <- if ("place" %in% names(result)) paste0(result$state, result$place) else
+  result$GEOID <- if ("us" %in% names(result)) "1" else if ("place" %in% names(result)) paste0(result$state, result$place) else
     paste0(result$state, result$county, result$tract,
                          if ("block group" %in% names(result)) result[["block group"]] else "")
   result
