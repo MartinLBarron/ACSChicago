@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Model · Chicago Rent</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link href="style.css?v=20261118-puma-aggregates" rel="stylesheet">
+  <meta name="description" content="Explore how housing, socioeconomic conditions and community location are associated with Chicago rents, using ACS block-group models.">
+  <link href="style.css?v=20261118-bg-model" rel="stylesheet">
+  <link href="model.css?v=20261118-bg-model" rel="stylesheet">
+  <script defer src="vendor/d3.v7.9.0.min.js"></script>
+  <script defer src="model-effects.js?v=20261118-bg-model"></script>
+  <script defer src="model.js?v=20261118-bg-model"></script>
 </head>
 <body>
   <a class="skip-link" href="#model">Skip to model information</a>
@@ -13,15 +18,67 @@
     <a class="brand" href="index.html"><span class="chicago-stars" aria-hidden="true">✶ ✶ ✶ ✶</span><span>Chicago <span class="brand-light">Rent</span></span></a>
     <nav aria-label="Main navigation"><a href="index.html">Dashboard</a><a href="model.html" aria-current="page">Model</a><a href="data.html">About the data</a><a href="about.html">About the project</a></nav>
   </header>
-  <main id="model" class="project-page">
-    <p class="eyebrow">Model</p>
+  <main id="model" class="project-page model-page">
+    <p class="eyebrow">Model / 2020–2024 ACS</p>
     <h1>Explaining rent differences.</h1>
-    <p class="project-lede">Exploring the characteristics associated with higher and lower rents across Chicago.</p>
-    <section class="project-placeholder" aria-labelledby="coming-soon">
-      <h2 id="coming-soon">The model, coming soon.</h2>
-      <p>This page will present the modeling approach and findings on rent differences across Chicago.</p>
-      <a href="index.html">Explore the dashboard <span aria-hidden="true">↗</span></a>
+    <p class="project-lede">How much of Chicago’s rent variation is associated with housing, socioeconomic conditions, and community-area location?</p>
+    <p class="model-status" id="model-status" role="status">Loading model results…</p>
+    <noscript><p>Enable JavaScript to explore the charts, or <a href="data/web/block_group_model_report.html">read the full research report</a>.</p></noscript>
+    <div id="model-content" hidden>
+    <div class="model-notice"><strong>A working model.</strong> These results describe differences among block-group medians, not individual tenants. The model needs further refinement. “Effects” below mean conditional associations, not causal impacts.</div>
+    <div class="model-overview" id="model-overview"></div>
+    <div class="model-jump-links" aria-label="On this page"><a href="#stages">The models</a><a href="#effects">Explore the variables</a><a href="#diagnostics">Diagnostics</a><a href="#methods">Methods &amp; limitations</a></div>
+
+    <section class="model-section" id="stages" aria-labelledby="stages-heading">
+      <p class="eyebrow">01 / Build the explanation</p>
+      <h2 id="stages-heading">What does each layer add?</h2>
+      <p class="model-intro">Each stage uses the same block groups and models the natural log of median monthly contract rent. R² measures the share of observed log-rent variation accounted for in this sample.</p>
+      <div class="model-panel"><h3>Housing, context, then location</h3><div id="fit-chart" class="model-chart"></div><p class="model-caption">Solid bars: in-sample R². Outlined circles: held-out R² from five-fold, tract-blocked cross-validation. Held-out results use the same eligible test cases across models.</p></div>
+      <div class="table-scroll model-table-wrap" tabindex="0" role="region" aria-label="Model comparison table"><table class="model-table"><caption>Staged model comparison · equal weight per block group</caption><thead><tr><th scope="col">Model</th><th scope="col">What is included</th><th scope="col">Parameters</th><th scope="col">R²</th><th scope="col">Adjusted R²</th><th scope="col">Held-out R²</th></tr></thead><tbody id="model-table"></tbody></table></div>
+      <p class="model-finding" id="community-finding"></p>
+      <details class="model-details"><summary>Does the order of the stages matter?</summary><p>Yes. Neighborhood context and community location overlap strongly. Reversing their order after housing controls separates their shared association from their unique contributions. This is an algebraic decomposition of model fit, not a causal allocation.</p><div id="partition-chart" class="model-chart"></div></details>
     </section>
+
+    <section class="model-section" id="effects" aria-labelledby="effects-heading">
+      <p class="eyebrow">02 / Explore the associations</p>
+      <h2 id="effects-heading">How do the variables relate to rent?</h2>
+      <p class="model-intro">Compare otherwise similar block groups within the model. Share coefficients describe a 10-percentage-point difference; income describes a 10% difference. Controls are held fixed, so some hypothetical combinations may be uncommon or infeasible.</p>
+      <div class="model-panel">
+        <div class="model-panel-heading"><div><h3>Conditional associations</h3><p class="model-caption">See how estimates change as the model adds context and community location.</p></div><div class="model-control"><label for="coefficient-model">Model</label><select id="coefficient-model"><option value="M3">M3 · Including community location</option><option value="M2">M2 · Housing + all context</option><option value="M2a">M2a · Housing + economic context</option><option value="M1">M1 · Housing composition</option></select></div></div>
+        <div id="coefficient-chart" class="model-chart"></div>
+        <p class="model-caption">Dots show estimated percent differences; lines show 95% HC3 intervals. Crossing zero means the interval includes both higher and lower rent. These intervals condition on the ACS estimates and do not fully capture measurement error.</p>
+        <details class="model-details"><summary>Show coefficient estimates and uncertainty as a table</summary><div class="table-scroll" tabindex="0" role="region" aria-label="Coefficient estimates"><table class="model-table"><caption id="coefficient-caption"></caption><thead><tr><th scope="col">Variable &amp; comparison</th><th scope="col">Difference</th><th scope="col">95% HC3 interval</th><th scope="col">95% community-clustered interval</th></tr></thead><tbody id="coefficient-table"></tbody></table></div></details>
+      </div>
+      <div class="model-panel model-explorer">
+        <h3>Put a difference in context</h3><p class="model-caption">Move from the sample median to another observed-range value. The curve applies M3’s single-variable association while holding all other inputs, including community location, fixed.</p>
+        <div class="model-explorer-controls"><div class="model-control"><label for="effect-variable">Variable</label><select id="effect-variable"></select></div><div class="model-control"><label for="effect-target">Comparison value <output id="effect-target-label" for="effect-target"></output></label><input type="range" id="effect-target"></div></div>
+        <div id="effect-readout" class="effect-readout" aria-live="polite" aria-atomic="true"></div>
+        <div id="effect-chart" class="model-chart"></div>
+        <p class="model-caption">The shaded band is the 95% HC3 interval for this contrast, not a prediction interval. Zero is the reference at the sample median. The displayed range spans the 5th–95th percentiles; it does not demonstrate comparable observations at every combination of controls.</p>
+      </div>
+    </section>
+
+    <section class="model-section" id="diagnostics" aria-labelledby="diagnostics-heading">
+      <p class="eyebrow">03 / Test the explanation</p>
+      <h2 id="diagnostics-heading">Where does the model fall short?</h2>
+      <p class="model-intro">M3 leaves meaningful variation unexplained. The residuals show unequal variance, heavy tails and remaining nonlinearity. These checks explain why the current model is a starting point.</p>
+      <div class="model-diagnostic-grid">
+        <article class="model-panel"><h3>Observed versus fitted rent</h3><div id="observed-chart" class="model-chart"></div><p class="model-caption">A perfect fit would lie on the diagonal. Fitted dollars are exponentiated log predictions, not unbiased predictions of arithmetic rent. Each point is a block group.</p></article>
+        <article class="model-panel"><h3>Residuals versus fitted rent</h3><div id="residual-chart" class="model-chart"></div><p class="model-caption">Zero means observed and fitted log rent agree. The red line connects mean residuals in 18 groups of similar size ordered by fitted rent. Changing spread and curvature flag unequal variance and an imperfect functional form.</p></article>
+        <article class="model-panel"><h3>Do the residuals have heavy tails?</h3><div id="qq-chart" class="model-chart"></div><p class="model-caption">This normal Q–Q plot compares standardized residuals with normal quantiles. Departures at the ends reveal unusually large positive and negative residuals. Saturated singleton observations are omitted.</p></article>
+        <article class="model-panel"><h3>How reliable are the rent estimates?</h3><div id="reliability-chart" class="model-chart"></div><p class="model-caption">The published 90% margin of error divided by rent varies substantially. Above the dashed line, the MOE exceeds half the estimate. Open-ended medians without MOEs are omitted.</p></article>
+      </div>
+      <div class="model-panel"><h3>Spatial pattern left in the residuals</h3><p class="model-caption">Moran’s I measures whether nearby values are similar. Community indicators reduce residual clustering substantially; some remains under adjacent-polygon weights.</p><div class="table-scroll" tabindex="0" role="region" aria-label="Spatial diagnostic results"><table class="model-table"><caption>Moran’s I · row-standardized queen contiguity</caption><thead><tr><th scope="col">Values tested</th><th scope="col">Moran’s I</th><th scope="col">Permutation p</th></tr></thead><tbody id="spatial-table"></tbody></table></div><p class="model-caption" id="spatial-note"></p></div>
+      <details class="model-details"><summary>Formal diagnostic tests and sensitivity analyses</summary><p>Breusch–Pagan tests constant variance; RESET checks additional curvature in fitted values. Small p-values flag specification problems. These are exploratory checks, not a procedure for selecting significant variables.</p><div class="table-scroll" tabindex="0" role="region" aria-label="Diagnostic tests"><table class="model-table"><caption>M3 specification tests</caption><thead><tr><th scope="col">Test</th><th scope="col">Statistic</th><th scope="col">p-value</th></tr></thead><tbody id="diagnostic-table"></tbody></table></div><p>Weighting changes the target of the analysis. Estimated cash-rent counts are population counts, not survey sample sizes; precision weights are approximate and do not remove error in the predictors.</p><div class="table-scroll" tabindex="0" role="region" aria-label="Model sensitivity results"><table class="model-table"><caption>Alternative samples and weighting rules</caption><thead><tr><th scope="col">Analysis rule</th><th scope="col">Block groups</th><th scope="col">M2 R²</th><th scope="col">M3 R²</th><th scope="col">Community increment</th></tr></thead><tbody id="sensitivity-table"></tbody></table></div></details>
+    </section>
+
+    <section class="model-section model-methods" id="methods" aria-labelledby="methods-heading">
+      <p class="eyebrow">04 / Read the model carefully</p>
+      <h2 id="methods-heading">What these results can tell us.</h2>
+      <div class="model-method-grid"><div><h3>The data and sample</h3><p id="sample-note"></p><p>We retain whole block groups with at least half their total polygon area inside Chicago and assign each to its largest-overlap community area. Estimates are not clipped to city boundaries. Missing inputs are excluded, not imputed.</p></div><div><h3>What “neighborhood” means here</h3><p>The 77 community areas have separate intercepts, with common covariate slopes. Their added fit describes location association after the measured controls. It can reflect amenities, housing quality, subsidy status, residential sorting and other omitted factors.</p><p>Income and demographics describe all relevant households or residents, not just renters. Racial composition describes social context, not individual or biological effects.</p></div><div><h3>Comparisons and uncertainty</h3><p>Housing shares use all renter-occupied units. Two-bedroom rentals, non-apartment structures, and buildings constructed in 1940–1999 are the omitted housing categories. Both bachelor’s-or-higher and no diploma/GED shares are included among adults 25+.</p><p>Coefficient intervals are 95%; ACS MOEs are 90%. HC3 handles unequal variance but does not fix nonlinearity, spatial dependence or ACS measurement error. Community-clustered intervals are a sensitivity and can still miss dependence across adjacent communities.</p></div><div><h3>Limits on interpretation</h3><p id="caveat-note"></p><p>The held-out assessment keeps tracts together and evaluates communities represented in training. It is not a test of prediction in new communities or future years. All results concern area medians, so they cannot establish what raises an individual tenant’s rent.</p></div></div>
+      <a class="model-report-link" href="data/web/block_group_model_report.html">Read the full research report <span aria-hidden="true">↗</span></a><p class="model-caption">Includes the full codebook, sample audit, geographic maps, influence checks, collinearity, partial residuals and additional stability results.</p>
+    </section>
+    </div>
   </main>
   <footer class="site-footer"><span>Chicago Rent / a public-interest housing dashboard</span><span>© 2026 Martin Barron</span><a class="chicago-stars" href="#page-top" aria-label="Return to top of page">✶ ✶ ✶ ✶</a></footer>
 </body>

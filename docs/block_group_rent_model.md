@@ -58,3 +58,22 @@ Read the report's limitations before interpreting community components. The
 previous PUMS study is separate and its R² has a different target. Rerun
 end-to-end multiple times to independently confirm numerical reproducibility;
 `check_bg_models.R` checks scientific invariants and reconstructs HC3 covariance.
+
+## Website Model page
+
+The analysis entry point also runs `R/export_bg_model_web.R`, exporting aggregate
+model summaries, coefficient intervals, public block-group diagnostic points and
+the full self-contained research report to `html/data/web`. No PUMS unit records
+or fitted R objects are exported. To refresh the page after rendering an existing
+fit, run `Rscript R/export_bg_model_web.R`; upload the entire `html/` folder,
+including the generated JSON and report, to the website root.
+
+The Model page uses local D3 assets for staged fit, coefficients, a conditional
+contrast explorer and diagnostics. Explorer contrasts use M3's raw log coefficient
+and HC3 interval; share differences are divided by ten and income uses a log
+ratio. Negative differences reverse the confidence-limit ordering. The displayed
+range is the common sample's 5th–95th percentiles, with its median as reference.
+These are conditional associations, not causal effects or prediction intervals.
+
+`Rscript R/check_bg_web_export.R` compares exports to the R fits and verifies the
+actual browser contrast helper against independent R calculations (requires Node).

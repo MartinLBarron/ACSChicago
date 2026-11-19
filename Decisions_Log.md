@@ -1,5 +1,12 @@
 # Block-group rent study — 2026-11-18
 
+- Martin approved using the current model on the website pending refinement.
+  The Model page presents staged fits, HC3 and clustered coefficient intervals,
+  M3 observed-range contrasts, diagnostic plots, spatial/specification tests and
+  sensitivities. Explicitly label associations and initial-model limitations.
+  Generated public aggregate exports and the full report live under html/data/web;
+  no PUMS unit records are exported. Decision by Martin; presentation by Codex.
+
 - Martin approved 2020–2024 log median contract rent, equal block-group weights,
   rental-count and precision sensitivities, and staged housing/context/community
   models. Both college and no diploma/GED shares are included as requested.

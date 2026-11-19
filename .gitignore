@@ -71,6 +71,7 @@ po/*~
 rsconnect/
 
 html/data/web/*.json
+html/data/web/block_group_model_report.html
 
 # Local model outputs include survey designs and microdata-derived objects
 /output/
