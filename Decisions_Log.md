@@ -1,3 +1,28 @@
+# Block-group rent study — 2026-11-18
+
+- Martin approved 2020–2024 log median contract rent, equal block-group weights,
+  rental-count and precision sensitivities, and staged housing/context/community
+  models. Both college and no diploma/GED shares are included as requested.
+- Martin approved whole block groups >=50% inside the City by polygon area,
+  dominant-community assignment and stricter boundary sensitivities. Map
+  coverage is unchanged; the earlier PUMS model is retained independently.
+- Poverty uses C17002's two below-one ratio cells; B17001 returned no usable BG
+  estimates. All raw inputs, MOEs and annotations remain available for audit.
+- Codex retained singleton communities and flagged exact fitting. HC3 slopes
+  use nonsingleton communities (same slopes); singleton influence and HC3
+  effect intervals are unavailable. No community-clustered effect intervals
+  or joint effect test are claimed. This safeguards inference without changing
+  the agreed sample. R Markdown report includes diagnostics and limitations.
+- Final common sample: 1,468 areas across all 77 communities; Oakland is a
+  singleton. The majority-city set has 2,137 areas: 449 lack a usable rent
+  estimate and another 220 lack median household income. Seven retained rent
+  medians are open-ended $3,500+ categories (numeric endpoint 3,501); flag these
+  and include an exclusion sensitivity rather than silently treating them as exact.
+- Initial log-rent R²: housing 0.1266, housing/context 0.6368, adding community
+  location 0.7132. The community increment is 0.0764 (partial R² 0.2105).
+  Tract-blocked CV R² for the full model is 0.6551. Heteroskedasticity, tails,
+  RESET and residual spatial checks warrant further refinement, not causal claims.
+
 # Rent burden, renter bedrooms, and utility payment
 
 Official ACS five-year estimates for 2010–2014, 2015–2019, and 2020–2024,

@@ -2,6 +2,15 @@
 
 Reproducible R pipeline for Chicago geographic boundaries.
 
+## Block-group rent research report
+
+The staged 2020–2024 median contract rent study is documented in
+[docs/block_group_rent_model.md](docs/block_group_rent_model.md). Run
+`Rscript R/run_bg_analysis.R` after preparing the existing 2024 aggregate data.
+It produces `output/models/block_group_rent_2024/report.html`, with diagnostics,
+sensitivity analyses, and source/sample audits. The source is
+[R/block_group_rent_report.Rmd](R/block_group_rent_report.Rmd).
+
 ## Interactive map
 
 The local MapLibre GL JS webpage in `html/` displays city limits, community areas,

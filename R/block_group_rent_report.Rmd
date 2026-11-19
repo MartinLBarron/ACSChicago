@@ -1,0 +1,351 @@
+---
+title: "Rent, housing composition, and neighborhood context in Chicago"
+subtitle: "An ecological study of ACS 2020–2024 block-group median contract rent"
+author: "Chicago Rent research pipeline"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    code_folding: hide
+    theme: readable
+    mathjax: null
+params:
+  project_root: "."
+  results_path: "data/analytic/bg_model_2024/model_results.rds"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = params$project_root)
+source(file.path(params$project_root, "R/bg_model_config.R"))
+source(file.path(params$project_root, "R/bg_report_helpers.R"))
+r <- readRDS(file.path(params$project_root, params$results_path))
+d <- r$data
+library(ggplot2)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+  fig.width = 9, fig.height = 5.5, dpi = 160, dev = "png", out.width = "100%")
+pct <- function(x) sprintf("%.1f%%", 100 * x)
+num <- function(x) format(x, big.mark = ",", trim = TRUE)
+r2 <- stats::setNames(r$metrics$r_squared, r$metrics$model)
+delta <- r2["M3"] - r2["M2"]
+partial <- delta / (1 - r2["M2"])
+```
+
+<style>
+body {color:#233747; line-height:1.65} h1,h2,h3 {color:#18354a}
+.main-container {max-width:1120px} table {font-size:0.88em; width:100%}
+th {border-bottom:2px solid #278f9b} td,th {padding:7px!important}
+.finding {background:#edf5f5; border-left:4px solid #278f9b; padding:18px; margin:20px 0}
+</style>
+
+# Research question and main findings
+
+How much of the **between-block-group variation in log median monthly contract rent** is associated with rental-housing composition, socioeconomic conditions, and community-area location? This study describes associations among published area estimates. It does not estimate the causal price of a neighborhood or explain variation among individual housing units.
+
+<div class="finding">
+The common analysis sample contains **`r num(nrow(d))` whole block groups in `r nlevels(d$community_id)` community areas**.
+Housing composition alone accounts for **`r pct(r2["M1"])`** of observed log-rent variation. Adding economic, educational, and racial/ethnic context raises the in-sample R² to **`r pct(r2["M2"])`**. Adding community-area indicators raises it to **`r pct(r2["M3"])`**: an increment of **`r sprintf("%.1f",100*delta)` percentage points**, or **`r pct(partial)` of the variation remaining after measured housing and contextual controls**.
+</div>
+
+These are descriptive fit statistics for the selected sample, not estimates of a causal neighborhood effect. Community indicators can capture omitted housing quality, amenities, subsidized housing, spatial sorting, differences in ACS estimation error, and other unmeasured factors. The diagnostic and sensitivity sections assess how much confidence to place in this initial linear specification.
+
+The diagnostic evidence calls for further refinement: M3 rejects constant residual variance (BP p = `r format.pval(r$diagnostic_tests$p_value[r$diagnostic_tests$model=="M3" & grepl("Breusch",r$diagnostic_tests$test)],digits=2)`) and its HC3 RESET test flags remaining functional-form problems (p = `r format.pval(r$diagnostic_tests$p_value[r$diagnostic_tests$model=="M3" & grepl("RESET",r$diagnostic_tests$test)],digits=2)`). Tract-blocked held-out R² is **`r pct(r$cv$metrics$predictive_R2[r$cv$metrics$model=="M3"])`**, below the in-sample fit. Residual spatial association is small but remains detectable under queen contiguity; the four-nearest-neighbor sensitivity is weaker. These findings support treating this as an initial descriptive model, not a finished explanation.
+
+The primary analysis gives each block group equal weight. Dollar amounts refer to 2024 dollars in the 2020–2024 release. This is a single pooled five-year cross-section, not five annual observations. `r if(r$synthetic_data) "**SYNTHETIC DATA: results are illustrative.**" else "All inputs are official public aggregate estimates; no synthetic observations are used."`
+
+# Data, geography, and sample construction
+
+## Outcome and explanatory variables
+
+The outcome is B25058_001, **median contract rent**, for renter-occupied units paying cash rent. Contract rent excludes separately paid utilities. We model its natural logarithm because rent is positive and differences are more naturally expressed proportionally. We do not average tract medians to create block-group outcomes or infer individual rents from these medians.
+
+```{r definitions}
+definitions <- data.frame(
+  Domain = c("Outcome", "Rental bedrooms", "Rental building size", "Rental building age", "Poverty", "Income", "Education", "Racial/ethnic context"),
+  Source = c("B25058; B25063", "B25042", "B25032", "B25036", "C17002", "B19013", "B15003", "B03002"),
+  Definition = c("Median contract rent; estimated cash-rent units", "Studio/1-bedroom and 3+-bedroom shares; 2 bedrooms omitted", "2–4, 5–19, 20+ unit shares; non-apartment units omitted", "Pre-1940 and 2000+ shares; 1940–1999 omitted", "Below poverty: ratio <0.5 plus 0.5–0.99 / poverty-status universe", "Log median household income, all households", "Bachelor+ and no diploma/GED shares, adults 25+", "Non-Hispanic Black and Hispanic/Latino shares, total population"))
+bg_table(definitions)
+```
+
+Housing shares describe **all renter-occupied units**, including those paying no cash rent; they are composition proxies rather than the composition of the outcome's exact cash-rent universe. Income and demographic variables describe all relevant residents or households, not just renters. The omitted building-size group includes detached/attached single-unit housing, mobile homes, and other structures. All share predictors are divided by ten so coefficients represent a 10-percentage-point difference. The income coefficient is transformed for a 10% income difference in presentation.
+
+Both education measures are retained as requested. Their omitted education group comprises high-school/GED graduates and people with some college or associate degrees. Racial/ethnic shares are separate contextual measures, not part of a deprivation index. Holding Hispanic share fixed, an increase in non-Hispanic Black share implies a reduction in the combined remaining non-Hispanic groups; it is not a uniquely Black-versus-White contrast. These are measures of social and residential context and must not be interpreted as biological or individual effects.
+
+The Census B17001 table returned no usable estimates at block-group geography in this extraction. Poverty therefore uses **C17002**, whose two below-one income-to-poverty-ratio cells implement the same below-poverty definition. The pipeline validates the available variables and stops on unusable inputs rather than replacing missing estimates with zeros.
+
+## Boundary assignment and inclusion
+
+The underlying block groups use **2024 TIGER/Line boundaries matching the ACS release**. Chicago and its 77 community areas use the project's cached official City of Chicago boundary exports. The City mask is not claimed to be a matching-year Census place polygon. Polygon intersections are calculated in EPSG:26916. Whole block groups are retained if at least 50% of their **total polygon area** is inside the City mask. This is not a land-only or population-weighted overlap rule. Areas are assigned to the community with the largest intersection area; ties resolve by community code. ACS estimates remain whole-area estimates and are never clipped or apportioned.
+
+The earlier water-only Lake Michigan tract/block group remains excluded upstream. The map's broader positive-overlap selection is unchanged by this modeling sample. Strict 99%-in-city and 80%-dominant-community sensitivity analyses appear below. Dominance is the largest community overlap divided by the sum of all community overlaps, and can differ from the fraction of the entire polygon in that community.
+
+```{r sample-flow}
+bg_table(r$sample_flow, digits = 0, caption = "Sequential inclusion audit; exclusions are counted once at their first failing stage.")
+```
+
+Missing and nonpositive outcome estimates, absent assignments, nonpositive estimated cash-rent-unit counts, and incomplete explanatory variables are excluded. There is no primary MOE cutoff and no imputation. Missing medians may indicate no eligible cash-rent units, insufficient information, suppression, or a noncomputable statistic; an absent median is not a zero-dollar rent. Raw Census sentinels and annotation fields are preserved upstream. The audit identifies excluded areas so this sample's coverage can be evaluated rather than assumed representative of every Chicago block group.
+
+Of the `r num(sum(r$all_data$majority_city & is.finite(r$all_data$log_rent)))` majority-in-city areas with a usable rent estimate, `r sum(r$all_data$majority_city & is.finite(r$all_data$log_rent) & !is.finite(r$all_data$log_income))` are excluded because median household income is unavailable. This complete-case loss deserves particular attention when assessing geographic representativeness.
+
+```{r coverage, fig.height=6}
+g <- sf::st_read(file.path(bg_model_config$analytic_dir, "geographic_assignment.gpkg"), quiet = TRUE)
+g$status <- factor(ifelse(g$GEOID %in% d$GEOID, "Included", ifelse(g$majority_city, "Majority city; excluded", "Under 50% inside city")))
+ggplot(g) + geom_sf(aes(fill = status), color = NA) + coord_sf(datum = NA) +
+  scale_fill_manual(values = c("Included"="#278f9b", "Majority city; excluded"="#c77b54", "Under 50% inside city"="#d8dfe1")) +
+  labs(title = "Geographic coverage of the common analysis sample", fill = NULL) + bg_theme() +
+  theme(axis.text=element_blank(), axis.title=element_blank(), panel.grid=element_blank())
+```
+
+```{r missingness}
+bg_table(r$missingness, digits = 0, caption = "Variable-level missing/nonfinite values, before common-sample exclusions. Counts overlap.")
+```
+
+# Descriptive patterns and ACS uncertainty
+
+```{r descriptive-table}
+bg_table(r$description, digits = 2, caption = "Unweighted block-group distribution in the common sample; share variables are percentages.")
+```
+
+```{r distribution, fig.height=4.5}
+dist <- rbind(data.frame(scale="Monthly contract rent ($)", value=d$rent),
+              data.frame(scale="Log monthly contract rent", value=d$log_rent))
+ggplot(dist, aes(value)) + geom_histogram(bins=35, fill="#278f9b", color="white") +
+  facet_wrap(~scale, scales="free") + labs(x=NULL, y="Block groups", title="Rent distribution and logarithmic transformation") + bg_theme()
+```
+
+```{r rent-map, fig.height=7}
+bg_map(r, d$rent, "Median monthly contract rent ($)")
+```
+
+ACS margins of error are published at **90% confidence**. The input cache retains both E and M values, raw sentinels, and available estimate/MOE annotations. Derived shares retain approximate MOEs using Census/tidycensus subset-proportion formulas: summed-cell MOEs use the square root of summed squared cell MOEs; the proportion formula accounts approximately for a numerator contained in the denominator and uses the ratio fallback when needed. Published covariance between all component estimates is unavailable. These share MOEs are not used as if they were independent observations.
+
+For diagnostics, estimated standard error of log rent is approximated by **(rent MOE / 1.645) / rent**. The relative MOE can be large, and the delta approximation can be poor there. Primary regression residuals mix real differences and sampling/estimation error. HC3 or clustered regression uncertainty does **not** propagate all ACS measurement error, particularly error in regressors. Precision weighting and reliability exclusions are sensitivity checks, not a complete errors-in-variables correction. Estimated unit counts are population estimates, not respondent sample sizes.
+
+**Open-ended median categories:** `r sum(!is.finite(d$rent_moe))` included rent estimates have no computable MOE and are encoded as $3,501, representing **$3,500 or more**, rather than an exact median. The primary analysis uses the supplied numeric endpoint and therefore understates these unknown upper-tail values. A sensitivity excludes them; they are also omitted from precision weighting. These are category-boundary medians, not ordinary exact-dollar observations. See the [2024 ACS subject definitions](https://www2.census.gov/programs-surveys/acs/tech_docs/subject_definitions/2024_ACSSubjectDefinitions.pdf) on medians in open-ended categories.
+
+```{r precision, fig.height=4.5}
+ggplot(d, aes(rent, rent_relative_moe)) + geom_point(alpha=.35, size=1.2, color="#278f9b") +
+  geom_hline(yintercept=.5, linetype=2, color="#af7146") +
+  labs(x="Median contract rent ($)", y="90% MOE / estimate", title="Reliability varies across block groups") + bg_theme()
+```
+
+# Staged model design
+
+All models use exactly the same complete-case sample, so changes in fit do not reflect changing cases. The primary estimator is ordinary least squares with equal weight per block group:
+
+**log(median contract rent) = intercept + housing composition + contextual conditions + community-area indicators + residual.**
+
+```{r stages}
+bg_table(data.frame(Model=c("M0", "M1", "M2a", "M2", "M3", "H_CA"),
+  Specification=c("Intercept only", "Rental bedrooms, structure size, construction age", "M1 + poverty, log income, college, no diploma/GED", "M2a + non-Hispanic Black and Hispanic/Latino shares", "M2 + community-area fixed effects", "Housing + community indicators (alternate-order comparison)")))
+```
+
+Community areas are fixed categorical indicators, not random effects. M3 compares block groups within the same assigned community when estimating covariate slopes; it allows different community intercepts but assumes common slopes. Community indicators require `r nlevels(d$community_id)-1` additional parameters. Their contribution measures remaining **location association** after these controls. Community areas are large and internally diverse; the model can miss important finer-scale neighborhood variation.
+
+There are **`r sum(table(d$community_id)==1)` singleton communities** in this complete-case sample. Their one observation is retained and fitted exactly by its community indicator. It contributes no within-community slope information. HC3 slope intervals and the M3 HC3 RESET diagnostic are calculated after removing these saturated singletons, which leaves the slopes unchanged; no HC3 interval is reported for their community indicator. Studentized residuals and Cook's distances are undefined for these observations and are omitted from those diagnostic summaries. This is a material limitation of interpreting their community components.
+
+We report 95% HC3 heteroskedasticity-robust intervals and, for continuous slopes, a community-clustered HC1 covariance sensitivity with `r nlevels(d$community_id)-1` reference degrees of freedom. Clustering allows within-community dependence but not dependence across adjacent communities. Fixed-effect coefficients have only one community cluster each, so their community-clustered intervals are intentionally omitted. No cluster-robust joint test of community indicators is claimed. All intervals condition on the measured inputs and chosen specification; they are not ACS design-based confidence intervals for the entire modeling procedure.
+
+# How much variation is associated with each stage?
+
+```{r fit-table}
+bg_table(r$metrics[c("model","n","parameters","r_squared","adjusted_r_squared","rmse_log")], digits=4)
+bg_table(r$comparisons, digits=4, caption="Incremental R² uses total log-rent variation; partial R² uses the residual variation from the earlier model.")
+```
+
+```{r fit-plot, fig.height=4}
+x <- r$metrics[r$metrics$model %in% c("M0","M1","M2a","M2","M3"),]
+ggplot(x, aes(model, r_squared)) + geom_col(fill="#278f9b", width=.65) +
+  geom_point(aes(y=adjusted_r_squared), color="#18354a", size=2.5) +
+  scale_y_continuous(limits=c(0,1)) + labs(x=NULL,y="Share of observed log-rent variation",
+    title="Staged in-sample fit", caption="Bars: R². Dots: adjusted R². Higher fit alone does not establish causality or predictive validity.") + bg_theme()
+```
+
+## Ordering and overlap between contextual and location variables
+
+The sequential gain attributed to a domain depends on what enters first. The H_CA alternative reverses the order of context and community location after housing composition. The table separates the unique contributions and their shared association. Shared components can be negative under suppression and are not constrained to zero. This is an algebraic decomposition of fitted R², not a causal allocation of responsibility.
+
+```{r commonality}
+bg_table(r$partition, digits=4)
+```
+
+# Conditional associations
+
+```{r coefficient-plot, fig.height=8}
+bg_coef_plot(r)
+```
+
+For a share coefficient b, the displayed percentage is 100 × [exp(b) − 1] for a ten-point difference. For income it is 100 × [exp(b × log(1.10)) − 1]. These transformations describe proportional differences in the modeled block-group median. They are not changes in an individual tenant's rent or arithmetic dollar effects. Comparisons hold other included variables fixed and remain subject to confounding and measurement error. Compositional constraints mean some hypothetical combinations of predictors are not observed or feasible.
+
+```{r coefficient-table}
+ct <- r$coefficients[r$coefficients$model %in% c("M2","M3") & r$coefficients$term %in% bg_predictors,]
+bg_table(ct[c("model","label","percent_estimate","percent_hc3_conf_low","percent_hc3_conf_high",
+              "percent_cluster_conf_low","percent_cluster_conf_high")], digits=2,
+  caption="Percent differences with 95% HC3 and community-clustered sensitivity intervals. P-values are available in the CSV, without significance-based variable selection.")
+```
+
+## Adjusted community components
+
+```{r community-effects, fig.height=13}
+x <- r$communities
+x$community <- reorder(x$community, x$percent_difference)
+ggplot(x, aes(percent_difference, community)) + geom_vline(xintercept=0,color="grey75") +
+  geom_point(aes(size=BGs),color="#278f9b") + scale_size_continuous(range=c(1.5,4)) +
+  labs(x="Adjusted community intercept difference (%)",y=NULL,size="Sample BGs",
+    title="Community location components after measured controls",
+    caption="Centered at the equal-block-group average log intercept. Point estimates only; ranks are uncertain.\nNo extrapolation to an actual 'average dwelling' and no causal neighborhood interpretation.") + bg_theme()
+```
+
+# Regression diagnostics
+
+## Residual form, tails, and influence
+
+```{r residual-diagnostics, fig.height=7}
+old <- par(mfrow=c(2,2),mar=c(4,4,2,1), col="#278f9b", cex=.85)
+plot(r$models$M3, which=c(1,2,3,5), id.n=0, ask=FALSE)
+par(old)
+```
+
+The residual-versus-fitted and scale-location plots examine curvature and unequal variance. The Q–Q plot examines heavy tails rather than requiring perfectly normal area estimates. The leverage plot checks whether unusual covariate combinations dominate a fit. HC3 is used because constant variance is implausible; it does not fix a nonlinear conditional mean or spatial dependence.
+
+```{r diagnostic-tests}
+bg_table(r$diagnostic_tests, digits=5, caption="Diagnostic tests are exploratory. BP tests constant variance; HC3 RESET tests added fitted-value powers 2 and 3.")
+```
+
+```{r influence-summary}
+bg_table(data.frame(diagnostic=c("Maximum leverage", "2 × parameter count / N", "Maximum Cook's distance", "4 / N Cook reference", "Cases with |externally studentized residual| > 3"),
+  value=c(max(r$influence$leverage),2*r$models$M3$rank/nrow(d), max(r$influence$cooks_D,na.rm=TRUE),4/nrow(d),sum(abs(r$influence$studentized)>3,na.rm=TRUE))),digits=4)
+bg_table(head(r$influence[order(-r$influence$cooks_D),c("GEOID","community","studentized","leverage","cooks_D","max_abs_DFBETA")],10),digits=4,
+  caption="Most influential public aggregate areas. Heuristic cutoffs flag review; they do not automatically justify deleting observations.")
+```
+
+## Collinearity and functional form
+
+```{r correlation, fig.height=8}
+corr <- as.data.frame(as.table(r$predictor_correlations))
+names(corr)<-c("first","second","correlation")
+corr$first <- factor(bg_term_labels[as.character(corr$first)], levels=unname(bg_term_labels[bg_predictors]))
+corr$second <- factor(bg_term_labels[as.character(corr$second)], levels=rev(unname(bg_term_labels[bg_predictors])))
+ggplot(corr,aes(first,second,fill=correlation)) + geom_tile() +
+  scale_fill_gradient2(low="#287da0",mid="white",high="#bb453c",limits=c(-1,1)) +
+  labs(x=NULL,y=NULL,fill="Correlation",title="Predictor correlation in the common sample") + bg_theme() +
+  theme(axis.text.x=element_text(angle=60,hjust=1,size=8), axis.text.y=element_text(size=8))
+```
+
+```{r vif}
+bg_table(r$vif, digits=2, caption="VIF for each continuous design column; M3 includes community indicators in its auxiliary regressions. Values above 5–10 invite caution, not automatic removal.")
+```
+
+```{r partial-residuals, fig.height=7}
+partial_data <- dplyr::bind_rows(lapply(bg_context_terms, function(term) data.frame(
+  value=d[[term]], partial=stats::residuals(r$models$M3)+stats::coef(r$models$M3)[term]*d[[term]],
+  term=unname(bg_term_labels[term]))))
+ggplot(partial_data,aes(value,partial)) + geom_point(alpha=.15,size=.6,color="#278f9b") +
+  geom_smooth(method="loess",se=FALSE,color="#af7146",linewidth=.7) +
+  geom_smooth(method="lm",se=FALSE,color="#18354a",linetype=2,linewidth=.6) +
+  facet_wrap(~term,scales="free_x",ncol=2) +
+  labs(x="Predictor (10-point units; income in natural logs)",y="Component + residual (log rent)",
+    title="Contextual partial-residual checks", caption="Orange: exploratory LOESS. Dashed: fitted linear component. Correlated predictors can obscure misspecification.") + bg_theme()
+```
+
+# Spatial structure
+
+```{r spatial-table}
+bg_table(r$spatial$graph, digits=2)
+bg_table(r$spatial$results, digits=4)
+```
+
+Primary spatial weights are row-standardized queen contiguity among included whole polygons (0.05 m snapping tolerance). Missing/excluded areas can create holes and disconnected components. A symmetric four-nearest-neighbor graph based on within-polygon representative points provides a connectivity sensitivity. Islands have zero spatial lag under the queen rule. Moran's I uses `r r$config$moran_permutations` two-sided random permutations with fixed seeds. Residual permutations are exploratory because residuals are fitted and may be heteroskedastic; their p-values are not exact regression-adjusted spatial tests.
+
+Permutation probabilities use an add-one correction in each tail and twice the smaller tail, capped at one. With 999 permutations the minimum reported two-sided probability is 0.002; none is reported as zero.
+
+```{r residual-maps, fig.height=6}
+bg_map(r,stats::residuals(r$models$M2),"Residual log rent: housing + context (M2)",TRUE)
+bg_map(r,stats::residuals(r$models$M3),"Residual log rent: adding community location (M3)",TRUE)
+```
+
+Positive residuals identify areas with higher median rent than the specification predicts. Spatially patterned residuals indicate unresolved location structure; they motivate a later spatial or multilevel specification rather than establish a causal mechanism. Community clustering is only a partial dependence correction because adjacent communities can remain correlated.
+
+# Out-of-sample assessment
+
+Five-fold cross-validation keeps **all block groups from a tract in the same fold**, with tract assignments balanced within their dominant community and seed `r r$config$seed`. This reduces leakage among immediate tract neighbors but does not fully isolate spatial dependence. Predictions are evaluated on identical eligible held-out rows for all stages. Communities absent from a training fold cannot receive a fitted fixed effect and are excluded from every model's corresponding test set: **`r r$cv$excluded_unseen` block groups** were excluded for this reason. Predictive R² uses each held-out case's training-fold outcome mean as the baseline.
+
+```{r cv-table}
+bg_table(r$cv$metrics,digits=4)
+```
+
+This assesses prediction in held-out tracts **within communities represented in training**, not prediction in unseen communities, other cities, or future years. RMSE is on the log scale. Exponentiating a fitted value gives a geometric-scale prediction, not an unbiased arithmetic rent prediction; no dollar-scale prediction claim is made.
+
+# Sensitivity and stability
+
+Weighting by estimated cash-rent units emphasizes block groups containing more eligible rentals. It still models block-group medians and does not become a dwelling-level regression. Precision weighting uses inverse approximate log-rent variance; a capped version limits the top 1% of weights. It can favor areas with a different mix of households and housing. Neither weighting rule is the primary estimand or a Census survey-design weight.
+
+```{r sensitivity-table}
+sm <- r$sensitivity_metrics
+wide <- tidyr::pivot_wider(sm[c("sensitivity","model","n","r_squared")],names_from=model,values_from=r_squared)
+wide$community_increment <- wide$M3-wide$M2
+wide$partial_community_R2 <- wide$community_increment/(1-wide$M2)
+bg_table(wide,digits=4,caption="Within each row, models share the same cases/weights. R² across differently weighted rows refers to different variance targets.")
+```
+
+```{r sensitivity-slopes, fig.height=8}
+sc <- r$sensitivity_coefficients
+sc <- sc[sc$model=="M3" & sc$term %in% bg_context_terms,]
+sc$percent <- 100*expm1(sc$estimate*ifelse(sc$term=="log_income",log(1.1),1))
+sc$label <- unname(bg_term_labels[sc$term])
+ggplot(sc,aes(percent,sensitivity)) + geom_vline(xintercept=0,color="grey75") +
+  geom_point(color="#278f9b",size=1.5) + facet_wrap(~label,scales="free_x",ncol=2) +
+  labs(x="Conditional percent difference",y=NULL,title="Contextual slopes under alternative analysis rules") + bg_theme() +
+  theme(axis.text.y=element_text(size=7))
+```
+
+```{r loco}
+stability <- r$loco |> dplyr::group_by(model,term) |> dplyr::summarise(
+  minimum=min(estimate),maximum=max(estimate), .groups="drop")
+base <- r$coefficients[r$coefficients$model %in% c("M2","M3") & r$coefficients$term %in% bg_context_terms,c("model","term","estimate")]
+stability <- dplyr::left_join(stability,base,by=c("model","term"))
+stability$sign_crosses_zero <- stability$minimum < 0 & stability$maximum > 0
+bg_table(stability,digits=4,caption="Leave-one-community-out slope ranges on the original log-coefficient scale. These are stability ranges, not confidence intervals.")
+```
+
+The stricter polygon rule and dominant-community restriction test edge assignments; the all-overlap rule tests the map's broader coverage. Reliability and influential-case exclusions deliberately change the sample and are diagnostic alternatives rather than replacements chosen for a desired result. Counts of 50 cash-rent units refer to estimated population units, not 50 survey responses.
+
+All `r num(nrow(d))` complete-case primary areas already satisfy 80% dominant-community overlap, so that restriction leaves the fitted results unchanged. The 99%-in-city rule is a more informative boundary check here. Large changes under precision weighting should be read as evidence that reliability and the effective target population matter, not as validation of the larger weighted R².
+
+# Interpretation, limitations, and next steps
+
+The staged models quantify how strongly measured housing composition and context align with **variation among area medians**. The residual community increment is the appropriate initial answer to the location-association question after these controls. The alternate ordering shows how strongly context and community location overlap. Neither unique nor shared fit components identify causal neighborhood mechanisms.
+
+Key limitations include ecological inference; five-year temporal pooling; selective availability of published medians; uncertain covariates and outcomes; overlap of housing, education, income, and racial composition; omitted quality, square footage, subsidy status and amenities; community assignment of boundary-crossing whole areas; remaining spatial dependence; and possible nonlinearities or varying slopes. Community fixed effects do not remove confounding within communities. R² describes observed, noisy log medians and is not a measurement-error-corrected share of true rent variation.
+
+Before treating this as a final research model, review high-influence areas and reliability coverage, compare smooth functional forms for the flagged covariates, and evaluate a spatial dependence model or multilevel alternative. These should be pre-specified follow-up analyses rather than a search for statistically significant predictors. The report preserves all staged results and diagnostics to support that review.
+
+# Reproducibility and source documentation
+
+Run from the project root:
+
+```bash
+Rscript R/run_bg_analysis.R
+Rscript R/check_bg_models.R
+```
+
+The first run requires network access and the existing 2024 rent/boundary pipeline outputs. Subsequent runs verify and reuse the raw cache. `R/run_pipeline.R` includes this study after the existing PUMS analysis. `packages.txt` lists dependencies; `R/bg_model_config.R` holds the agreed design. Raw API JSON and tidycensus objects reside in `data/raw_data/bg_model_2024_v1/`. Analytic inputs, source codebook, share/MOE derivations, geographic assignments, exclusion audit and fitted objects reside in `data/analytic/bg_model_2024/`. The HTML, retained Markdown, PNG figures, diagnostic CSVs and input MD5 provenance are in `output/models/block_group_rent_2024/`. The R Markdown source is `R/block_group_rent_report.Rmd`.
+
+The modeling sample and website exports are separate. The previous housing-unit PUMS model is retained independently and its R² is not comparable to the block-group R² here. For independent reproduction, rerun the analysis end-to-end more than once and compare the generated numerical tables using the checks, rather than relying only on this rendered report.
+
+Primary references:
+
+- [ACS five-year estimates guidance](https://www.census.gov/programs-surveys/acs/guidance/estimates.html)
+- [ACS technical documentation](https://www.census.gov/programs-surveys/acs/technical-documentation.html)
+- [B25058: median contract rent](https://api.census.gov/data/2024/acs/acs5/groups/B25058.html)
+- [B25042: tenure by bedrooms](https://api.census.gov/data/2024/acs/acs5/groups/B25042.html), [B25032: tenure by units in structure](https://api.census.gov/data/2024/acs/acs5/groups/B25032.html), [B25036: tenure by year built](https://api.census.gov/data/2024/acs/acs5/groups/B25036.html)
+- [C17002: income-to-poverty ratio](https://api.census.gov/data/2024/acs/acs5/groups/C17002.html), [B19013: median household income](https://api.census.gov/data/2024/acs/acs5/groups/B19013.html)
+- [B15003: educational attainment](https://api.census.gov/data/2024/acs/acs5/groups/B15003.html), [B03002: Hispanic origin by race](https://api.census.gov/data/2024/acs/acs5/groups/B03002.html)
+- [tidycensus aggregate ACS interface](https://walker-data.com/tidycensus/reference/get_acs.html) and [margin-of-error functions](https://walker-data.com/tidycensus/reference/moe_prop.html)
+- [sandwich covariance estimators](https://sandwich.r-forge.r-project.org/reference/vcovCL.html) and [spdep Moran permutation diagnostics](https://r-spatial.github.io/spdep/reference/moran.mc.html)
+
+```{r source-codebook}
+bg_table(r$source_codebook,caption="Downloaded predictor codebook. Each configured source estimate is accompanied by its MOE and preserved raw fields.")
+```

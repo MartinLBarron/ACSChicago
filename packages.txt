@@ -6,3 +6,9 @@ readr
 httr
 jsonlite
 survey
+sandwich
+lmtest
+spdep
+ggplot2
+knitr
+rmarkdown
