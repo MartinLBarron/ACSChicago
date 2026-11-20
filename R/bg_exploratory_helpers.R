@@ -36,7 +36,8 @@ ex_cv <- function(data, formulas, assignments) {
 
 ex_diagnostic <- function(fit, data, weights) {
   singleton <- table(data$community_id)[as.character(data$community_id)]==1
-  reduced <- if(any(singleton)) stats::lm(stats::formula(fit),data=droplevels(data[!singleton,])) else fit
+  has_fe <- "community_id" %in% names(stats::model.frame(fit))
+  reduced <- if(has_fe && any(singleton)) stats::lm(stats::formula(fit),data=droplevels(data[!singleton,])) else fit
   bp <- lmtest::bptest(fit)
   reset <- tryCatch(lmtest::resettest(reduced,power=2:3,type="fitted",
     vcov=function(m)sandwich::vcovHC(m,type="HC3")),error=function(e)NULL)

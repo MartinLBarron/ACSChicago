@@ -1,0 +1,196 @@
+---
+title: "Reported violent crime and Chicago contract rents"
+subtitle: "M5: adding the raw 2020–2024 crime count to M3"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: readable
+    mathjax: null
+params:
+  project_root: "."
+---
+
+```{r setup,include=FALSE}
+knitr::opts_knit$set(root.dir=params$project_root)
+source(file.path(params$project_root,"R/crime_config.R"))
+source(file.path(params$project_root,"R/bg_report_helpers.R"))
+r <- readRDS(file.path(params$project_root,crime_config$analytic_dir,"model_results.rds"))
+d <- r$data; a <- r$audit; effect <- r$crime_effect
+library(ggplot2)
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,fig.width=9,fig.height=5.5,dpi=160,dev="png",out.width="100%")
+num <- function(x)format(x,big.mark=",",trim=TRUE)
+pct <- function(x)sprintf("%.1f%%",100*x)
+signed <- function(x)sprintf("%+.2f%%",x)
+```
+
+<style>body{color:#233747;line-height:1.65}.main-container{max-width:1120px}h1,h2,h3{color:#18354a}table{font-size:.85em;width:100%}td,th{padding:7px!important}th{border-bottom:2px solid #278f9b}</style>
+
+# Question and findings
+
+Is a larger **raw count of recorded violent crimes in 2020–2024** associated with lower block-group median contract rent after the housing, renter-profile, socioeconomic and community-area controls in M3? This is a descriptive association study, not an estimate of crime's causal effect on rent. The sign is estimated freely; the model is not constrained to show rent suppression.
+
+M5 adds **one untransformed variable**, `violent_crime_count`, to the existing M3. The primary sample remains **`r num(nrow(d))` whole block groups**. The predictor is the five-year sum, with no population denominator, annualization, logarithm, severity weighting or case-number deduplication. The dependent variable remains log median monthly contract rent.
+
+The fitted crime coefficient is **`r sprintf("%.7f",effect$estimate)` log-rent units per recorded row**. For interpretation only, 100 additional recorded rows correspond to **`r signed(effect$percent_per100_estimate)`** modeled median rent (95% HC3 interval **`r signed(effect$percent_per100_hc3_conf_low)` to `r signed(effect$percent_per100_hc3_conf_high)`**). This percentage conversion does not rescale or transform the predictor in the regression. The community-clustered interval for the same 100-row contrast is **`r signed(effect$percent_per100_cluster_conf_low)` to `r signed(effect$percent_per100_cluster_conf_high)`**.
+
+```{r fit-summary}
+bg_table(r$metrics[c("model","n","parameters","r_squared","adjusted_r_squared","RMSE_log","predictive_R2")],digits=5)
+bg_table(r$comparisons,digits=5,caption="Incremental fit is the addition of the raw crime count on exactly the same cases. Partial R² uses M3's remaining variation.")
+```
+
+The in-sample gain is only **`r sprintf("%.3f",100*r$comparisons$incremental_R2)` percentage points of R²**. Held-out R² changes from **`r sprintf("%.3f%%",100*r$metrics$predictive_R2[r$metrics$model=="M3"])` to `r sprintf("%.3f%%",100*r$metrics$predictive_R2[r$metrics$model=="M5"])`**. The primary HC3 interval includes zero, while the community-clustered sensitivity interval is entirely negative. Thus the point estimate is negative, but uncertainty conclusions depend on the covariance estimator and the improvement in explanatory/predictive fit is very small.
+
+Changes in fit and the coefficient's uncertainty should be considered together. A tiny in-sample gain need not improve prediction, and statistical precision does not establish causal interpretation. The website's existing models have not been replaced or supplemented by M5 pending review.
+
+# Data source and extraction
+
+The source is the official [CPD Crimes—2001 to Present dataset](https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2), filtered by **occurrence date >= 2020-01-01 and < 2025-01-01**. The selected snapshot contains **`r num(a$source_rows)` rows across all offense types** before applying the violent-offense definition. The cache stores the selected columns of all those rows so exclusions can be audited. No victim names, case narratives or street addresses are requested.
+
+Year-by-year CSV pages use ascending unique ID and keyset pagination, not offset paging through a changing table. Each year's downloaded row total must match its cached server-side count; IDs must be unique and dates in range. The request predicates, source metadata, retrieval timestamps, file sizes and MD5 checksums are retained. Source metadata's update marker changed during extraction: **`r a$snapshot$source_changed_during_download`**. Cached responses are reused on subsequent runs; refresh requires a deliberately new snapshot directory.
+
+This is a current extraction of historical occurrence years, **not an as-of-December-2024 vintage**. CPD records and classifications may have been revised after occurrence. Published data describe police-reported records, which depend on reporting, recording and classification practices. They do not enumerate all violence. The source generally uses incident records but murder records can represent individual victims; Martin approved counting rows without collapsing cases.
+
+# Violent-offense definition
+
+The frozen [official IUCR lookup](https://data.cityofchicago.org/Public-Safety/Chicago-Police-Department-Illinois-Uniform-Crime-R/c7ck-438e) defines the mapping. We include first-/second-degree murder, criminal sexual assault, robbery, and aggravated assault/battery using the lookup's **Index `I` designation**. This excludes simple assault/battery and statutory aggravated/minor-injury categories classified as non-Index. Involuntary manslaughter, reckless homicide, other sex offenses and weapons violations are excluded from this first definition. Attempted offenses classified in the included Index categories remain included. Historical/inactive IUCR codes are not discarded merely because they are inactive now.
+
+IUCR 1753/1754 (child sexual assault by a family member) are included despite the broader “offense involving children” primary heading. Index-I ritual-mutilation battery codes 0490–0493/0510 are also included. An independent cross-check against recorded FBI violent categories 01A, 02, 03, 04A and 04B must reconcile exactly. This avoids omitting violent offenses solely because their primary heading differs.
+
+Qualifying domestic-related rows and rows without an arrest remain included. No arrest or domestic filter is applied. The recorded row's IUCR code controls the definition, rather than an unrestricted text match on “assault” or “battery.” Unknown potentially violent IUCR codes stop the pipeline for review; other unmapped codes are audited separately. There were **`r num(a$unknown_iucr_rows)` unmapped rows** in the extraction.
+
+```{r included-codes}
+bg_table(r$iucr[r$iucr$included,c("iucr","primary_description","secondary_description","index_code","active","violent_group")],
+  caption="Included IUCR codes from the frozen lookup; this table is the reproducible definition, not a live category search.")
+```
+
+# Coordinates, geographic matching and coverage
+
+The **`r num(a$violent_rows)` selected violent rows** are screened for finite coordinates in a broad Chicago-region bounding box and then projected to EPSG:26916. Missing, malformed or regionally implausible coordinates are excluded from spatial counting and retained in the audit. No missing points are assigned using CPD community labels, addresses or neighboring areas.
+
+Points are assigned to the **whole 2024 TIGER block-group polygons** already used by the project. Strict interiors are preferred; boundary intersections resolve deterministically to the smallest GEOID. No nearest-area snapping or buffer exposure is used. The sample remains whole block groups with at least 50% of total polygon area inside the cached City boundary, assigned to their largest-overlap community area.
+
+```{r assignment-audit}
+bg_table(r$status,digits=0)
+bg_table(data.frame(measure=c("All selected violent rows","Assigned to any mapped block group","Assigned to a modeling block group","Missing/invalid/regional-screen coordinates","Usable but unmatched coordinates","Multiple polygon matches","Boundary-rule assignments","Assigned points outside City mask","Model BGs with zero assigned rows"),
+  count=c(a$violent_rows,a$mapped_rows,a$model_rows,a$missing_or_invalid_coordinates,a$unmatched_usable_coordinates,a$multiple_polygon_matches,a$boundary_assignments,a$assigned_outside_city_mask,a$zero_assigned_BGs)),digits=0)
+```
+
+Overall coordinate coverage is **`r pct(1-a$missing_or_invalid_coordinates/a$violent_rows)`**. Coverage for sexual-assault records ranges from **`r pct(min(r$coverage$coordinate_coverage[r$coverage$violent_group=="sexual_assault"]))` to `r pct(max(r$coverage$coordinate_coverage[r$coverage$violent_group=="sexual_assault"]))`** across years, noticeably below the other offense groups. This difference is material even though aggregate coverage is high.
+
+**Zero means zero assigned geocoded rows, not verified absence of crime.** Missing-coordinate records cannot be allocated to particular block groups. Their spatial distribution may be nonrandom. Coverage by the CPD-reported community label is saved for review but does not substitute for point assignment. The geographic precision is limited by the privacy-protected published locations; a deterministic assignment is not proof of the incident's exact block group.
+
+CPD coverage concerns Chicago, while retained boundary-crossing block groups extend beyond it. Counting within whole polygons does not supply missing suburban police records. Assigned points outside the City mask are audited rather than clipped out, consistent with the agreed whole-polygon rule. The >=99%-inside-city sensitivity below addresses part of this boundary mismatch.
+
+```{r coverage-table}
+bg_table(r$coverage,digits=4,caption="Violent-record coordinate and assignment coverage by occurrence year and offense group.")
+```
+
+```{r coverage-chart,fig.height=5}
+ggplot(r$coverage,aes(occurrence_year,coordinate_coverage,color=violent_group))+
+  geom_line()+geom_point()+scale_y_continuous(limits=c(0,1),labels=function(x)paste0(100*x,"%"))+
+  scale_x_continuous(breaks=crime_config$years)+labs(x=NULL,y="Usable coordinate share",color="Offense group",
+    title="Coordinate availability among selected violent records")+bg_theme()
+```
+
+# Exposure distribution and geographic pattern
+
+```{r count-distribution}
+bg_table(data.frame(statistic=c("Minimum","25th percentile","Median","75th percentile","95th percentile","Maximum"),
+  raw_rows=unname(stats::quantile(d$violent_crime_count,c(0,.25,.5,.75,.95,1)))),digits=0)
+ggplot(d,aes(violent_crime_count))+geom_histogram(bins=40,fill="#278f9b",color="white")+
+  labs(x="Recorded violent crime rows, 2020–2024 (raw count)",y="Model block groups",title="The untransformed exposure used in M5")+bg_theme()
+```
+
+```{r count-map,fig.height=7}
+geometry <- sf::st_read(file.path(bg_model_config$analytic_dir,"geographic_assignment.gpkg"),quiet=TRUE)
+geometry <- geometry[match(d$GEOID,geometry$GEOID),]
+geometry$count <- d$violent_crime_count
+ggplot(geometry)+geom_sf(aes(fill=count),color=NA)+coord_sf(datum=NA)+scale_fill_viridis_c(option="C")+
+  labs(title="Recorded violent rows in modeling block groups",fill="2020–2024 rows")+bg_theme()+
+  theme(axis.text=element_blank(),axis.title=element_blank(),panel.grid=element_blank())
+```
+
+Raw counts can reflect population, activity, visitors, area size and reporting patterns, in addition to violence intensity. No population or land-area offset is included by design. The administrative count has no ACS MOE, but that does not make it error-free. ACS outcome and covariate uncertainty remains as in the original study.
+
+# Model specification and association
+
+M5 retains all current M3 housing controls, renter-profile measures (recent moves and householder age), socioeconomic/racial-ethnic context and community fixed effects, then adds the literal raw count. Equal weight per block group is retained. The count coefficient therefore describes a **within-community conditional association**, assuming a common linear log-rent slope for every additional row across the observed count range.
+
+```{r coefficient-table}
+bg_table(r$crime_effect[c("term","estimate","hc3_se","hc3_conf_low","hc3_conf_high","cluster_conf_low","cluster_conf_high","hc3_p_value","cluster_p_value")],digits=7,
+  caption="Raw log-rent coefficient per one recorded row, with 95% HC3 and community-clustered sensitivity intervals; two-sided tests.")
+```
+
+```{r marginal-contrast}
+values <- seq(0,unname(stats::quantile(d$violent_crime_count,.95)),length.out=100)
+curve <- data.frame(additional_rows=values,percent=100*expm1(values*effect$estimate),
+  low=100*expm1(values*effect$hc3_conf_low),high=100*expm1(values*effect$hc3_conf_high))
+ggplot(curve,aes(additional_rows,percent))+geom_hline(yintercept=0,color="grey70")+
+  geom_ribbon(aes(ymin=low,ymax=high),fill="#cfe0dc",alpha=.7)+geom_line(color="#18354a",linewidth=1)+
+  labs(x="Additional recorded violent rows (raw count)",y="Conditional difference in median rent (%)",
+    title="The fitted M5 crime association",caption="95% HC3 confidence band for the single-variable contrast; not a prediction interval.\nThe log-rent model is linear in the raw count; percentage conversion is for interpretation only.")+bg_theme()
+```
+
+```{r partial-residual}
+component <- stats::residuals(r$models$M5)+effect$estimate*d$violent_crime_count
+ggplot(data.frame(count=d$violent_crime_count,component=component),aes(count,component))+
+  geom_point(color="#278f9b",alpha=.3,size=1)+geom_smooth(method="lm",se=FALSE,color="#18354a")+
+  geom_smooth(method="loess",se=FALSE,color="#af7146")+
+  labs(x="Recorded violent crime rows",y="Component + residual (log rent)",
+    title="Check the imposed raw-count relationship",caption="Dark line: linear component. Orange: exploratory LOESS, not a fitted alternative model.")+bg_theme()
+```
+
+# Diagnostics and held-out comparison
+
+HC3 intervals allow unequal residual variance but do not solve functional-form problems or spatial dependence. Community-clustered HC1 intervals permit dependence within communities, not across adjacent communities. Saturated singleton-community rows remain in the primary point fit but are omitted from HC3 covariance calculations; slopes are unchanged. Community dummy intervals are not interpreted as cluster-robust neighborhood effects.
+
+```{r diagnostic-tables}
+bg_table(r$diagnostics,digits=5)
+bg_table(r$spatial,digits=4,caption="Exploratory residual Moran diagnostics; queen and symmetric four-nearest-neighbor weights, 999 two-sided add-one permutations.")
+bg_table(r$vif,digits=2)
+```
+
+```{r residuals,fig.height=7}
+old<-par(mfrow=c(2,2),mar=c(4,4,2,1),cex=.85,col="#278f9b")
+plot(r$models$M5,which=c(1,2,3,5),id.n=0,ask=FALSE)
+par(old)
+```
+
+```{r influence}
+bg_table(head(r$influence[order(-r$influence$cooks_D),c("GEOID","community","violent_crime_count","studentized","leverage","cooks_D")],10),digits=4,
+  caption="Most influential public aggregate areas. Undefined singleton influence diagnostics are omitted, not treated as zero.")
+```
+
+Cross-validation uses the baseline's **same five tract folds**. All blocks from a tract stay together; M3 and M5 are evaluated on the same held-out rows whose communities are present in training. **`r r$cv$excluded_unseen` areas** are excluded from test scoring for absent training-community effects. This estimates comparative prediction within represented communities, not in unseen communities or future years. The crime measure and ACS outcome cover the same pooled years, so this is not a prospective crime-to-rent forecasting test. Prior renter-variable selection used these folds; no claim of independent post-selection validation is made.
+
+# Stricter city-boundary and influence stability checks
+
+```{r strict-city}
+bg_table(r$strict_metrics[c("model","n","r_squared","adjusted_r_squared")],digits=5,
+  caption="M3 and M5 refitted on the same >=99%-inside-city areas; raw crime count unchanged.")
+bg_table(r$strict_effect[c("percent_per100_estimate","percent_per100_hc3_conf_low","percent_per100_hc3_conf_high")],digits=3,
+  caption="Strict-city sample: modeled percentage difference per 100 additional recorded rows, 95% HC3 interval.")
+bg_table(data.frame(full_sample_coefficient=effect$estimate,
+  leave_one_community_out_min=min(r$loco$crime_coefficient),
+  leave_one_community_out_max=max(r$loco$crime_coefficient)),digits=7,
+  caption="Community-deletion slope range; a stability check, not a confidence interval.")
+```
+
+No count transformation, nearby buffer, rate denominator or outcome-driven offense selection is introduced. These are possible later refinements, not unreported alternatives searched for a preferred negative association.
+
+# Reproducibility and limitations
+
+```bash
+Rscript R/run_crime_analysis.R
+Rscript R/check_crime.R
+```
+
+Run from the project root after the current baseline block-group study. The project-wide `R/run_pipeline.R` includes this separate crime study; it does not publish M5 to the website. Source configuration is in `R/crime_config.R`. Raw CSVs/lookup/metadata/queries/manifests are under `data/raw_data/cpd_crime_2020_2024_v1`. The local point-assignment audit, annual/offense/BG counts and joined sample are under `data/analytic/crime_2020_2024`. The HTML, Markdown, PNGs, fitted results, CSVs and provenance are under `output/models/block_group_crime_2024` and the analytic directory. No point-level crime data are exported to the website.
+
+The checks cover date/ID/count reconciliation, inclusion/exclusion codes, coordinate screening, deterministic polygon assignment, count conservation, unchanged M3 cases/folds, raw M5 specification and independent reconstruction of its HC3 crime-slope uncertainty. Rerun the pipeline on its frozen cache to independently confirm numerical reproducibility.
+
+The analysis remains limited by police reporting/recording practices, revised historical records, missing and approximate locations, city-only coverage of boundary areas, row/victim counting differences, raw-count exposure confounding, simultaneous measurement, omitted variables and ACS estimation error. Even a negative adjusted coefficient would establish an association in this specification—not that violent crime causes lower rents or that an individual tenant's rent would change if violence changed.

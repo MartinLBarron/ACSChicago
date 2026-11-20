@@ -17,6 +17,17 @@ Additional ACS candidates are tested separately with
 [R/block_group_exploratory_report.Rmd](R/block_group_exploratory_report.Rmd).
 It preserves M0–M4 and uses matched-case baselines and the original tract folds.
 
+The CPD crime extension is documented in [docs/crime_model.md](docs/crime_model.md).
+Run `Rscript R/run_crime_analysis.R` to download the 2020–2024 records, audit
+violent-offense/geographic coverage and fit M5 (M3 plus the raw violent row count).
+The review report is `output/models/block_group_crime_2024/report.html`; M5 is
+kept separate from the website pending review.
+
+For the crime-first sequence (M0 intercept; M1 crime; M2 housing/renter profile;
+M3 socioeconomic context; M4 community areas), run `Rscript R/run_crime_stages.R`.
+Its new report is `output/models/block_group_crime_stages_2024/report.html`.
+See [docs/crime_stages.md](docs/crime_stages.md) for the specification and checks.
+
 ## Interactive map
 
 The local MapLibre GL JS webpage in `html/` displays city limits, community areas,

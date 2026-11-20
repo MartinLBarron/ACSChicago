@@ -1,3 +1,46 @@
+# Crime-first staged report — 2026-11-20
+
+- Martin reframed the question as the association between median rent and violent
+  crime and requested a separate crime-first sequence: M0 intercept; M1 raw crime;
+  M2 housing/renter-profile controls; M3 socioeconomic/demographic context; M4
+  community-area indicators. Preserve recent moves and renter age in the
+  established housing/renter-profile block. No new transformation or data source.
+- Keep the identical 1,468 cases and tract folds. New M4 must reproduce previous
+  crime M5. Produce a new R Markdown report with crime-effect trajectories,
+  confidence/contrast charts, full diagnostics and strict-city sensitivity.
+- New numbering is confined to data/analytic/crime_stages_2024 and its report;
+  retain prior reports and website numbering. Explain the small positive M3
+  point estimate after socioeconomic adjustment and its shift back negative
+  after community indicators, without a causal mediation interpretation.
+
+# CPD crime study — 2026-11-20
+
+- Martin approved a descriptive association study, not causal rent suppression.
+  Use occurrence years 2020–2024, raw untransformed violent row counts inside
+  block groups, and M5 = current M3 + violent_crime_count. No denominator,
+  annualization, logarithm or neighboring-area exposure in this first model.
+- Count each CPD ID once, without case-number deduplication, including multiple
+  murder victim rows. Include qualifying domestic rows regardless of arrest.
+  Freeze an explicit official IUCR Index-I violent-offense mapping; exclude
+  simple/minor-injury offenses, reckless homicide and involuntary manslaughter.
+- Exclude unusable coordinates from spatial counts but retain a coverage audit.
+  Use whole 2024 polygons and the existing majority-city sample; refit M3/M5 on
+  >=99%-inside-city areas as a boundary sensitivity. Preserve zero assigned
+  counts while explaining missing-coordinate and city-only coverage limitations.
+- Final mapping includes Index child sexual assault (1753/1754) and ritual
+  battery codes outside the main primary-type headings, and reconciles exactly
+  with recorded FBI violent categories 01A/02/03/04A/04B.
+- Snapshot: 1,187,239 total rows; 134,913 selected violent rows; 1,797 lack usable
+  coordinates; 94,321 rows assigned to 1,468 modeling BGs. M5 R² is 0.73010
+  versus M3 0.72937, held-out R² 0.67470 versus 0.67425. The per-100-row
+  contrast is -2.12%, HC3 interval -4.36% to +0.16%; clustered sensitivity
+  interval -3.67% to -0.55%. The negative estimate adds very little fit and
+  interval conclusions depend on covariance choice.
+- Martin approved preparing the audit and M5 report together, with the website
+  kept on its current models until the new result is reviewed. Crime inputs,
+  fitted objects and point audits stay outside html/. Record the frozen current
+  extraction as revised historical data, not an as-of-2024 snapshot.
+
 # Promote renter-profile variables — 2026-11-19
 
 - Martin requested adding recent moves and renter-householder age to the original
