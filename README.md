@@ -11,6 +11,12 @@ It produces `output/models/block_group_rent_2024/report.html`, with diagnostics,
 sensitivity analyses, and source/sample audits. The source is
 [R/block_group_rent_report.Rmd](R/block_group_rent_report.Rmd).
 
+Additional ACS candidates are tested separately with
+`Rscript R/run_bg_exploratory.R`. The companion report is
+`output/models/block_group_exploratory_2024/report.html`, with source
+[R/block_group_exploratory_report.Rmd](R/block_group_exploratory_report.Rmd).
+It preserves M0–M4 and uses matched-case baselines and the original tract folds.
+
 ## Interactive map
 
 The local MapLibre GL JS webpage in `html/` displays city limits, community areas,

@@ -3,12 +3,13 @@ source("R/bg_model_config.R")
 cfg <- bg_model_config
 r <- readRDS(file.path(cfg$analytic_dir, "model_results.rds"))
 d <- r$data
-model_names <- c(M0 = "Baseline", M1 = "Housing", M2a = "Housing + economic context",
-                 M2 = "Housing + all context", M3 = "Adding community location")
-specifications <- c(M0 = "Intercept only", M1 = "Bedrooms, building size and building age",
+model_names <- c(M0 = "Baseline", M1 = "Housing + renter profile", M2a = "Housing/profile + economic context",
+                 M2 = "Housing/profile + all context", M3 = "Adding community location", M4 = "Housing/profile + community location")
+specifications <- c(M0 = "Intercept only", M1 = "Bedrooms, building size/age, recent movers and renter householder age",
   M2a = "M1 + poverty, income and both education measures",
   M2 = "M2a + non-Hispanic Black and Hispanic/Latino population shares",
-  M3 = "M2 + indicators for the 77 community areas")
+  M3 = "M2 + indicators for the 77 community areas",
+  M4 = "M1 + community indicators; no socioeconomic context")
 metrics <- r$metrics[r$metrics$model %in% names(model_names), ]
 metrics$label <- unname(model_names[metrics$model])
 metrics$specification <- unname(specifications[metrics$model])
@@ -27,7 +28,7 @@ variables <- dplyr::bind_rows(lapply(bg_predictors, function(term) {
     p05 = q[1], p25 = q[2], median = q[3], p75 = q[4], p95 = q[5])
 }))
 coefficients <- r$coefficients[r$coefficients$term %in% bg_predictors &
-  r$coefficients$model %in% c("M1", "M2a", "M2", "M3"), ]
+  r$coefficients$model %in% c("M1", "M2a", "M2", "M3", "M4"), ]
 fit <- r$models$M3
 points <- data.frame(community = d$community, observed = d$rent,
   fitted = exp(stats::fitted(fit)), residual = stats::residuals(fit),
@@ -51,8 +52,9 @@ payload <- list(
   spatial = r$spatial$results, spatial_graph = r$spatial$graph, sensitivity = sensitivities,
   points = points, qq = qq, qq_reference = list(slope = slope, intercept = intercept),
   sample_flow = r$sample_flow, synthetic_data = r$synthetic_data,
+  previous_comparison = r$previous_comparison,
   notes = list(confidence_model = .95, confidence_acs = .90, primary_weighting = "Equal block groups",
-               outcome = "Log median monthly contract rent", model_version = "Initial descriptive specification"))
+               outcome = "Log median monthly contract rent", model_version = "Recent moves and renter age · 2026-11-19"))
 out <- "html/data/web"
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 path <- file.path(out, "block_group_model_2024.json")

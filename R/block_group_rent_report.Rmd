@@ -46,7 +46,7 @@ How much of the **between-block-group variation in log median monthly contract r
 
 <div class="finding">
 The common analysis sample contains **`r num(nrow(d))` whole block groups in `r nlevels(d$community_id)` community areas**.
-Housing composition alone accounts for **`r pct(r2["M1"])`** of observed log-rent variation. Adding economic, educational, and racial/ethnic context raises the in-sample R² to **`r pct(r2["M2"])`**. Adding community-area indicators raises it to **`r pct(r2["M3"])`**: an increment of **`r sprintf("%.1f",100*delta)` percentage points**, or **`r pct(partial)` of the variation remaining after measured housing and contextual controls**.
+Housing composition and renter profile together account for **`r pct(r2["M1"])`** of observed log-rent variation. Adding economic, educational, and racial/ethnic context raises the in-sample R² to **`r pct(r2["M2"])`**. Adding community-area indicators raises it to **`r pct(r2["M3"])`**: an increment of **`r sprintf("%.1f",100*delta)` percentage points**, or **`r pct(partial)` of the variation remaining after measured housing and contextual controls**.
 </div>
 
 These are descriptive fit statistics for the selected sample, not estimates of a causal neighborhood effect. Community indicators can capture omitted housing quality, amenities, subsidized housing, spatial sorting, differences in ACS estimation error, and other unmeasured factors. The diagnostic and sensitivity sections assess how much confidence to place in this initial linear specification.
@@ -63,13 +63,15 @@ The outcome is B25058_001, **median contract rent**, for renter-occupied units p
 
 ```{r definitions}
 definitions <- data.frame(
-  Domain = c("Outcome", "Rental bedrooms", "Rental building size", "Rental building age", "Poverty", "Income", "Education", "Racial/ethnic context"),
-  Source = c("B25058; B25063", "B25042", "B25032", "B25036", "C17002", "B19013", "B15003", "B03002"),
-  Definition = c("Median contract rent; estimated cash-rent units", "Studio/1-bedroom and 3+-bedroom shares; 2 bedrooms omitted", "2–4, 5–19, 20+ unit shares; non-apartment units omitted", "Pre-1940 and 2000+ shares; 1940–1999 omitted", "Below poverty: ratio <0.5 plus 0.5–0.99 / poverty-status universe", "Log median household income, all households", "Bachelor+ and no diploma/GED shares, adults 25+", "Non-Hispanic Black and Hispanic/Latino shares, total population"))
+  Domain = c("Outcome", "Rental bedrooms", "Rental building size", "Rental building age", "Recent moves", "Renter householder age", "Poverty", "Income", "Education", "Racial/ethnic context"),
+  Source = c("B25058; B25063", "B25042", "B25032", "B25036", "B25038", "B25007", "C17002", "B19013", "B15003", "B03002"),
+  Definition = c("Median contract rent; estimated cash-rent units", "Studio/1-bedroom and 3+-bedroom shares; 2 bedrooms omitted", "2–4, 5–19, 20+ unit shares; non-apartment units omitted", "Pre-1940 and 2000+ shares; 1940–1999 omitted", "Share moved in 2020 or later, among renter-occupied units", "Under-35 and 65+ householder shares among renters; ages 35–64 omitted", "Below poverty: ratio <0.5 plus 0.5–0.99 / poverty-status universe", "Log median household income, all households", "Bachelor+ and no diploma/GED shares, adults 25+", "Non-Hispanic Black and Hispanic/Latino shares, total population"))
 bg_table(definitions)
 ```
 
 Housing shares describe **all renter-occupied units**, including those paying no cash rent; they are composition proxies rather than the composition of the outcome's exact cash-rent universe. Income and demographic variables describe all relevant residents or households, not just renters. The omitted building-size group includes detached/attached single-unit housing, mobile homes, and other structures. All share predictors are divided by ten so coefficients represent a 10-percentage-point difference. The income coefficient is transformed for a 10% income difference in presentation.
+
+Recent-mover share combines the B25038 categories “2023 or later” and “2020 to 2022.” It is a pooled stock characteristic, **not an annual turnover rate**. Renter-householder age is measured as under-35 and 65+ shares, with age 35–64 omitted. All three renter-profile measures enter M1 and carry through M2a, M2, M3 and M4. Moves and age composition can reflect residential sorting or responses to rents; their coefficients are descriptive.
 
 Both education measures are retained as requested. Their omitted education group comprises high-school/GED graduates and people with some college or associate degrees. Racial/ethnic shares are separate contextual measures, not part of a deprivation index. Holding Hispanic share fixed, an increase in non-Hispanic Black share implies a reduction in the combined remaining non-Hispanic groups; it is not a uniquely Black-versus-White contrast. These are measures of social and residential context and must not be interpreted as biological or individual effects.
 
@@ -135,16 +137,16 @@ ggplot(d, aes(rent, rent_relative_moe)) + geom_point(alpha=.35, size=1.2, color=
 
 All models use exactly the same complete-case sample, so changes in fit do not reflect changing cases. The primary estimator is ordinary least squares with equal weight per block group:
 
-**log(median contract rent) = intercept + housing composition + contextual conditions + community-area indicators + residual.**
+**log(median contract rent) = intercept + housing composition + renter profile + contextual conditions + community-area indicators + residual.**
 
 ```{r stages}
-bg_table(data.frame(Model=c("M0", "M1", "M2a", "M2", "M3", "H_CA"),
-  Specification=c("Intercept only", "Rental bedrooms, structure size, construction age", "M1 + poverty, log income, college, no diploma/GED", "M2a + non-Hispanic Black and Hispanic/Latino shares", "M2 + community-area fixed effects", "Housing + community indicators (alternate-order comparison)")))
+bg_table(data.frame(Model=c("M0", "M1", "M2a", "M2", "M3", "M4"),
+  Specification=c("Intercept only", "Rental bedrooms, structure size/age, recent moves and renter householder age", "M1 + poverty, log income, college, no diploma/GED", "M2a + non-Hispanic Black and Hispanic/Latino shares", "M2 + community-area fixed effects", "M1 + community indicators; no socioeconomic context")))
 ```
 
 Community areas are fixed categorical indicators, not random effects. M3 compares block groups within the same assigned community when estimating covariate slopes; it allows different community intercepts but assumes common slopes. Community indicators require `r nlevels(d$community_id)-1` additional parameters. Their contribution measures remaining **location association** after these controls. Community areas are large and internally diverse; the model can miss important finer-scale neighborhood variation.
 
-There are **`r sum(table(d$community_id)==1)` singleton communities** in this complete-case sample. Their one observation is retained and fitted exactly by its community indicator. It contributes no within-community slope information. HC3 slope intervals and the M3 HC3 RESET diagnostic are calculated after removing these saturated singletons, which leaves the slopes unchanged; no HC3 interval is reported for their community indicator. Studentized residuals and Cook's distances are undefined for these observations and are omitted from those diagnostic summaries. This is a material limitation of interpreting their community components.
+There are **`r sum(table(d$community_id)==1)` singleton communities** in this complete-case sample. Their one observation is retained and fitted exactly by its community indicator. It contributes no within-community slope information. HC3 slope intervals and the M3/M4 HC3 RESET diagnostics are calculated after removing these saturated singletons, which leaves the slopes unchanged; no HC3 interval is reported for their community indicator. Studentized residuals and Cook's distances are undefined for these observations and are omitted from those diagnostic summaries. This is a material limitation of interpreting their community components.
 
 We report 95% HC3 heteroskedasticity-robust intervals and, for continuous slopes, a community-clustered HC1 covariance sensitivity with `r nlevels(d$community_id)-1` reference degrees of freedom. Clustering allows within-community dependence but not dependence across adjacent communities. Fixed-effect coefficients have only one community cluster each, so their community-clustered intervals are intentionally omitted. No cluster-robust joint test of community indicators is claimed. All intervals condition on the measured inputs and chosen specification; they are not ACS design-based confidence intervals for the entire modeling procedure.
 
@@ -153,19 +155,25 @@ We report 95% HC3 heteroskedasticity-robust intervals and, for continuous slopes
 ```{r fit-table}
 bg_table(r$metrics[c("model","n","parameters","r_squared","adjusted_r_squared","rmse_log")], digits=4)
 bg_table(r$comparisons, digits=4, caption="Incremental R² uses total log-rent variation; partial R² uses the residual variation from the earlier model.")
+if (!is.null(r$previous_comparison)) bg_table(r$previous_comparison, digits=4,
+  caption="Before and after promoting recent-mover and renter-householder age shares into M1 onward; identical block groups.")
 ```
 
 ```{r fit-plot, fig.height=4}
-x <- r$metrics[r$metrics$model %in% c("M0","M1","M2a","M2","M3"),]
+x <- r$metrics[r$metrics$model %in% c("M0","M1","M2a","M2","M3","M4"),]
 ggplot(x, aes(model, r_squared)) + geom_col(fill="#278f9b", width=.65) +
   geom_point(aes(y=adjusted_r_squared), color="#18354a", size=2.5) +
   scale_y_continuous(limits=c(0,1)) + labs(x=NULL,y="Share of observed log-rent variation",
     title="Staged in-sample fit", caption="Bars: R². Dots: adjusted R². Higher fit alone does not establish causality or predictive validity.") + bg_theme()
 ```
 
+## Housing/profile plus community location: M4
+
+M4 includes the seven housing indicators, three renter-profile shares and community-area fixed effects, with **no socioeconomic or racial/ethnic controls**. On the identical common sample, its R² is **`r pct(r2["M4"])`**, compared with **`r pct(r2["M1"])`** for housing and renter profile alone. Adding measured context to M4 produces M3 and increases R² by **`r sprintf("%.1f",100*(r2["M3"]-r2["M4"]))` percentage points**. M4 is an alternate branch, not an additional stage after M3.
+
 ## Ordering and overlap between contextual and location variables
 
-The sequential gain attributed to a domain depends on what enters first. The H_CA alternative reverses the order of context and community location after housing composition. The table separates the unique contributions and their shared association. Shared components can be negative under suppression and are not constrained to zero. This is an algebraic decomposition of fitted R², not a causal allocation of responsibility.
+The sequential gain attributed to a domain depends on what enters first. The M4 alternative reverses the order of context and community location after housing composition. The table separates the unique contributions and their shared association. Shared components can be negative under suppression and are not constrained to zero. This is an algebraic decomposition of fitted R², not a causal allocation of responsibility.
 
 ```{r commonality}
 bg_table(r$partition, digits=4)
@@ -173,14 +181,14 @@ bg_table(r$partition, digits=4)
 
 # Conditional associations
 
-```{r coefficient-plot, fig.height=8}
+```{r coefficient-plot, fig.height=10}
 bg_coef_plot(r)
 ```
 
 For a share coefficient b, the displayed percentage is 100 × [exp(b) − 1] for a ten-point difference. For income it is 100 × [exp(b × log(1.10)) − 1]. These transformations describe proportional differences in the modeled block-group median. They are not changes in an individual tenant's rent or arithmetic dollar effects. Comparisons hold other included variables fixed and remain subject to confounding and measurement error. Compositional constraints mean some hypothetical combinations of predictors are not observed or feasible.
 
 ```{r coefficient-table}
-ct <- r$coefficients[r$coefficients$model %in% c("M2","M3") & r$coefficients$term %in% bg_predictors,]
+ct <- r$coefficients[r$coefficients$model %in% c("M2","M3","M4") & r$coefficients$term %in% bg_predictors,]
 bg_table(ct[c("model","label","percent_estimate","percent_hc3_conf_low","percent_hc3_conf_high",
               "percent_cluster_conf_low","percent_cluster_conf_high")], digits=2,
   caption="Percent differences with 95% HC3 and community-clustered sensitivity intervals. P-values are available in the CSV, without significance-based variable selection.")
@@ -278,6 +286,8 @@ bg_table(r$cv$metrics,digits=4)
 
 This assesses prediction in held-out tracts **within communities represented in training**, not prediction in unseen communities, other cities, or future years. RMSE is on the log scale. Exponentiating a fitted value gives a geometric-scale prediction, not an unbiased arithmetic rent prediction; no dollar-scale prediction claim is made.
 
+Recent moves and renter-householder age were promoted after examining exploratory performance using these same tract folds. The updated held-out scores are therefore comparative diagnostics after selection, **not an independent validation of the selected specification**. A fresh spatial holdout or appropriately nested selection/validation procedure is needed for an independent performance assessment.
+
 # Sensitivity and stability
 
 Weighting by estimated cash-rent units emphasizes block groups containing more eligible rentals. It still models block-group medians and does not become a dwelling-level regression. Precision weighting uses inverse approximate log-rent variance; a capped version limits the top 1% of weights. It can favor areas with a different mix of households and housing. Neither weighting rule is the primary estimand or a Census survey-design weight.
@@ -304,7 +314,7 @@ ggplot(sc,aes(percent,sensitivity)) + geom_vline(xintercept=0,color="grey75") +
 ```{r loco}
 stability <- r$loco |> dplyr::group_by(model,term) |> dplyr::summarise(
   minimum=min(estimate),maximum=max(estimate), .groups="drop")
-base <- r$coefficients[r$coefficients$model %in% c("M2","M3") & r$coefficients$term %in% bg_context_terms,c("model","term","estimate")]
+base <- r$coefficients[r$coefficients$model %in% c("M2","M3","M4") & r$coefficients$term %in% bg_context_terms,c("model","term","estimate")]
 stability <- dplyr::left_join(stability,base,by=c("model","term"))
 stability$sign_crosses_zero <- stability$minimum < 0 & stability$maximum > 0
 bg_table(stability,digits=4,caption="Leave-one-community-out slope ranges on the original log-coefficient scale. These are stability ranges, not confidence intervals.")

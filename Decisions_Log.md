@@ -1,3 +1,46 @@
+# Promote renter-profile variables — 2026-11-19
+
+- Martin requested adding recent moves and renter-householder age to the original
+  models and rerunning them. Add the moved-in-2020+ share, under-35 share and
+  age-65+ share to the M1 housing/renter-profile block and carry through M2a,
+  M2, M3 and M4. Preserve the intercept-only M0 and the same 1,468 areas/folds.
+- Retain source estimates, MOEs and annotations. Recent moves are a pooled stock
+  characteristic, not annual turnover; the renter-age reference is 35–64.
+- Archive prior primary/exploratory fits and reports under history/before_movers_age.
+  Refresh primary reports and website exports. Rerun remaining exploratory domains
+  against the promoted baseline; do not retest promoted terms as new additions.
+- Updated M3 R² is 0.7294 (previously 0.7132), with held-out R² 0.6742
+  (previously 0.6551); all 1,468 areas and fold assignments are identical.
+- Because promotion followed exploratory use of the same folds, label the updated
+  CV results as comparative rather than independent post-selection validation.
+
+# Exploratory ACS expansion — 2026-11-19
+
+- Martin authorized testing additional ACS rent-model predictors in an exploratory
+  extension, then explicitly instructed skipping unavailable variables. Preserve
+  M0–M4. Test available domains separately and in transparent combinations.
+- B25118 renter income, B25115 renter family/children composition and B25127 joint
+  construction-age/building-size returned null estimates for every mapped BG.
+  Retain raw responses for audit, remove them from active downloads/derivations,
+  and do not continue the alternative renter-income search or substitute tracts.
+- Twelve feasible predictors cover recent moves, vacancy, finer bedrooms, rooms,
+  renter age, household size, crowding, plumbing and kitchen facilities. Preserve
+  source estimates/MOEs/annotations and derived share uncertainty/status fields.
+- For every comparison, refit baseline models on exactly the extension’s cases;
+  use existing tract folds with identical eligible test rows across variants.
+  Four open-ended room medians are excluded from room-containing comparisons.
+- Exploratory results: recent moves improve held-out R² from 0.6551 to 0.6695;
+  renter age to 0.6660. All available candidates give 0.6705 versus matched-case
+  baseline 0.6565 (1,464 areas). Heteroskedasticity and RESET flags remain.
+  No exploratory candidate is automatically selected as a replacement model.
+
+# M4 addition — 2026-11-19
+
+- Martin requested M4: rental-housing composition plus community-area indicators,
+  without socioeconomic context. Promote the existing H_CA comparison to M4;
+  retain the identical common sample and cross-validation folds. Include it in
+  report and website fit comparisons, coefficients, diagnostics and sensitivities.
+
 # Block-group rent study — 2026-11-18
 
 - Martin approved using the current model on the website pending refinement.

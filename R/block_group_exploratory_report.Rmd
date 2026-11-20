@@ -1,0 +1,178 @@
+---
+title: "Exploratory extensions to the Chicago rent models"
+subtitle: "Additional ACS housing and renter characteristics · 2020–2024"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: readable
+    mathjax: null
+params:
+  project_root: "."
+---
+
+```{r setup,include=FALSE}
+knitr::opts_knit$set(root.dir=params$project_root)
+source(file.path(params$project_root,"R/bg_exploratory_config.R"))
+source(file.path(params$project_root,"R/bg_report_helpers.R"))
+r <- readRDS(file.path(params$project_root,bg_exploratory_config$analytic_dir,"model_results.rds"))
+x <- readRDS(file.path(params$project_root,bg_exploratory_config$analytic_dir,"exploratory_inputs.rds"))
+library(ggplot2)
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,fig.width=9,fig.height=5.5,dpi=160,dev="png",out.width="100%")
+labels <- c(movers="Recent movers",vacancy="Rental vacancy",finer_bedrooms="Finer bedroom composition",
+  rooms="Median renter rooms",renter_age="Renter householder age",household_size="Renter household size",
+  housing_conditions="Crowding and facilities",priority_available="Priority available variables",
+  all_available="All available candidates")
+s <- r$summary
+s$label <- unname(labels[s$domain])
+```
+
+<style>body{color:#233747;line-height:1.65}.main-container{max-width:1120px}h1,h2,h3{color:#18354a}table{font-size:.85em;width:100%}td,th{padding:7px!important}th{border-bottom:2px solid #278f9b}</style>
+
+# Purpose and scope
+
+This extension tests additional **rental-market, rental-stock and renter-household composition** measures without replacing M0–M4. It uses the same 2020–2024 ACS release, log median contract rent outcome, equal block-group weights, geographic assignments and primary sample of **`r r$baseline_sample_n` block groups**. It is an exploratory comparison, not a claim that a new model is preferred or that these characteristics cause rent differences. `r if(r$synthetic_data) "SYNTHETIC DATA: illustrative results." else "Inputs are official public aggregate estimates, not synthetic data."`
+
+For each candidate domain, the original M2 and M3 are refitted on exactly the same complete cases used by the extended models. Thus a gain cannot be attributed merely to excluding different areas. Extended models are fitted both without and with community indicators. Original tract-fold assignments are retained, and all variants within a comparison are evaluated on identical eligible held-out areas. These extensions do not replace the current original-model fits. The pre-promotion study and exploratory results are archived under history/before_movers_age; the current baseline already includes recent moves and renter householder age.
+
+# What was added—and what was skipped
+
+```{r definitions}
+definitions <- data.frame(
+  domain=c("Recent movers","Rental vacancy","Finer bedrooms","Rooms","Renter age","Household size","Housing conditions"),
+  source=c("B25038","B25004 + B25003","Existing B25042","B25021","B25007","B25009","B25014, B25049, B25053"),
+  definition=c("Renter units: moved in 2020 or later / all renter units",
+    "Vacant for rent / (renter occupied + vacant for rent + rented, not occupied)",
+    "Studio and 4+-bedroom shares, alongside existing grouped bedroom shares",
+    "Median number of rooms in renter-occupied units; open-ended annotations excluded",
+    "Renter householders under 35 and age 65+; age 35–64 omitted",
+    "Single-person and 4+-person renter households; 2–3 people omitted",
+    "Renter units with >1 person per room, incomplete plumbing, incomplete kitchen"))
+bg_table(definitions)
+```
+
+These measures describe renter-occupied units or households, including no-cash-rent units. The outcome remains the median for cash-rent units. The recent-mover variable uses the release's published categories, combines “2023 or later” and “2020 to 2022,” and is a **stock characteristic, not an annual turnover rate**. Five-year pooled estimates are not a longitudinal record of rent changes at lease renewal.
+
+Adding studio share while holding the studio/one-bedroom share fixed distinguishes studios from one-bedroom units. Likewise, adding 4+-bedroom share while holding 3+-bedroom share fixed distinguishes larger units from three-bedroom units. These refinements preserve nesting of the baseline model. Rooms may overlap strongly with bedroom composition; that redundancy is evaluated rather than assumed helpful.
+
+```{r skipped}
+bg_table(r$skipped,caption="Requested domains skipped after the API availability check, following Martin’s instruction.")
+```
+
+Although those tables appear in ACS metadata, they returned null estimates for **all 2,312 mapped block groups** in the extraction. They are not coded as zeros and no tract values are substituted. The unsuccessful source responses remain in the raw cache for audit; active downloads no longer request these domains. No further search for renter-income alternatives is performed.
+
+# Coverage, uncertainty and coding
+
+```{r coverage}
+bg_table(r$coverage,digits=3,caption="Coverage within the unchanged primary sample. Median/p95 use predictor units: 10 percentage points, or one room. MOEs are retained alongside values.")
+bg_table(r$audit[c("model","domain","baseline_n","paired_n","excluded","status")],digits=0)
+```
+
+Raw E/M values and available annotations remain cached. Derived proportions preserve numerators, denominators, 90% MOEs, approximation methods and statuses. Sum/proportion MOEs use the same tidycensus methods as the baseline pipeline. Zero estimates are valid observations; a missing estimate is never treated as zero. Four renter-room medians have an open-ended annotation and are omitted from the room comparisons; their raw estimates and MOEs remain available.
+
+The uncertainty in the new predictors is not fully propagated by OLS. Facility deficiencies are uncommon and estimated imprecisely, so their apparent associations may be unstable even when coefficients can be estimated. Recent moves, crowding and household composition can themselves respond to rents, and vacancy can reflect both supply and demand; causal direction cannot be determined here.
+
+```{r distributions,fig.height=8}
+long <- dplyr::bind_rows(lapply(unique(unlist(bg_exploratory_domains)),function(term) {
+  value<-x[[term]]
+  data.frame(value=if(grepl("_10pp$",term))value*10 else value,
+    variable=sub(" \\(.+$","",unname(bg_exploratory_labels[term])))
+}))
+ggplot(long,aes(value))+geom_histogram(bins=25,fill="#278f9b",color="white")+
+  facet_wrap(~variable,scales="free",ncol=3)+labs(x="Percentage, except room count",y="Block groups",title="Observed candidate distributions")+bg_theme()+
+  theme(strip.text=element_text(size=8))
+```
+
+# Model comparisons
+
+Each experiment adds its named domain to the original control set. Recent movers and renter age have now been promoted into M1–M4 and are not tested again as add-ons. The priority combination includes rental vacancy and finer bedrooms; renter income is omitted because no block-group observations were available. The all-available combination adds all **9** remaining feasible predictors. Neither combination is selected by significance. All specifications remain linear in the coded predictors; this step does not implement splines or a new spatial model.
+
+```{r comparison}
+bg_table(s[c("experiment","label","n","baseline_R2","expanded_R2","added_R2","baseline_CV_R2","expanded_CV_R2")],digits=4,
+  caption="Each row has its own matched-case baseline. Comparisons involving rooms use fewer areas; raw R² across rows is not a common-sample ranking.")
+```
+
+```{r cv-gain,fig.height=5}
+plot_data <- s
+plot_data$gain_pp <- 100*(s$expanded_CV_R2-s$baseline_CV_R2)
+ggplot(plot_data,aes(gain_pp,reorder(label,gain_pp)))+geom_vline(xintercept=0,color="grey70")+
+  geom_segment(aes(x=0,xend=gain_pp,yend=reorder(label,gain_pp)),color="#278f9b",linewidth=1.3)+
+  geom_point(color="#18354a",size=3)+labs(x="Change in held-out R² (percentage points)",y=NULL,
+    title="Do the new domains improve held-out fit?",caption="Same fixed tract folds; each change is relative to its own matched-case M3.\nExploratory point comparisons; no confidence interval or model-selection-adjusted inference is implied.")+bg_theme()
+```
+
+```{r summary-text,results='asis'}
+for(domain in c("movers","renter_age","all_available")){
+ row <- s[s$domain==domain,]
+ if(nrow(row)) cat(sprintf("**%s:** held-out R² changes from %.1f%% to %.1f%%; in-sample R² changes from %.1f%% to %.1f%%.\n\n",row$label,100*row$baseline_CV_R2,100*row$expanded_CV_R2,100*row$baseline_R2,100*row$expanded_R2))
+}
+```
+
+These are small incremental tests on top of an already substantial housing/context/location model. A positive in-sample increment is expected when adding nested predictors; it is not sufficient evidence of a better explanation. A held-out decline indicates the extra terms did not help in this partition. Reusing one fixed cross-validation partition makes comparisons transparent but leaves partition uncertainty unresolved. Repeated spatially structured validation is a subsequent check before choosing a final specification; these scores should not become a repeatedly tuned leaderboard.
+
+## Does the community-area contribution change?
+
+```{r community}
+bg_table(s[c("experiment","label","baseline_community_increment","expanded_community_increment")],digits=4,
+  caption="Increment in total observed log-rent R² from adding community indicators, before and after each candidate domain.")
+```
+
+A smaller increment means that measured block-group characteristics account for more of the variation previously captured by community indicators. It does not establish mediation or identify why neighborhoods differ. A larger increment can also occur because of suppression or a changed relationship among correlated controls.
+
+# Candidate coefficients and diagnostics
+
+```{r coefficients,fig.height=9}
+coefficients <- dplyr::bind_rows(lapply(names(r$results),function(domain){
+ z<-r$results[[domain]]; out<-z$coefficients[z$coefficients$term %in% z$terms,]
+ out$domain<-domain;out
+}))
+singles<-coefficients[!coefficients$domain %in% c("priority_available","all_available"),]
+ggplot(singles,aes(percent_estimate,reorder(label,percent_estimate)))+
+  geom_vline(xintercept=0,color="grey70")+
+  geom_errorbar(aes(xmin=percent_hc3_conf_low,xmax=percent_hc3_conf_high),orientation="y",width=.2,color="#278f9b")+
+  geom_point(color="#18354a",size=2.5)+labs(x="Conditional difference in median contract rent (%)",y=NULL,
+  title="New-variable associations, one domain at a time",caption="95% HC3 intervals. Share increment: 10 percentage points; rooms: one room.\nEach domain includes baseline M3 controls. These are exploratory associations, not causal impacts.")+bg_theme()+theme(axis.text.y=element_text(size=9))
+```
+
+```{r coefficient-table}
+bg_table(coefficients[c("model","label","percent_estimate","percent_hc3_conf_low","percent_hc3_conf_high","percent_cluster_conf_low","percent_cluster_conf_high")],digits=2,
+  caption="New-term percent associations. Community-clustered intervals are a sensitivity; neither interval propagates all ACS measurement error or exploratory selection uncertainty.")
+```
+
+```{r diagnostics}
+diagnostics <- dplyr::bind_rows(lapply(names(r$results),function(domain)cbind(data.frame(domain=domain),r$results[[domain]]$diagnostics)))
+bg_table(diagnostics,digits=4)
+bg_table(s[c("experiment","label","max_VIF","cv_excluded_unseen")],digits=2)
+```
+
+The studentized Breusch–Pagan test checks constant residual variance; HC3 RESET checks fitted-value powers two and three. Saturated singleton communities are omitted from HC3 calculations, leaving continuous slopes unchanged. Moran's I uses the baseline queen graph restricted to that comparison's areas, row-standardized again; these are descriptive residual statistics without permutation probabilities. High VIFs warn that some unique coefficients may be poorly separated even if overall fit improves.
+
+The baseline report retains the full influence, residual, spatial and reliability diagnostics. These additions do not automatically remedy its assumption problems. Rare facility indicators, correlated household age/size measures, endogenous sorting and outcome/covariate sampling error remain substantive limitations.
+
+# Reproduce and audit
+
+```bash
+Rscript R/run_bg_exploratory.R
+Rscript R/check_bg_exploratory.R
+```
+
+Run from the project root after producing the baseline models. The full block-group entry point includes this extension. The first extraction requires a Census API key and network access; subsequent runs verify and reuse the raw cache. Raw inputs and annotations live in `data/raw_data/bg_exploratory_2024_v1`; derived estimates/MOEs, per-area availability flags and fitted bundles live in `data/analytic/bg_exploratory_2024`. Output tables, specification formulas, input hashes, this HTML and PNGs live in `output/models/block_group_exploratory_2024`. Repeat the end-to-end run to independently confirm numerical reproducibility.
+
+Sources are the Census 2024 ACS five-year detailed tables:
+[B25038](https://api.census.gov/data/2024/acs/acs5/groups/B25038.html),
+[B25004](https://api.census.gov/data/2024/acs/acs5/groups/B25004.html),
+[B25042](https://api.census.gov/data/2024/acs/acs5/groups/B25042.html),
+[B25021](https://api.census.gov/data/2024/acs/acs5/groups/B25021.html),
+[B25007](https://api.census.gov/data/2024/acs/acs5/groups/B25007.html),
+[B25009](https://api.census.gov/data/2024/acs/acs5/groups/B25009.html),
+[B25014](https://api.census.gov/data/2024/acs/acs5/groups/B25014.html),
+[B25049](https://api.census.gov/data/2024/acs/acs5/groups/B25049.html),
+and [B25053](https://api.census.gov/data/2024/acs/acs5/groups/B25053.html).
+See [ACS subject definitions](https://www2.census.gov/programs-surveys/acs/tech_docs/subject_definitions/2024_ACSSubjectDefinitions.pdf) for rent, vacancy and tenure concepts.
+
+```{r codebook}
+bg_table(r$source_codebook,caption="Active downloaded predictor codebook. The retained B25042 inputs are documented in the baseline report.")
+```

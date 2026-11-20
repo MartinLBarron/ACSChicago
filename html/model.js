@@ -72,7 +72,10 @@
   function overview() {
     const m2 = data.models.find(d=>d.model==="M2");
     const m3 = data.models.find(d=>d.model==="M3");
+    const m1 = data.models.find(d=>d.model==="M1");
+    const m4 = data.models.find(d=>d.model==="M4");
     const gain = m3.r_squared-m2.r_squared;
+    $("housing-location-finding").textContent = `M4 combines housing composition and renter profile with community location, without socioeconomic controls. Its R² is ${percent(m4.r_squared)}, versus ${percent(m1.r_squared)} for housing and renter profile alone. Adding measured context to M4 yields M3 and adds ${d3.format(".1f")((m3.r_squared-m4.r_squared)*100)} percentage points of fit. M4 is an alternate branch, not a stage after M3.`;
     const cards = [
       { title: "Block groups in the study", value: number(data.sample_n), note: `${data.communities_n} community areas · 2020–2024 ACS` },
       { title: "Variation accounted for by M3", value: percent(m3.r_squared), note: `Observed log-rent variation · ${percent(m3.predictive_R2)} held out` },
@@ -87,11 +90,17 @@
     }
     $("community-finding").textContent = `After measured housing and contextual controls, community location adds ${d3.format(".1f")(gain*100)} percentage points of in-sample R². That is ${percent(gain/(1-m2.r_squared))} of the remaining variation—not the share of rent caused by neighborhoods.`;
     for (const m of data.models) cellRow($("model-table"), [m.model, `${m.label}: ${m.specification}`,m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared),percent(m.predictive_R2)]);
+    $("update-details").hidden = !(data.previous_comparison?.length);
+    for (const row of data.previous_comparison || []) {
+      if (row.model === "M0") continue;
+      cellRow($("update-table"), [row.model,percent(row.r_squared_before),percent(row.r_squared_after),
+        percent(row.CV_R2_before),percent(row.CV_R2_after)]);
+    }
     for (const row of data.spatial.filter(d=>d.weights==="queen")) cellRow($("spatial-table"), [row.model==="observed_log_rent"?"Observed log rent":`${row.model} residuals`,d3.format(".3f")(row.Moran_I),probability(row.permutation_p)]);
     const knn=data.spatial.find(d=>d.weights==="knn4" && d.model==="M3");
     $("spatial-note").textContent=`999 permutations, two-sided add-one probabilities. Fitted-residual tests are exploratory under unequal variance. The symmetric four-nearest-neighbor sensitivity gives M3 Moran’s I = ${d3.format(".3f")(knn.Moran_I)}, p = ${probability(knn.permutation_p)}. Clustering uncertainty by community does not resolve all spatial dependence.`;
-    for (const row of data.diagnostics.filter(d=>d.model==="M3")) cellRow($("diagnostic-table"),[row.test,d3.format(".2f")(row.statistic),probability(row.p_value)]);
-    for (const row of data.sensitivity) cellRow($("sensitivity-table"),[row.sensitivity,number(row.n),percent(row.M2),percent(row.M3),`${d3.format(".1f")(row.increment*100)} pp`]);
+    for (const row of data.diagnostics.filter(d=>["M3","M4"].includes(d.model))) cellRow($("diagnostic-table"),[row.model,row.test,d3.format(".2f")(row.statistic),probability(row.p_value)]);
+    for (const row of data.sensitivity) cellRow($("sensitivity-table"),[row.sensitivity,number(row.n),percent(row.M2),percent(row.M3),percent(row.M4),`${d3.format(".1f")(row.increment*100)} pp`]);
     $("sample-note").textContent=`The outcome is median contract rent (B25058), excluding separately paid utilities. The ${number(data.majority_city_n)} majority-in-city block groups lose ${number(data.missing_rent_n)} without usable rent and another ${number(data.missing_income_n)} without median household income, leaving ${number(data.sample_n)} complete cases. Dollar values use 2024 dollars and matching 2024 TIGER block-group boundaries.`;
     $("caveat-note").textContent=`${data.open_ended_rent_n} rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. ${data.singleton_n} community (Oakland) has only one usable block group and is fitted exactly. HC3 slopes use nonsingleton communities, with unchanged slope estimates. Cross-validation omits ${data.cv_excluded_n} block groups whose communities are absent from a training fold.`;
   }
@@ -114,7 +123,7 @@
   function partitionChart() {
     const root=$("partition-chart");
     if (!root.getBoundingClientRect().width) return;
-    const labels=["Housing composition","Context · unique","Community · unique","Context + community · shared","Unexplained"];
+    const labels=["Housing + renter profile","Context · unique","Community · unique","Context + community · shared","Unexplained"];
     const {svg,width}=svgRoot("partition-chart",275,"Shared and unique model fit","The decomposition separates housing fit, contextual and community contributions unique to each other, their shared association and unexplained variation.");
     const left=width<600?18:270, right=65;
     const x=d3.scaleLinear().domain([0,d3.max(data.partition,d=>d.proportion)*1.15]).range([left,width-right]);
@@ -222,14 +231,14 @@
   function render() { hideTip(); fitChart(); partitionChart(); coefficientChart(); effectChart(); diagnostics(); }
   async function start() {
     try {
-      const response=await fetch("data/web/block_group_model_2024.json");
+      const response=await fetch("data/web/block_group_model_2024.json?v=20261119-renter-profile-page2", { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       data=await response.json();
       if (data.version!==1 || data.synthetic_data || !data.models?.length || !data.coefficients?.length) throw new Error("Invalid model export");
       $("model-content").hidden=false;
       overview();
       for (const v of data.variables) { const option=document.createElement("option"); option.value=v.term; option.textContent=v.label; $("effect-variable").append(option); }
-      $("effect-variable").value="college_10pp";
+      $("effect-variable").value="recent_movers_10pp";
       $("effect-variable").addEventListener("change",setVariable);
       $("effect-target").addEventListener("input",effectChart);
       $("coefficient-model").addEventListener("change",coefficientChart);

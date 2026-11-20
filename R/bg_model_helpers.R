@@ -13,7 +13,7 @@ bg_fit_summary <- function(fit, name) {
     rmse_log = sqrt(sse / sum(w)), AIC_working = stats::AIC(fit))
 }
 
-bg_coefficient_table <- function(fit, name, data, confidence = .95) {
+bg_coefficient_table <- function(fit, name, data, confidence = .95, term_labels = bg_term_labels) {
   beta <- stats::coef(fit)
   stopifnot(all(is.finite(beta)))
   # Saturated singleton indicators have leverage 1. They provide no information
@@ -48,14 +48,14 @@ bg_coefficient_table <- function(fit, name, data, confidence = .95) {
   for (field in c("estimate", "hc3_conf_low", "hc3_conf_high", "cluster_conf_low", "cluster_conf_high")) {
     out[[paste0("percent_", field)]] <- 100 * expm1(out[[field]] * multiplier)
   }
-  out$label <- unname(bg_term_labels[out$term])
+  out$label <- unname(term_labels[out$term])
   out$label[is.na(out$label)] <- out$term[is.na(out$label)]
   out
 }
 
-bg_vif <- function(fit, model) {
+bg_vif <- function(fit, model, predictors = bg_predictors) {
   matrix <- stats::model.matrix(fit)
-  terms <- intersect(bg_predictors, colnames(matrix))
+  terms <- intersect(predictors, colnames(matrix))
   dplyr::bind_rows(lapply(terms, function(term) {
     y <- matrix[, term]
     remaining <- matrix[, colnames(matrix) != term, drop = FALSE]
@@ -122,7 +122,7 @@ bg_cross_validation <- function(data, cfg) {
     # Common eligible test rows for every model: never invent unseen-area effects.
     test_common <- test[eligible, ]
     test_common$community_id <- factor(as.character(test_common$community_id), levels = levels(train$community_id))
-    for (name in c("M0", "M1", "M2a", "M2", "M3")) {
+    for (name in c("M0", "M1", "M2a", "M2", "M3", "M4")) {
       fit <- stats::lm(bg_formulas[[name]], data = train, na.action = stats::na.fail)
       prediction <- as.numeric(stats::predict(fit, newdata = test_common))
       predictions[[length(predictions) + 1L]] <- data.frame(model = name, fold = fold,
@@ -144,7 +144,7 @@ bg_sensitivity_fit <- function(data, name, weights = NULL) {
   data <- droplevels(data)
   if (nrow(data) < 100 || nlevels(data$community_id) < 2) return(NULL)
   if (!is.null(weights)) data$analysis_weight <- weights else data$analysis_weight <- 1
-  fits <- lapply(bg_formulas[c("M1", "M2", "M3")], function(formula) {
+  fits <- lapply(bg_formulas[c("M1", "M2", "M3", "M4")], function(formula) {
     stats::lm(formula, data = data, weights = analysis_weight, na.action = stats::na.fail)
   })
   metrics <- dplyr::bind_rows(lapply(names(fits), function(model) bg_fit_summary(fits[[model]], model)))

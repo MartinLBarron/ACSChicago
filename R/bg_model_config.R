@@ -29,7 +29,9 @@ bg_variable_groups <- list(
   education = bg_codes("B15003", c(1:16, 22:25),
     c("education_universe", paste0("education_lesshs_", 2:16), paste0("education_college_", 22:25))),
   race = bg_codes("B03002", c(1, 3, 4, 6, 12),
-    c("race_total", "race_nh_white", "race_nh_black", "race_nh_asian", "race_hispanic"))
+    c("race_total", "race_nh_white", "race_nh_black", "race_nh_asian", "race_hispanic")),
+  movers = bg_codes("B25038", 9:15, paste0("b25038_", sprintf("%03d", 9:15))),
+  renter_age = bg_codes("B25007", 12:21, paste0("b25007_", sprintf("%03d", 12:21)))
 )
 bg_share_definitions <- list(
   small_bedrooms = list(numerator = c("bed_studio", "bed_one"), denominator = "bed_total"),
@@ -44,10 +46,14 @@ bg_share_definitions <- list(
   college = list(numerator = paste0("education_college_", 22:25), denominator = "education_universe"),
   no_high_school = list(numerator = paste0("education_lesshs_", 2:16), denominator = "education_universe"),
   nh_black = list(numerator = "race_nh_black", denominator = "race_total"),
-  hispanic = list(numerator = "race_hispanic", denominator = "race_total")
+  hispanic = list(numerator = "race_hispanic", denominator = "race_total"),
+  recent_movers = list(numerator = c("b25038_010", "b25038_011"), denominator = "b25038_009"),
+  young_renters = list(numerator = c("b25007_013", "b25007_014"), denominator = "b25007_012"),
+  older_renters = list(numerator = c("b25007_019", "b25007_020", "b25007_021"), denominator = "b25007_012")
 )
 bg_housing_terms <- paste0(c("small_bedrooms", "large_bedrooms", "structure_2_4", "structure_5_19",
-  "structure_20_plus", "pre1940", "built2000_plus"), "_10pp")
+  "structure_20_plus", "pre1940", "built2000_plus", "recent_movers", "young_renters", "older_renters"), "_10pp")
+bg_renter_terms <- paste0(c("recent_movers", "young_renters", "older_renters"), "_10pp")
 bg_economic_terms <- c("poverty_10pp", "log_income", "college_10pp", "no_high_school_10pp")
 bg_race_terms <- c("nh_black_10pp", "hispanic_10pp")
 bg_context_terms <- c(bg_economic_terms, bg_race_terms)
@@ -58,7 +64,7 @@ bg_formulas <- list(
   M2a = stats::reformulate(c(bg_housing_terms, bg_economic_terms), "log_rent"),
   M2 = stats::reformulate(bg_predictors, "log_rent"),
   M3 = stats::reformulate(c(bg_predictors, "community_id"), "log_rent"),
-  H_CA = stats::reformulate(c(bg_housing_terms, "community_id"), "log_rent")
+  M4 = stats::reformulate(c(bg_housing_terms, "community_id"), "log_rent")
 )
 bg_term_labels <- c(
   small_bedrooms_10pp = "Studio/one-bedroom rental share (+10 pp)",
@@ -73,4 +79,7 @@ bg_term_labels <- c(
   college_10pp = "Bachelor's degree or higher (+10 pp; age 25+)",
   no_high_school_10pp = "No high-school diploma/GED (+10 pp; age 25+)",
   nh_black_10pp = "Non-Hispanic Black population (+10 pp)",
-  hispanic_10pp = "Hispanic/Latino population (+10 pp)")
+  hispanic_10pp = "Hispanic/Latino population (+10 pp)",
+  recent_movers_10pp = "Renter moved in 2020 or later (+10 pp)",
+  young_renters_10pp = "Renter householder under 35 (+10 pp)",
+  older_renters_10pp = "Renter householder age 65+ (+10 pp)")

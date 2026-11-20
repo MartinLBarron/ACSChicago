@@ -10,7 +10,7 @@ bg_theme <- function() {
       plot.caption = ggplot2::element_text(hjust = 0, size = 9),
       strip.text = ggplot2::element_text(face = "bold"))
 }
-bg_coef_plot <- function(r, models = c("M1", "M2", "M3")) {
+bg_coef_plot <- function(r, models = c("M1", "M2", "M3", "M4")) {
   x <- r$coefficients[r$coefficients$model %in% models & r$coefficients$term %in% bg_predictors, ]
   x$label <- factor(x$label, levels = rev(unname(bg_term_labels[bg_predictors])))
   ggplot2::ggplot(x, ggplot2::aes(x = percent_estimate, y = label, color = model)) +
@@ -18,7 +18,7 @@ bg_coef_plot <- function(r, models = c("M1", "M2", "M3")) {
     ggplot2::geom_errorbar(ggplot2::aes(xmin = percent_hc3_conf_low, xmax = percent_hc3_conf_high),
       orientation = "y", width = .25, position = ggplot2::position_dodge(width = .65)) +
     ggplot2::geom_point(position = ggplot2::position_dodge(width = .65), size = 2) +
-    ggplot2::scale_color_manual(values = c(M1 = "#af7146", M2 = "#278f9b", M3 = "#18354a")) +
+    ggplot2::scale_color_manual(values = c(M1 = "#af7146", M2 = "#278f9b", M3 = "#18354a", M4 = "#80648f")) +
     ggplot2::labs(x = "Conditional difference in median contract rent (%)", y = NULL,
       color = "Model", caption = "Points: 100 × [exp(coefficient × increment) − 1]. Intervals: 95% HC3.\nIncome increment = 10%; share increment = 10 percentage points. Associations are ecological.") + bg_theme()
 }

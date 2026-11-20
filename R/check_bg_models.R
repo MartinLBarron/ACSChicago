@@ -2,6 +2,18 @@
 source("R/bg_model_config.R")
 r <- readRDS(file.path(bg_model_config$analytic_dir, "model_results.rds"))
 d <- r$data
+history_path <- file.path(bg_model_config$analytic_dir, "history/before_movers_age/model_results.rds")
+if (file.exists(history_path)) {
+  previous <- readRDS(history_path)
+  stopifnot(identical(previous$data$GEOID, d$GEOID),
+    identical(previous$cv$assignments, r$cv$assignments))
+}
+for (name in c("M1", "M2a", "M2", "M3", "M4")) {
+  stopifnot(all(bg_renter_terms %in% attr(stats::terms(r$models[[name]]), "term.labels")))
+}
+stopifnot(max(abs(d$recent_movers_pct - 100*(d$b25038_010_estimate + d$b25038_011_estimate)/d$b25038_009_estimate)) < 1e-8,
+  max(abs(d$young_renters_pct - 100*(d$b25007_013_estimate + d$b25007_014_estimate)/d$b25007_012_estimate)) < 1e-8,
+  max(abs(d$older_renters_pct - 100*(d$b25007_019_estimate + d$b25007_020_estimate + d$b25007_021_estimate)/d$b25007_012_estimate)) < 1e-8)
 stopifnot(!r$synthetic_data, nrow(d) > 100, !anyDuplicated(d$GEOID),
   all(d$city_fraction >= bg_model_config$city_min_share),
   all(is.finite(d$log_rent)), all(d$rent > 0), all(d$cash_units > 0),
@@ -21,6 +33,10 @@ for (fit in r$models) {
   stopifnot(max(abs(independently_fitted - stats::fitted(fit))) < 1e-8)
 }
 R2 <- stats::setNames(r$metrics$r_squared, r$metrics$model)
+stopifnot(setequal(attr(stats::terms(r$models$M4), "term.labels"), c(bg_housing_terms, "community_id")),
+  R2["M4"] >= R2["M1"] - 1e-10, R2["M3"] >= R2["M4"] - 1e-10,
+  "M4" %in% r$cv$metrics$model,
+  all(is.finite(r$coefficients$hc3_se[r$coefficients$model == "M4" & r$coefficients$term %in% bg_housing_terms])))
 stopifnot(all(diff(R2[c("M0","M1","M2a","M2","M3")]) >= -1e-10),
   abs(sum(r$partition$proportion) - 1) < 1e-10,
   max(abs(tapply(stats::residuals(r$models$M3), d$community_id, mean))) < 1e-8)

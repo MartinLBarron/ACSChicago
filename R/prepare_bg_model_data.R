@@ -16,7 +16,9 @@ stopifnot(nrow(x) == nrow(core), !anyDuplicated(x$GEOID))
 partitions <- list(
   bed_total = names(bg_variable_groups$bedrooms)[-1],
   structure_total = names(bg_variable_groups$structures)[-1],
-  age_total = names(bg_variable_groups$age)[-1])
+  age_total = names(bg_variable_groups$age)[-1],
+  b25038_009 = names(bg_variable_groups$movers)[-1],
+  b25007_012 = names(bg_variable_groups$renter_age)[-1])
 for (total in names(partitions)) {
   values <- rowSums(as.matrix(x[paste0(partitions[[total]], "_estimate")]))
   reported <- x[[paste0(total, "_estimate")]]

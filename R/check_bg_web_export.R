@@ -6,6 +6,8 @@ web <- jsonlite::read_json("html/data/web/block_group_model_2024.json", simplify
 stopifnot(web$sample_n == nrow(r$data), web$communities_n == nlevels(r$data$community_id),
   nrow(web$points) == nrow(r$data), !web$synthetic_data)
 model_rows <- match(web$models$model, r$metrics$model)
+stopifnot("M4" %in% web$models$model,
+  setequal(web$coefficients$term[web$coefficients$model == "M4"], bg_housing_terms))
 stopifnot(max(abs(web$models$r_squared-r$metrics$r_squared[model_rows])) < 1e-12,
   max(abs(web$points$fitted-exp(stats::fitted(r$models$M3)))) < 1e-10,
   all(is.finite(web$qq$observed)))

@@ -15,23 +15,23 @@ coefficients <- dplyr::bind_rows(lapply(names(models), function(name) {
   bg_coefficient_table(models[[name]], name, d, cfg$confidence)
 }))
 rsq <- stats::setNames(metrics$r_squared, metrics$model)
-comparisons <- data.frame(from = c("M0", "M1", "M2a", "M2", "M1", "H_CA"),
-                          to = c("M1", "M2a", "M2", "M3", "H_CA", "M3"))
+comparisons <- data.frame(from = c("M0", "M1", "M2a", "M2", "M1", "M4"),
+                          to = c("M1", "M2a", "M2", "M3", "M4", "M3"))
 comparisons$incremental_R2 <- unname(rsq[comparisons$to] - rsq[comparisons$from])
 comparisons$partial_R2 <- comparisons$incremental_R2 / (1 - unname(rsq[comparisons$from]))
-partition <- data.frame(component = c("Housing composition", "Context unique beyond housing + community",
+partition <- data.frame(component = c("Housing composition + renter profile", "Context unique beyond housing + community",
   "Community unique beyond housing + context", "Shared context/community association", "Unexplained"),
-  proportion = c(rsq["M1"], rsq["M3"] - rsq["H_CA"], rsq["M3"] - rsq["M2"],
-    rsq["M2"] + rsq["H_CA"] - rsq["M3"] - rsq["M1"], 1 - rsq["M3"]))
+  proportion = c(rsq["M1"], rsq["M3"] - rsq["M4"], rsq["M3"] - rsq["M2"],
+    rsq["M2"] + rsq["M4"] - rsq["M3"] - rsq["M1"], 1 - rsq["M3"]))
 rownames(partition) <- NULL
 
-diagnostic_tests <- dplyr::bind_rows(lapply(c("M1", "M2a", "M2", "M3"), function(name) {
+diagnostic_tests <- dplyr::bind_rows(lapply(c("M1", "M2a", "M2", "M3", "M4"), function(name) {
   fit <- models[[name]]
   bp <- lmtest::bptest(fit, studentize = TRUE)
   reset_fit <- fit
-  if (name == "M3" && any(table(d$community_id) == 1)) {
+  if (name %in% c("M3", "M4") && any(table(d$community_id) == 1)) {
     keep <- table(d$community_id)[as.character(d$community_id)] > 1
-    reset_fit <- stats::lm(bg_formulas$M3, data = droplevels(d[keep, ]))
+    reset_fit <- stats::lm(bg_formulas[[name]], data = droplevels(d[keep, ]))
   }
   reset <- lmtest::resettest(reset_fit, power = 2:3, type = "fitted",
                            vcov = function(m) sandwich::vcovHC(m, type = "HC3"))
@@ -39,7 +39,7 @@ diagnostic_tests <- dplyr::bind_rows(lapply(c("M1", "M2a", "M2", "M3"), function
     statistic = c(unname(bp$statistic), unname(reset$statistic)),
     p_value = c(bp$p.value, reset$p.value))
 }))
-vif <- dplyr::bind_rows(lapply(c("M1", "M2", "M3"), function(name) bg_vif(models[[name]], name)))
+vif <- dplyr::bind_rows(lapply(c("M1", "M2", "M3", "M4"), function(name) bg_vif(models[[name]], name)))
 influence <- data.frame(GEOID = d$GEOID, community = d$community,
   fitted = stats::fitted(models$M3), residual = stats::residuals(models$M3),
   studentized = stats::rstudent(models$M3), leverage = stats::hatvalues(models$M3),
@@ -48,7 +48,7 @@ influence <- data.frame(GEOID = d$GEOID, community = d$community,
   rent_relative_moe = d$rent_relative_moe)
 singleton <- table(d$community_id)[as.character(d$community_id)] == 1
 influence[singleton, c("studentized", "cooks_D", "max_abs_DFBETA")] <- NA_real_
-spatial <- bg_spatial_diagnostics(d, models[c("M1", "M2a", "M2", "M3")], cfg)
+spatial <- bg_spatial_diagnostics(d, models[c("M1", "M2a", "M2", "M3", "M4")], cfg)
 cv <- bg_cross_validation(d, cfg)
 
 # These change the target population/estimand; no specification is selected by p-value.
@@ -116,6 +116,20 @@ results <- list(config = cfg, synthetic_data = SYNTHETIC_DATA, data = d, all_dat
   description = description, sample_flow = read_table("sample_flow.csv"),
   missingness = read_table("missingness.csv"), source_codebook = read_table("source_codebook.csv"),
   predictor_correlations = stats::cor(d[bg_predictors]), precision_weight_cap = cap)
+previous_path <- file.path(cfg$analytic_dir, "history/before_movers_age/model_results.rds")
+if (file.exists(previous_path)) {
+  previous <- readRDS(previous_path)
+  stopifnot(identical(previous$data$GEOID, d$GEOID))
+  comparison <- dplyr::left_join(
+    previous$metrics[c("model", "r_squared")], metrics[c("model", "r_squared")],
+    by = "model", suffix = c("_before", "_after")) |>
+    dplyr::left_join(previous$cv$metrics[c("model", "predictive_R2")], by = "model") |>
+    dplyr::rename(CV_R2_before = predictive_R2) |>
+    dplyr::left_join(cv$metrics[c("model", "predictive_R2")], by = "model") |>
+    dplyr::rename(CV_R2_after = predictive_R2)
+  results$previous_comparison <- comparison
+  readr::write_csv(comparison, file.path(cfg$output_dir, "renter_profile_update.csv"))
+}
 saveRDS(results, file.path(cfg$analytic_dir, "model_results.rds"))
 for (name in c("metrics", "coefficients", "comparisons", "partition", "diagnostic_tests", "vif",
                "influence", "sensitivity_metrics", "sensitivity_coefficients", "loco", "communities", "description")) {
