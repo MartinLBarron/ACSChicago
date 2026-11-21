@@ -47,4 +47,4 @@ elements["city-tab-crime"].listeners.keydown({key:"Home",preventDefault(){}});
 assert.equal(elements["city-tab-rent"].attrs["aria-selected"],"true");
 elements["city-tab-rent"].listeners.keydown({key:"ArrowRight",preventDefault(){}});
 assert.equal(elements["city-tab-tenure"].attrs["aria-selected"],"true");
-console.log("PASS: all 8 tabs and 23 cards in each period, labels, peer actions and keyboard navigation");
+console.log("PASS: all 8 tabs and 26 cards in each period, labels, peer actions and keyboard navigation");

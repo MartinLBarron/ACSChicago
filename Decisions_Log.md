@@ -453,3 +453,34 @@ cached rerun reproduced all ten public supplement/annual JSON outputs byte for
 byte (SHA-256). Historical coverage is 2,330 block groups and 872 tracts per
 release; 2024 coverage remains 2,312 and 868. All eight dashboard tabs and
 23 cards were exercised for every period, including keyboard navigation.
+
+## 2026-11-21 — Restore 30%+ rent burden
+
+At Martin's request, restore rent_burden_30plus_pct alongside 50%+ burden for
+all three periods and mapped geographies, direct Chicago-place statistics and
+peer-city/US comparisons. Numerator: B25070_007 through _010 (30%+); denominator:
+B25070_002 through _010, excluding not-computed ratios. Retain source estimates
+and MOEs and use the existing subset-proportion MOE derivation. Existing cached
+source cells suffice; no additional download or model changes are required.
+Place the new measure in Rent and affordability with its card and trend plot.
+
+## 2026-11-21 — Complete displayed bedroom and one-unit-building shares
+
+Add exactly-two-bedroom rentals (B25042_012 / _009) and rentals in one-unit
+buildings (B25032_014 + _015 over _013, detached plus attached) for all three
+periods, all mapped areas and direct Chicago-city statistics. Existing raw
+caches contain all necessary counts and MOEs. Use the established derived-share
+MOE method and Housing characteristics group. These are display additions;
+leave regression reference categories and fitted models unchanged.
+
+## 2026-11-21 — Guard against outdated map supplements
+
+A reported 2024-only all-unavailable display exposed a loader validation gap:
+GEOIDs/years were checked but absent new measure columns were silently accepted.
+Revalidate map and city supplement HTTP caches; require every supplemental
+estimate/MOE column before joining, distinguishing absent fields from valid null
+estimates. Refresh page script versions and regenerate 2024 exports. Exercise
+the production loader on initial 2024 load, both historical periods, return to
+2024 and a simulated old 2024 payload lacking the new columns. Local data and
+localhost responses contained values in 865 tracts and 2,235 block groups; no
+remote URL was provided, so the specific hosted response remains unverified.

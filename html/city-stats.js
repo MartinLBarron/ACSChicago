@@ -212,19 +212,21 @@
     if (rows.length) { renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   async function startCityStats() {
-    const response = await fetch("data/web/chicago_city_statistics.json?v=20261120-model-measures");
+    const response = await fetch("data/web/chicago_city_statistics.json?v=20261121-burden30");
     if (!response.ok) throw new Error(`Citywide statistics could not load (HTTP ${response.status}). Upload data/web/chicago_city_statistics.json.`);
     rows = await response.json(); rows.sort((a, b) => a.acs_end_year - b.acs_end_year);
     if (rows.length !== 3 || rows.some(row => row.GEOID !== "1714000") || new Set(rows.map(row => row.acs_end_year)).size !== 3) throw new Error("Unexpected citywide statistics. Re-run the city web export.");
     const supplements = await Promise.all(rows.map(async row => {
-      const response = await fetch(`data/web/chicago_city_model_measures_${row.acs_end_year}.json?v=20261121-all-periods`);
+      const response = await fetch(`data/web/chicago_city_model_measures_${row.acs_end_year}.json?v=20261121-housing-refresh`, { cache: "no-cache" });
       if (!response.ok) throw new Error("Model measure data could not load. Upload the complete data/web folder.");
       const data = await response.json();
       if (data.length !== 1 || data[0].GEOID !== row.GEOID || data[0].acs_end_year !== row.acs_end_year) throw new Error("Mismatched city supplement period");
+      const missing = allMeasures.filter(measure=>measure.comparison===false && (!Object.hasOwn(data[0],`${measure.id}_estimate`) || !Object.hasOwn(data[0],`${measure.id}_moe`)));
+      if(missing.length) throw new Error(`Outdated ${row.acs_end_year} city data. Upload the rebuilt data/web/chicago_city_model_measures_${row.acs_end_year}.json file.`);
       return data[0];
     }));
     rows.forEach((row,i) => Object.assign(row,supplements[i]));
-    const annual = await fetch("data/web/chicago_annual_violent_crime.json?v=20261121-all-periods");
+    const annual = await fetch("data/web/chicago_annual_violent_crime.json?v=20261121-housing-categories");
     if (!annual.ok) throw new Error("Annual crime data could not load.");
     crimeAnnual = await annual.json();
     renderCards();

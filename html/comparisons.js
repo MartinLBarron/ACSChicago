@@ -17,7 +17,7 @@
   const valueText = (row, measure) => `${format(row[`${measure.id}_estimate`], measure)} ±${format(row[`${measure.id}_moe`], measure, true)}`;
   const cityName = row => row.NAME.split(" city,")[0];
   function loadData() {
-    if (!dataPromise) dataPromise = fetch("data/web/comparison_statistics.json?v=20261118-renter-share")
+    if (!dataPromise) dataPromise = fetch("data/web/comparison_statistics.json?v=20261121-burden30")
       .then(response => {
         if (!response.ok) throw new Error("Comparison data could not load. Upload data/web/comparison_statistics.json and try again.");
         return response.json();

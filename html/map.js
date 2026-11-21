@@ -142,7 +142,7 @@ async function start() {
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
   async function fetchLayer(file) {
-    const response = await fetch(`data/web/${file}.geojson?v=20261120-model-measures`);
+    const response = await fetch(`data/web/${file}.geojson?v=20261121-housing-refresh`, { cache: "no-cache" });
     if (!response.ok) throw new Error(`Could not load data/web/${file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
     return response.json();
   }
@@ -152,10 +152,13 @@ async function start() {
       const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`)])
         .then(async ([blocks, tracts]) => {
             await Promise.all([["block_group",blocks],["tract",tracts]].map(async ([tag,collection])=>{
-              const response=await fetch(`data/web/${tag}_model_measures_${year}.json?v=20261121-all-periods`);
+              const response=await fetch(`data/web/${tag}_model_measures_${year}.json?v=20261121-housing-refresh`, { cache: "no-cache" });
               if(!response.ok) throw new Error(`Could not load model measures (${response.status}). Upload the complete data/web folder.`);
               const rows=await response.json(); const lookup=new Map(rows.map(row=>[row.GEOID,row]));
               if(rows.length!==collection.features.length || lookup.size!==rows.length || rows.some(row=>row.acs_end_year!==Number(year)) || collection.features.some(feature=>!lookup.has(feature.properties.GEOID))) throw new Error(`Mismatched ${tag} measures for ${year}. Upload the complete data/web folder.`);
+              const required = window.ChicagoMeasures.filter(measure=>measure.comparison===false);
+              const missing = required.filter(measure=>rows.some(row=>!Object.hasOwn(row,`${measure.id}_estimate`) || !Object.hasOwn(row,`${measure.id}_moe`)));
+              if(missing.length) throw new Error(`Outdated ${year} ${tag} data: missing ${missing.map(measure=>measure.label).join(", ")}. Upload the rebuilt data/web/${tag}_model_measures_${year}.json file.`);
               collection.features.forEach(feature=>Object.assign(feature.properties,lookup.get(feature.properties.GEOID)));
             }));
           return {blocks,tracts};

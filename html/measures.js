@@ -6,9 +6,12 @@ window.ChicagoMeasures = [
   { id: "cash_rent_units", label: "Occupied units paying cash rent", unit: "housing units", group: "core", color: "#986345", description: "Occupied rental homes with cash rent" },
   { id: "renter_occupied_units", label: "Renter-occupied units", unit: "housing units", group: "core", color: "#986345", description: "Includes homes occupied without cash rent" },
   { id: "renter_occupied_pct", label: "Renter-occupied share", unit: "percent of occupied homes", percent: true, group: "core", breaks: [20, 35, 50, 65, 80, 90], description: "Percentage of occupied homes that are rented; excludes vacant homes" },
+  { id: "rent_burden_30plus_pct", label: "Rent burden: 30% or more", percent: true, group: "burden", description: "Share of renters with computed rent/income ratios spending 30% or more of income on gross rent" },
   { id: "rent_burden_50plus_pct", label: "Rent burden: 50% or more", percent: true, group: "burden", description: "Share of renters with computed rent/income ratios spending 50% or more of income on gross rent" }
   ,{ id: "small_bedrooms_pct", label: "Rentals: studio or one bedroom", description: "Share of renter-occupied units with a studio or one bedroom", breaks: [10,25,40,55,70,85] }
+  ,{ id: "two_bedrooms_pct", label: "Rentals: two bedrooms", description: "Share of renter-occupied units with exactly two bedrooms" }
   ,{ id: "large_bedrooms_pct", label: "Rentals: three or more bedrooms", description: "Share of renter-occupied units with three or more bedrooms", breaks: [5,10,20,30,40,60] }
+  ,{ id: "structure_1_unit_pct", label: "Rentals in one-unit buildings", description: "Share of renter-occupied units in one-unit buildings, including detached homes and attached homes such as row houses" }
   ,{ id: "structure_2_4_pct", label: "Rentals in 2–4-unit buildings", description: "Share of renter-occupied units in buildings with 2–4 units" }
   ,{ id: "structure_5_19_pct", label: "Rentals in 5–19-unit buildings", description: "Share of renter-occupied units in buildings with 5–19 units" }
   ,{ id: "structure_20_plus_pct", label: "Rentals in 20+-unit buildings", description: "Share of renter-occupied units in buildings with at least 20 units" }
@@ -25,7 +28,7 @@ window.ChicagoMeasures = [
   ,{ id: "hispanic_pct", label: "Hispanic/Latino population share", unit: "percent of residents", description: "Share of the total population identifying as Hispanic or Latino, of any race", breaks: [5,15,30,50,70,90] }
   ,{ id: "violent_crime_count", label: "Recorded violent crime", administrative: true, percent: false, count: true, unit: "recorded rows over five years", description: "Raw count of selected CPD violent-crime rows; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
  ].map((measure,index) => ({ unit: "percent of eligible units", color: "#2b6550",
-  ...(index >= 6 ? { comparison: false, percent: true, group: "model", unit: "percent of renter-occupied homes" } : {}), ...measure }));
+  ...(index >= 7 ? { comparison: false, percent: true, group: "model", unit: "percent of renter-occupied homes" } : {}), ...measure }));
 window.ChicagoMeasureGroups = {
   rent: "Rent and affordability",
   tenure: "Rental stock and tenure",
@@ -37,9 +40,9 @@ window.ChicagoMeasureGroups = {
   crime: "Violent crime"
 };
 const measureGroupMembers = {
-  rent: ["median_contract_rent", "median_gross_rent", "rent_burden_50plus_pct"],
+  rent: ["median_contract_rent", "median_gross_rent", "rent_burden_30plus_pct", "rent_burden_50plus_pct"],
   tenure: ["cash_rent_units", "renter_occupied_units", "renter_occupied_pct"],
-  housing: ["small_bedrooms_pct", "large_bedrooms_pct", "structure_2_4_pct", "structure_5_19_pct", "structure_20_plus_pct", "pre1940_pct", "built2000_plus_pct"],
+  housing: ["small_bedrooms_pct", "two_bedrooms_pct", "large_bedrooms_pct", "structure_1_unit_pct", "structure_2_4_pct", "structure_5_19_pct", "structure_20_plus_pct", "pre1940_pct", "built2000_plus_pct"],
   renters: ["recent_movers_pct", "young_renters_pct", "older_renters_pct"],
   economics: ["area_median_income", "poverty_pct"],
   education: ["college_pct", "no_high_school_pct"],

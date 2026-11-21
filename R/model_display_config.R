@@ -9,6 +9,9 @@ model_display_config_for_year <- function(year) {
 model_display_config <- model_display_config_for_year(getOption("chicago.display_year",2024L))
 model_display_groups <- bg_variable_groups
 model_display_shares <- bg_share_definitions[setdiff(names(bg_share_definitions),"structure_other")]
+# Complete the displayed bedroom/building categories without changing regressions.
+model_display_shares$two_bedrooms <- list(numerator="bed_two",denominator="bed_total")
+model_display_shares$structure_1_unit <- list(numerator=c("structure_detached","structure_attached"),denominator="structure_total")
 if(model_display_config$year==2014L) {
   # B25036 has one fewer construction-era cell than the later releases.
   model_display_groups$age <- bg_codes("B25036",12:21,

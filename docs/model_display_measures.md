@@ -1,13 +1,13 @@
 # Model measures on the map and dashboard
 
-All 23 display measures cover ACS **2010–2014, 2015–2019 and 2020–2024**.
+All 26 display measures cover ACS **2010–2014, 2015–2019 and 2020–2024**.
 They use tract and block-group boundaries matching each release, retaining whole
 areas with positive Chicago overlap and excluding the configured lake-only tract.
 The separate regression study still uses 2020–2024 only.
 
 ## Definitions
 
-- Rental stock: studio/one-bedroom and 3+-bedroom shares; rental shares in 2–4,
+- Rental stock: studio/one-bedroom, exactly two-bedroom and 3+-bedroom shares; rental shares in one-unit, 2–4,
   5–19 and 20+-unit buildings; pre-1940 and 2000+ construction shares.
 - Renter profile: recent move-ins; householders under 35 and age 65+.
 - Context: poverty, median household income, bachelor+ and no diploma/GED shares
@@ -28,6 +28,11 @@ MOEs use the existing subset-proportion and sum formulas. Chicago uses direct
 city-place estimates, never averages of tract or block-group estimates. Income
 and rent are nominal end-year dollars. Changing geography and dollar values
 limit direct comparisons; no cross-period spatial crosswalk is applied.
+
+The one-unit category combines detached and attached homes (B25032_014 + _015)
+over renter-occupied units (_013). Exactly two bedrooms uses B25042_012 over
+renter-occupied units (_009). Both are display additions; the existing regression
+specifications retain these as reference categories.
 
 ## Crime coverage
 
@@ -72,6 +77,6 @@ stage to verify numerical reproducibility; cached inputs avoid new downloads.
 Upload the complete `html/` folder, including all three years' supplements. The
 map joins by GEOID and period. All dashboard tabs work in all periods. ACS charts
 connect all three estimates; the crime chart shows the five annual totals within
-the selected period. The original six measures retain peer-city comparisons;
+the selected period. The seven core measures retain peer-city comparisons;
 additional measures remain Chicago-only. No point-level crime data is published.
 No new R package dependencies are introduced.
