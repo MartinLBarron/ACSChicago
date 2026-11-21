@@ -74,12 +74,12 @@
     const m3 = data.models.find(d=>d.model==="M3");
     const m1 = data.models.find(d=>d.model==="M1");
     const m4 = data.models.find(d=>d.model==="M4");
-    const gain = m3.r_squared-m2.r_squared;
-    $("housing-location-finding").textContent = `M4 combines housing composition and renter profile with community location, without socioeconomic controls. Its R² is ${percent(m4.r_squared)}, versus ${percent(m1.r_squared)} for housing and renter profile alone. Adding measured context to M4 yields M3 and adds ${d3.format(".1f")((m3.r_squared-m4.r_squared)*100)} percentage points of fit. M4 is an alternate branch, not a stage after M3.`;
+    const gain = m4.r_squared-m3.r_squared;
+    $("housing-location-finding").textContent = `Crime alone accounts for ${percent(m1.r_squared)} of log-rent variation. Its association changes as housing, socioeconomic conditions and community location enter the models. This does not identify an effect of crime on rent.`;
     const cards = [
       { title: "Block groups in the study", value: number(data.sample_n), note: `${data.communities_n} community areas · 2020–2024 ACS` },
-      { title: "Variation accounted for by M3", value: percent(m3.r_squared), note: `Observed log-rent variation · ${percent(m3.predictive_R2)} held out` },
-      { title: "Added fit from community location", value: `${d3.format(".1f")(gain*100)} pp`, note: `${percent(gain/(1-m2.r_squared))} of the variation remaining after measured controls` }
+      { title: "Variation accounted for by M4", value: percent(m4.r_squared), note: `Observed log-rent variation · ${percent(m4.predictive_R2)} held out` },
+      { title: "Added fit from community location", value: `${d3.format(".1f")(gain*100)} pp`, note: `${percent(gain/(1-m3.r_squared))} of the variation remaining after measured controls` }
     ];
     for (const card of cards) {
       const article = document.createElement("article"); article.className="model-summary";
@@ -88,18 +88,12 @@
       const note=document.createElement("p"); note.textContent=card.note;
       article.append(title,value,note); $("model-overview").append(article);
     }
-    $("community-finding").textContent = `After measured housing and contextual controls, community location adds ${d3.format(".1f")(gain*100)} percentage points of in-sample R². That is ${percent(gain/(1-m2.r_squared))} of the remaining variation—not the share of rent caused by neighborhoods.`;
+    $("community-finding").textContent = `After measured housing and contextual controls, community location adds ${d3.format(".1f")(gain*100)} percentage points of in-sample R². That is ${percent(gain/(1-m3.r_squared))} of the remaining variation—not the share of rent caused by neighborhoods.`;
     for (const m of data.models) cellRow($("model-table"), [m.model, `${m.label}: ${m.specification}`,m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared),percent(m.predictive_R2)]);
-    $("update-details").hidden = !(data.previous_comparison?.length);
-    for (const row of data.previous_comparison || []) {
-      if (row.model === "M0") continue;
-      cellRow($("update-table"), [row.model,percent(row.r_squared_before),percent(row.r_squared_after),
-        percent(row.CV_R2_before),percent(row.CV_R2_after)]);
-    }
     for (const row of data.spatial.filter(d=>d.weights==="queen")) cellRow($("spatial-table"), [row.model==="observed_log_rent"?"Observed log rent":`${row.model} residuals`,d3.format(".3f")(row.Moran_I),probability(row.permutation_p)]);
-    const knn=data.spatial.find(d=>d.weights==="knn4" && d.model==="M3");
-    $("spatial-note").textContent=`999 permutations, two-sided add-one probabilities. Fitted-residual tests are exploratory under unequal variance. The symmetric four-nearest-neighbor sensitivity gives M3 Moran’s I = ${d3.format(".3f")(knn.Moran_I)}, p = ${probability(knn.permutation_p)}. Clustering uncertainty by community does not resolve all spatial dependence.`;
-    for (const row of data.diagnostics.filter(d=>["M3","M4"].includes(d.model))) cellRow($("diagnostic-table"),[row.model,row.test,d3.format(".2f")(row.statistic),probability(row.p_value)]);
+    const knn=data.spatial.find(d=>d.weights==="knn4" && d.model==="M4");
+    $("spatial-note").textContent=`999 permutations, two-sided add-one probabilities. Fitted-residual tests are exploratory under unequal variance. The symmetric four-nearest-neighbor sensitivity gives M4 Moran’s I = ${d3.format(".3f")(knn.Moran_I)}, p = ${probability(knn.permutation_p)}. Clustering uncertainty by community does not resolve all spatial dependence.`;
+    for (const row of data.diagnostics.filter(d=>["M3","M4"].includes(d.model))) cellRow($("diagnostic-table"),[row.model,row.test,Number.isFinite(row.statistic)?d3.format(".2f")(row.statistic):"—",probability(row.p_value)]);
     for (const row of data.sensitivity) cellRow($("sensitivity-table"),[row.sensitivity,number(row.n),percent(row.M2),percent(row.M3),percent(row.M4),`${d3.format(".1f")(row.increment*100)} pp`]);
     $("sample-note").textContent=`The outcome is median contract rent (B25058), excluding separately paid utilities. The ${number(data.majority_city_n)} majority-in-city block groups lose ${number(data.missing_rent_n)} without usable rent and another ${number(data.missing_income_n)} without median household income, leaving ${number(data.sample_n)} complete cases. Dollar values use 2024 dollars and matching 2024 TIGER block-group boundaries.`;
     $("caveat-note").textContent=`${data.open_ended_rent_n} rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. ${data.singleton_n} community (Oakland) has only one usable block group and is fitted exactly. HC3 slopes use nonsingleton communities, with unchanged slope estimates. Cross-validation omits ${data.cv_excluded_n} block groups whose communities are absent from a training fold.`;
@@ -114,26 +108,20 @@
     svg.append("g").attr("class","chart-axis").attr("transform",`translate(0,${bottom})`).call(d3.axisBottom(x).tickSize(0).tickPadding(13));
     const bars=svg.selectAll(".fit-bar").data(data.models).join("rect").attr("class","fit-bar plot-hit")
       .attr("x",d=>x(d.model)).attr("width",x.bandwidth()).attr("y",d=>y(d.r_squared))
-      .attr("height",d=>bottom-y(d.r_squared)).attr("fill",d=>d.model==="M3"?colors.ink:colors.green);
+      .attr("height",d=>bottom-y(d.r_squared)).attr("fill",d=>d.model==="M4"?colors.ink:colors.green);
     tips(bars,d=>`${d.model} · ${d.label}: R² ${percent(d.r_squared)}; held out ${percent(d.predictive_R2)}.`,true);
     svg.selectAll(".fit-cv").data(data.models).join("circle").attr("class","fit-cv")
       .attr("cx",d=>x(d.model)+x.bandwidth()/2).attr("cy",d=>y(d.predictive_R2))
       .attr("r",5).attr("fill","#fbfbf7").attr("stroke",colors.rust).attr("stroke-width",2).attr("pointer-events","none");
   }
   function partitionChart() {
-    const root=$("partition-chart");
-    if (!root.getBoundingClientRect().width) return;
-    const labels=["Housing + renter profile","Context · unique","Community · unique","Context + community · shared","Unexplained"];
-    const {svg,width}=svgRoot("partition-chart",275,"Shared and unique model fit","The decomposition separates housing fit, contextual and community contributions unique to each other, their shared association and unexplained variation.");
-    const left=width<600?18:270, right=65;
-    const x=d3.scaleLinear().domain([0,d3.max(data.partition,d=>d.proportion)*1.15]).range([left,width-right]);
-    data.partition.forEach((row,i)=>{
-      const y=18+i*49;
-      svg.append("text").attr("x",width<600?left:left-12).attr("y",width<600?y:y+15)
-        .attr("text-anchor",width<600?"start":"end").text(labels[i]);
-      const barY=width<600?y+8:y;
-      svg.append("rect").attr("x",x(0)).attr("y",barY).attr("width",x(row.proportion)-x(0)).attr("height",19).attr("fill",i===4?"#c1c8bd":i===3?colors.teal:colors.green);
-      svg.append("text").attr("x",x(row.proportion)+8).attr("y",barY+14).text(percent(row.proportion));
+    const rows=data.effects;
+    const chart=frame("partition-chart",320,"Crime association across adjustment stages","Associated percent difference per 100 additional recorded violent crimes with 95% HC3 intervals.",[.5,4.5],[Math.min(0,d3.min(rows,d=>d.percent_per100_hc3_conf_low)),Math.max(0,d3.max(rows,d=>d.percent_per100_hc3_conf_high))],"Model stage","Rent difference per 100 crimes (%)",d=>Number.isInteger(d)?`M${d}`:"",d=>`${d}%`);
+    chart.svg.append("line").attr("x1",chart.x(.5)).attr("x2",chart.x(4.5)).attr("y1",chart.y(0)).attr("y2",chart.y(0)).attr("stroke",colors.rust);
+    rows.forEach((d,i)=>{
+      chart.svg.append("line").attr("x1",chart.x(i+1)).attr("x2",chart.x(i+1)).attr("y1",chart.y(d.percent_per100_hc3_conf_low)).attr("y2",chart.y(d.percent_per100_hc3_conf_high)).attr("stroke",colors.green).attr("stroke-width",2);
+      const point=chart.svg.append("circle").datum(d).attr("cx",chart.x(i+1)).attr("cy",chart.y(d.percent_per100_estimate)).attr("r",5).attr("fill",colors.ink);
+      tips(point,d=>`${d.model}: ${signed(d.percent_per100_estimate)} per 100 recorded violent crimes.`,true);
     });
   }
   function coefficientChart() {
@@ -166,7 +154,7 @@
     $("coefficient-caption").textContent=`${model} · percent differences in median contract rent`;
     for (const row of rows) cellRow($("coefficient-table"),[row.label,signed(row.percent_estimate),`${signed(row.percent_hc3_conf_low)} to ${signed(row.percent_hc3_conf_high)}`,`${signed(row.percent_cluster_conf_low)} to ${signed(row.percent_cluster_conf_high)}`]);
   }
-  const valueFormat = (variable,value)=>variable.unit==="dollars"?money(value):`${d3.format(".1f")(value)}%`;
+  const valueFormat = (variable,value)=>variable.unit==="dollars"?money(value):variable.unit==="count"?number(value):`${d3.format(".1f")(value)}%`;
   function setVariable() {
     const v=data.variables.find(v=>v.term===$("effect-variable").value);
     const slider=$("effect-target");
@@ -177,7 +165,7 @@
   }
   function effectChart() {
     const v=data.variables.find(v=>v.term===$("effect-variable").value);
-    const b=data.coefficients.find(b=>b.model==="M3" && b.term===v.term);
+    const b=data.coefficients.find(b=>b.model==="M4" && b.term===v.term);
     const target=Number($("effect-target").value);
     const contrast=value=>window.ChicagoModelEffects.contrast(v,b,value);
     const curve=d3.range(101).map(i=>contrast(v.p05+(v.p95-v.p05)*i/100));
@@ -188,11 +176,11 @@
     const summary=document.createElement("span");
     summary.textContent=`${v.label}: ${valueFormat(v,target)} versus ${valueFormat(v,v.median)} (sample median) is associated with `;
     const emphasis=document.createElement("strong"); emphasis.textContent=`${signed(selected.estimate)} median contract rent`;
-    const uncertainty=document.createElement("small"); uncertainty.textContent=`95% HC3 interval: ${signed(selected.low)} to ${signed(selected.high)}. M3, holding the other controls and community location fixed.`;
+    const uncertainty=document.createElement("small"); uncertainty.textContent=`95% HC3 interval: ${signed(selected.low)} to ${signed(selected.high)}. M4, holding the other controls and community location fixed.`;
     readout.append(summary,emphasis,uncertainty);
     const chart=frame("effect-chart",330,`${v.label}: modeled contrast`,`${summary.textContent}${emphasis.textContent}. ${uncertainty.textContent}`,
       [v.p05,v.p95],[Math.min(0,d3.min(curve,d=>d.low)),Math.max(0,d3.max(curve,d=>d.high))],
-      v.unit==="dollars"?"Median household income":"Share (%)","Difference from median reference (%)",
+      v.unit==="dollars"?"Median household income":v.unit==="count"?"Recorded violent crimes (2020–2024)":"Share (%)","Difference from median reference (%)",
       v.unit==="dollars"?d3.format("$~s"):d3.format(".0f"),d=>`${d}%`);
     const {svg,x,y,m,width,height}=chart;
     svg.append("line").attr("x1",m.left).attr("x2",width-m.right).attr("y1",y(0)).attr("y2",y(0)).attr("stroke","#8b9c8b");
@@ -209,7 +197,7 @@
     obs.svg.append("line").attr("x1",obs.x(0)).attr("x2",obs.x(maximum)).attr("y1",obs.y(0)).attr("y2",obs.y(maximum)).attr("stroke",colors.rust).attr("stroke-dasharray","4,4");
     const op=obs.svg.append("g").selectAll("circle").data(data.points).join("circle").attr("cx",d=>obs.x(d.fitted)).attr("cy",d=>obs.y(d.observed)).attr("r",2.3).attr("fill",colors.teal).attr("opacity",.45);
     tips(op,d=>`${d.community}: observed ${money(d.observed)}; fitted ${money(d.fitted)}.`);
-    const res=frame("residual-chart",300,"M3 residuals versus fitted rent","The scatterplot shows changing residual spread and some curvature, indicating specification problems.",d3.extent(data.points,d=>d.fitted),d3.extent(data.points,d=>d.residual),"Fitted median rent ($)","Residual (observed − fitted log rent)",d3.format("$~s"),d3.format(".1f"));
+    const res=frame("residual-chart",300,"M4 residuals versus fitted rent","The scatterplot shows changing residual spread and some curvature, indicating specification problems.",d3.extent(data.points,d=>d.fitted),d3.extent(data.points,d=>d.residual),"Fitted median rent ($)","Residual (observed − fitted log rent)",d3.format("$~s"),d3.format(".1f"));
     res.svg.append("line").attr("x1",res.m.left).attr("x2",res.width-res.m.right).attr("y1",res.y(0)).attr("y2",res.y(0)).attr("stroke",colors.rust).attr("stroke-dasharray","4,4");
     const rp=res.svg.append("g").selectAll("circle").data(data.points).join("circle").attr("cx",d=>res.x(d.fitted)).attr("cy",d=>res.y(d.residual)).attr("r",2.3).attr("fill",colors.teal).attr("opacity",.45);
     tips(rp,d=>`${d.community}: log residual ${d3.format(".2f")(d.residual)}; observed rent ${signed(100*Math.expm1(d.residual))} versus fitted.`);
@@ -231,14 +219,14 @@
   function render() { hideTip(); fitChart(); partitionChart(); coefficientChart(); effectChart(); diagnostics(); }
   async function start() {
     try {
-      const response=await fetch("data/web/block_group_model_2024.json?v=20261119-renter-profile-page2", { cache: "no-cache" });
+      const response=await fetch("data/web/block_group_model_2024.json?v=20261120-crime-stages", { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       data=await response.json();
-      if (data.version!==1 || data.synthetic_data || !data.models?.length || !data.coefficients?.length) throw new Error("Invalid model export");
+      if (data.version!==2 || data.synthetic_data || !data.models?.length || !data.coefficients?.length) throw new Error("Invalid model export");
       $("model-content").hidden=false;
       overview();
       for (const v of data.variables) { const option=document.createElement("option"); option.value=v.term; option.textContent=v.label; $("effect-variable").append(option); }
-      $("effect-variable").value="recent_movers_10pp";
+      $("effect-variable").value="violent_crime_count";
       $("effect-variable").addEventListener("change",setVariable);
       $("effect-target").addEventListener("input",effectChart);
       $("coefficient-model").addEventListener("change",coefficientChart);

@@ -414,3 +414,15 @@ M4 R² is 0.7338 versus 0.7099, and held-out R² is 0.6768 versus 0.6545.
 Gross has lower absolute log error and lower outcome dispersion. Preserve
 original reports and add a separate paired report with diagnostics, crime
 coefficient charts and a shared non-open-ended-median sensitivity.
+
+## 2026-11-20 — Publish crime-first contract-rent models
+
+The Model page now uses crime-first M0–M4, retaining contract rent and its
+full 1,468-BG sample (the paired gross comparison used 1,451). Export from
+crime_stages_2024 through R/export_crime_stages_web.R; the crime-stages runner
+refreshes the public JSON and linked research report. M4 drives residuals
+and the variable explorer. Crime coefficient displays use +100 rows, while
+explorer contrasts use the actual count difference with unscaled coefficients.
+Replace the superseded partition/before-after displays with a crime-association
+chart across adjustments; show current spatial tests and strict-boundary
+sensitivity. Verify R metrics/residuals and 51 JS contrasts against R fixtures.
