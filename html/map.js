@@ -239,9 +239,7 @@ async function start() {
     document.getElementById("map-period").textContent = selectedMeasure.administrative
       ? "2020–2024 CPD records · 2024 Census boundaries"
       : `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
-    const features = layerData[geographyControl.value].features;
-    const unavailable = features.filter(feature => typeof feature.properties[field] !== "number" || feature.properties[field] < 0).length;
-    status.textContent = `${periodLabel(periodControl.value)} · ${features.length.toLocaleString()} ${geographyControl.selectedOptions[0].textContent.toLowerCase()} · ${unavailable.toLocaleString()} without an estimate`;
+    status.textContent = "";
   }
   document.getElementById("layers").disabled = false;
   document.getElementById("rent-controls").disabled = false;

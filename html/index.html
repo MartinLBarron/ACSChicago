@@ -6,12 +6,12 @@
   <title>Chicago rent explorer</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
-  <link href="style.css?v=20261120-model-measures" rel="stylesheet">
+  <link href="style.css?v=20261121-city-tabs-20261120-model-measures" rel="stylesheet">
   <script defer src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
   <script defer src="measures.js?v=20261120-measure-groups"></script>
-  <script defer src="map.js?v=20261120-measure-groups"></script>
+  <script defer src="map.js?v=20261121-sidebar"></script>
   <script defer src="vendor/d3.v7.9.0.min.js"></script>
-  <script defer src="city-stats.js?v=20261120-model-measures"></script>
+  <script defer src="city-stats.js?v=20261121-city-tabs"></script>
   <script defer src="comparisons.js?v=20261120-model-measures"></script>
 </head>
 <body>
@@ -47,7 +47,6 @@
     </fieldset>
     <button id="reset" disabled>Show all of Chicago</button>
     <p id="status" role="status">Loading boundaries…</p>
-    <a class="sidebar-about" href="data.html">A note on the numbers <span aria-hidden="true">↗</span></a>
   </aside>
   <section class="map-region" aria-label="Chicago rent map">
     <div id="map" aria-label="Interactive choropleth map of Chicago rents"></div>
@@ -63,10 +62,13 @@
   <section class="city-section" aria-labelledby="city-heading">
     <div class="city-section-heading"><div><p class="eyebrow">02 / The citywide picture</p><h2 id="city-heading">Chicago, in perspective.</h2></div><div class="city-period-control"><label for="city-period">Statistics period</label><select class="period-badge" id="city-period"><option value="2024">2020–2024</option><option value="2019">2015–2019</option><option value="2014">2010–2014</option></select></div></div>
     <p class="city-intro">Direct ACS estimates for Chicago city, with percentages calculated from citywide source counts—not averages of mapped areas. The violent-crime card is a CPD recorded count, including rows without usable coordinates; mapped crime counts exclude those rows.</p>
+    <div id="city-tabs" class="city-tabs" role="tablist" aria-label="Citywide measure groups"></div>
+    <div id="city-group-panel" role="tabpanel" tabindex="0">
     <p id="city-status" role="status">Loading Chicago statistics…</p>
     <div id="city-cards" class="city-cards" aria-live="polite"></div>
-    <div class="trends-heading"><p class="eyebrow">Three periods / One city</p><h2>How the numbers have changed.</h2><p>Each point represents a five-year ACS estimate, not a single year. ACS lines connect the three non-overlapping periods. New model measures currently have one period and appear in the cards; the crime chart shows annual 2020–2024 records. Hover or focus a point to highlight it and see its estimate and margin of error.</p></div>
+    <div class="trends-heading" id="city-trends-heading"><p class="eyebrow">Three periods / One city</p><h2>How the numbers have changed.</h2><p>Each point represents a five-year ACS estimate, not a single year. ACS lines connect the three non-overlapping periods. New model measures currently have one period and appear in the cards; the crime chart shows annual 2020–2024 records. Hover or focus a point to highlight it and see its estimate and margin of error.</p></div>
     <div id="city-charts" class="city-charts"></div>
+    </div>
   </section>
   </main>
   <footer class="site-footer"><span>Chicago Rent / a public-interest housing dashboard</span><span>© 2026 Martin Barron</span><a class="chicago-stars" href="#page-top" aria-label="Return to top of page">✶ ✶ ✶ ✶</a></footer>

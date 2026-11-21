@@ -10,6 +10,39 @@
   const statisticsPeriod = document.getElementById("city-period");
   let selectedYear = statisticsPeriod.value;
   const annotations = window.chicagoValueNotes;
+  let selectedGroup = Object.keys(window.ChicagoMeasureGroups)[0];
+  const groupAvailable = group => allMeasures.some(m => m.group === group && (!m.latestOnly || selectedYear === "2024"));
+  function renderTabs() {
+    const root = document.getElementById("city-tabs");
+    if (!groupAvailable(selectedGroup)) selectedGroup = Object.keys(window.ChicagoMeasureGroups).find(groupAvailable);
+    root.replaceChildren();
+    for (const [group, label] of Object.entries(window.ChicagoMeasureGroups)) {
+      const tab = document.createElement("button");
+      tab.type = "button"; tab.id = `city-tab-${group}`; tab.textContent = label;
+      tab.setAttribute("role", "tab"); tab.setAttribute("aria-controls", "city-group-panel");
+      tab.setAttribute("aria-selected", String(group === selectedGroup));
+      tab.tabIndex = group === selectedGroup ? 0 : -1;
+      tab.disabled = !groupAvailable(group);
+      if (tab.disabled) tab.title = "Available for 2020–2024";
+      tab.addEventListener("click", () => {
+        selectedGroup = group; renderTabs();
+        document.getElementById(`city-tab-${group}`).focus();
+        if (rows.length) { renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
+      });
+      tab.addEventListener("keydown", event => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        const tabs = [...root.querySelectorAll('[role="tab"]')].filter(t => !t.disabled);
+        const index = tabs.indexOf(tab);
+        const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+        tabs[next].click();
+      });
+      root.append(tab);
+    }
+    document.getElementById("city-group-panel").setAttribute("aria-labelledby", `city-tab-${selectedGroup}`);
+  }
+  renderTabs();
+
   function summary(row, measure) {
     const moe = row[`${measure.id}_moe`];
     return `${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${measure.administrative ? "recorded rows" : isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
@@ -19,7 +52,7 @@
     const root = document.getElementById("city-cards");
     root.replaceChildren();
     if (!row) return;
-    for (const measure of allMeasures.filter(measure => !measure.latestOnly || selectedYear === "2024")) {
+    for (const measure of allMeasures.filter(measure => measure.group === selectedGroup && (!measure.latestOnly || selectedYear === "2024"))) {
       const card = document.createElement("article");
       card.className = "stat-card";
       const heading = document.createElement("h3"); heading.textContent = measure.label;
@@ -65,7 +98,7 @@
     chartCleanups = [];
     const root = d3.select("#city-charts"); root.selectAll("*").remove();
     allMeasures.forEach((measure, index) => {
-      if (measure.latestOnly && selectedYear !== "2024") return;
+      if (measure.group !== selectedGroup || (measure.latestOnly && selectedYear !== "2024")) return;
       const seriesRows = measure.administrative ? crimeAnnual : rows;
       const valid = seriesRows.filter(row => isValue(row[`${measure.id}_estimate`]));
       if (valid.length < 2) return; // A single-period estimate is a card, not a trend.
@@ -167,12 +200,14 @@
         if (event.key === "Escape") hidePoint(event);
       });
     });
+    document.getElementById("city-trends-heading").hidden = root.selectAll("article").size() === 0;
   }
   reducedMotion.addEventListener("change", () => {
     if (rows.length && typeof d3 !== "undefined") renderCharts();
   });
   statisticsPeriod.addEventListener("change", () => {
     selectedYear = statisticsPeriod.value;
+    renderTabs();
     if (rows.length) { renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   async function startCityStats() {

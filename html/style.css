@@ -44,6 +44,7 @@ button:hover { background: #e4ebd9; }
 button:disabled { opacity: .5; cursor: wait; }
 #reset { width: 100%; margin-top: 23px; font-size: 12px; }
 #status { font-size: 11px; color: var(--muted); margin: 15px 0 22px; }
+#status:empty { display: none; }
 .sidebar-about { display: flex; justify-content: space-between; font-size: 11px; border-top: 1px solid var(--line); padding-top: 17px; color: #2b6550; }
 .map-region { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #eaf0e9; }
 #map { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -156,3 +157,11 @@ button:disabled { opacity: .5; cursor: wait; }
 #comparison-chart svg { display: block; width: 100%; font-family: 'DM Sans', system-ui, sans-serif; font-size: 12px; }
 #comparison-chart .chart-grid text { fill: var(--muted); }
 @media (max-width: 500px) { .comparison-dialog { padding: 16px; } .comparison-header h2 { font-size: 25px; } #comparison-chart svg { font-size: 10px; } }
+
+/* Citywide categories share their labels and membership with map measures. */
+.city-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 24px 0 20px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.city-tabs [role="tab"] { font: inherit; font-size: 13px; border: 1px solid var(--line); border-radius: 4px; padding: 9px 13px; background: transparent; color: var(--ink); cursor: pointer; }
+.city-tabs [role="tab"]:hover:not(:disabled) { background: #e6ecdf; }
+.city-tabs [role="tab"][aria-selected="true"] { background: #183f35; color: #fff; border-color: #183f35; }
+.city-tabs [role="tab"]:focus-visible, #city-group-panel:focus-visible { outline: 2px solid #287d87; outline-offset: 3px; }
+.city-tabs [role="tab"]:disabled { opacity: .45; cursor: default; }
