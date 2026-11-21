@@ -76,7 +76,48 @@ stage to verify numerical reproducibility; cached inputs avoid new downloads.
 
 Upload the complete `html/` folder, including all three years' supplements. The
 map joins by GEOID and period. All dashboard tabs work in all periods. ACS charts
-connect all three estimates; the crime chart shows the five annual totals within
-the selected period. The seven core measures retain peer-city comparisons;
-additional measures remain Chicago-only. No point-level crime data is published.
+connect all three estimates; the crime chart shows the three five-year period
+totals, using the same citywide counts as its cards. All 25 ACS measures have peer-city comparisons; violent
+crime remains Chicago-only pending a comparable external crime source. No
+point-level crime data is published.
 No new R package dependencies are introduced.
+
+## Card distributions
+
+Every citywide card includes View city distribution. Its modal uses the card's
+selected period and measure, with an independent tract/block-group selector.
+It starts with 30 exact equal-width bins (adjustable from 5 to 100). Each whole
+mapped area contributes one observation; unavailable estimates are excluded,
+zero estimates retained. These are area distributions, not household-weighted
+distributions. No further pipeline download is required.
+
+## Complete ACS peer comparisons
+
+After preparing the core and model-display datasets, run:
+
+```sh
+Rscript R/run_comparisons.R
+Rscript R/check_model_comparisons.R
+node tests/check_comparisons.cjs
+```
+
+The full pipeline runs the new `R/download_model_comparisons.R` and checker
+after model-display preparation. The comparison runner rebuilds both original
+and added measures. Raw API E/M/annotations and tidycensus responses for the
+added measures live in `data/raw_data/model_comparisons_{year}_v1`; Chicago
+reuses its independent direct-place extraction. Analytic sources, derivations
+and measures are saved under `data/analytic/acs_combined/comparison_model_*`.
+The unified public asset is `html/data/web/comparison_statistics.json`.
+
+The same ten cities, three periods, year-specific definitions and approximate
+ACS share-MOE methods apply to every measure. The US benchmark appears for
+percentages and money, and remains excluded from housing-unit count charts.
+Every Chicago estimate/MOE must match its independently prepared dashboard card.
+Rerun the comparison runner to verify reproducibility from cached responses.
+
+Some racial-composition sources for Philadelphia, New York and the US are
+controlled estimates with the Census `*****` MOE annotation. Per the Census
+[ACS accuracy guidance](https://www2.census.gov/programs-surveys/acs/tech_docs/accuracy/MultiyearACSAccuracyofData2013.pdf),
+calculations use zero sampling error for those inputs. Raw sentinel values and
+annotations are preserved; derived records identify controlled-input counts.
+Other genuinely unavailable MOEs are never treated as zero.

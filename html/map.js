@@ -156,7 +156,7 @@ async function start() {
               if(!response.ok) throw new Error(`Could not load model measures (${response.status}). Upload the complete data/web folder.`);
               const rows=await response.json(); const lookup=new Map(rows.map(row=>[row.GEOID,row]));
               if(rows.length!==collection.features.length || lookup.size!==rows.length || rows.some(row=>row.acs_end_year!==Number(year)) || collection.features.some(feature=>!lookup.has(feature.properties.GEOID))) throw new Error(`Mismatched ${tag} measures for ${year}. Upload the complete data/web folder.`);
-              const required = window.ChicagoMeasures.filter(measure=>measure.comparison===false);
+              const required = window.ChicagoMeasures.filter(measure=>measure.supplemental);
               const missing = required.filter(measure=>rows.some(row=>!Object.hasOwn(row,`${measure.id}_estimate`) || !Object.hasOwn(row,`${measure.id}_moe`)));
               if(missing.length) throw new Error(`Outdated ${year} ${tag} data: missing ${missing.map(measure=>measure.label).join(", ")}. Upload the rebuilt data/web/${tag}_model_measures_${year}.json file.`);
               collection.features.forEach(feature=>Object.assign(feature.properties,lookup.get(feature.properties.GEOID)));

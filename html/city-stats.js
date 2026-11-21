@@ -6,7 +6,6 @@
   const period = row => row.acs_start_year === row.acs_end_year ? String(row.acs_end_year) : `${row.acs_start_year}–${row.acs_end_year}`;
   const format = window.formatChicagoValue;
   let rows = [];
-  let crimeAnnual = [];
   const statisticsPeriod = document.getElementById("city-period");
   let selectedYear = statisticsPeriod.value;
   const annotations = window.chicagoValueNotes;
@@ -77,16 +76,24 @@
       if (!measure.administrative) valueLine.append(moe);
       const description = document.createElement("p"); description.className = "stat-description";
       description.textContent = `${measure.description}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
-      const action = document.createElement("button");
-      action.className = "stat-card-action";
-      action.type = "button";
-      action.setAttribute("aria-label", `Compare ${measure.label.toLowerCase()} across cities, ${period(row)}`);
-      action.setAttribute("aria-haspopup", "dialog");
-      action.addEventListener("click", () => window.openChicagoComparison(measure, selectedYear, action));
-      const cue = document.createElement("span"); cue.className = "stat-compare-cue";
-      cue.textContent = "Compare cities ↗";
       card.append(heading, valueLine, unit, description);
-      if (measure.comparison !== false) card.append(cue, action);
+      const actions = document.createElement("div"); actions.className = "stat-card-actions";
+      if (measure.comparison !== false) {
+        const action = document.createElement("button");
+        action.className = "stat-card-action"; action.type = "button";
+        action.textContent = "Compare cities ↗";
+        action.setAttribute("aria-label", `Compare ${measure.label.toLowerCase()} across cities, ${period(row)}`);
+        action.setAttribute("aria-haspopup", "dialog");
+        action.addEventListener("click", () => window.openChicagoComparison(measure, selectedYear, action));
+        actions.append(action);
+      }
+      const distribution = document.createElement("button");
+      distribution.className = "stat-distribution-action"; distribution.type = "button";
+      distribution.textContent = "View city distribution ↗";
+      distribution.setAttribute("aria-label", `View Chicago distribution of ${measure.label.toLowerCase()}, ${period(row)}`);
+      distribution.setAttribute("aria-haspopup", "dialog");
+      distribution.addEventListener("click", () => window.openChicagoDistribution(measure, selectedYear, distribution));
+      actions.append(distribution); card.append(actions);
       root.append(card);
     }
   }
@@ -100,12 +107,12 @@
     allMeasures.forEach((baseMeasure, index) => {
       const measure = window.chicagoMeasureForYear(baseMeasure,selectedYear);
       if (measure.group !== selectedGroup) return;
-      const seriesRows = measure.administrative ? crimeAnnual.filter(row => row.acs_end_year >= Number(selectedYear)-4 && row.acs_end_year <= Number(selectedYear)) : rows;
+      const seriesRows = rows;
       const valid = seriesRows.filter(row => isValue(row[`${measure.id}_estimate`]));
       if (valid.length < 2) return; // A single-period estimate is a card, not a trend.
       const article = root.append("article").attr("class", "trend-chart");
-      article.append("h3").text(measure.id === "recent_movers_pct" ? "Recent renter move-ins (period-specific cutoff)" : measure.label);
-      article.append("p").attr("class", "chart-unit").text(measure.administrative ? "Annual CPD recorded rows · no survey MOE" : measure.money ? `${measure.unit} · not inflation-adjusted` : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
+      article.append("h3").text(measure.id === "recent_movers_pct" ? "Recent renter move-ins (period-specific cutoff)" : measure.administrative ? baseMeasure.label : measure.label);
+      article.append("p").attr("class", "chart-unit").text(measure.administrative ? "Five-year CPD recorded totals · no survey MOE" : measure.money ? `${measure.unit} · not inflation-adjusted` : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
       const width = Math.max(290, article.node().getBoundingClientRect().width - 40);
       const height = 270;
       const margin = { top: 24, right: 24, bottom: 45, left: measure.money ? 62 : 72 };
@@ -114,13 +121,13 @@
       const y = d3.scaleLinear().domain([0, measure.percent ? Math.max(100, upper * 1.05) : upper * 1.12]).nice().range([height - margin.bottom, margin.top]);
       const svg = article.append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("role", "img")
         .attr("aria-labelledby", `trend-title-${index} trend-desc-${index}`);
-      svg.append("title").attr("id", `trend-title-${index}`).text(`${measure.label}: ${measure.administrative ? "annual CPD records" : "three ACS periods"}`);
-      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.administrative ? "Annual CPD recorded counts; not ACS estimates. " : measure.money ? "Nominal dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}${seriesRows.map(row => summary(row, measure)).join(". ")}`);
+      svg.append("title").attr("id", `trend-title-${index}`).text(`${baseMeasure.label}: ${measure.administrative ? "three five-year CPD totals" : "three ACS periods"}`);
+      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.administrative ? "Five-year CPD recorded totals; not ACS estimates. " : measure.money ? "Nominal dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}${seriesRows.map(row => summary(row, measure)).join(". ")}`);
       svg.append("g").attr("class", "chart-grid").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(4).tickSize(-(width - margin.left - margin.right)).tickFormat(""))
         .call(g => g.select(".domain").remove());
       svg.append("g").attr("class", "chart-axis").attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x).tickSize(0).tickPadding(14).tickFormat(year => measure.administrative ? String(year) : `${year - 4}–${year}`));
+        .call(d3.axisBottom(x).tickSize(0).tickPadding(14).tickFormat(year => `${year - 4}–${year}`));
       svg.append("g").attr("class", "chart-axis").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(4).tickSize(0).tickPadding(10).tickFormat(measure.money ? d3.format("$,.0f") : measure.percent ? value => `${value}%` : d3.format("~s")))
         .call(g => g.select(".domain").remove());
@@ -221,14 +228,11 @@
       if (!response.ok) throw new Error("Model measure data could not load. Upload the complete data/web folder.");
       const data = await response.json();
       if (data.length !== 1 || data[0].GEOID !== row.GEOID || data[0].acs_end_year !== row.acs_end_year) throw new Error("Mismatched city supplement period");
-      const missing = allMeasures.filter(measure=>measure.comparison===false && (!Object.hasOwn(data[0],`${measure.id}_estimate`) || !Object.hasOwn(data[0],`${measure.id}_moe`)));
+      const missing = allMeasures.filter(measure=>measure.supplemental && (!Object.hasOwn(data[0],`${measure.id}_estimate`) || !Object.hasOwn(data[0],`${measure.id}_moe`)));
       if(missing.length) throw new Error(`Outdated ${row.acs_end_year} city data. Upload the rebuilt data/web/chicago_city_model_measures_${row.acs_end_year}.json file.`);
       return data[0];
     }));
     rows.forEach((row,i) => Object.assign(row,supplements[i]));
-    const annual = await fetch("data/web/chicago_annual_violent_crime.json?v=20261121-housing-categories");
-    if (!annual.ok) throw new Error("Annual crime data could not load.");
-    crimeAnnual = await annual.json();
     renderCards();
     if (typeof d3 === "undefined") throw new Error("Cards are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();

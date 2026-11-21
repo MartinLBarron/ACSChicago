@@ -16,6 +16,9 @@ function element(tag = "div") {
 for(const id of ["city-period","city-tabs","city-group-panel","city-cards"]) elements[id] = element();
 const context = { window: {}, document: { getElementById: id => elements[id], createElement: element,
   createTextNode: text => ({ textContent: text }) } };
+const comparisonCalls = [], distributionCalls = [];
+context.window.openChicagoComparison = (m,y) => comparisonCalls.push([m.id,String(y)]);
+context.window.openChicagoDistribution = (m,y) => distributionCalls.push([m.id,String(y)]);
 vm.createContext(context);
 vm.runInContext(fs.readFileSync("html/measures.js", "utf8"), context);
 const city = JSON.parse(fs.readFileSync("html/data/web/chicago_city_statistics.json", "utf8"));
@@ -38,8 +41,13 @@ for(const year of [2014,2019,2024]) {
     measures.forEach((measure,i) => {
       const title = cards[i].children[0].textContent;
       assert.equal(title,context.window.chicagoMeasureForYear(measure,year).label);
-      const action = cards[i].children.find(child=>child.className==="stat-card-action");
+      const actions = cards[i].children.find(child=>child.className==="stat-card-actions");
+      const action = actions.children.find(child=>child.className==="stat-card-action");
+      assert.ok(actions.children.some(child=>child.className==="stat-distribution-action"));
       assert.equal(Boolean(action),measure.comparison!==false);
+      if(action) { action.click(); assert.deepEqual(comparisonCalls.at(-1),[measure.id,String(year)]); }
+      actions.children.find(child=>child.className==="stat-distribution-action").click();
+      assert.deepEqual(distributionCalls.at(-1),[measure.id,String(year)]);
     });
   }
 }

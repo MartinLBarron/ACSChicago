@@ -2,13 +2,21 @@
 sum_housing_components <- function(x, variables) {
   estimates <- as.matrix(x[paste0(variables, "_estimate")])
   moes <- as.matrix(x[paste0(variables, "_moe")])
+  # Census controlled estimates (*****): zero sampling MOE for calculations.
+  # Keep original source MOEs/sentinels/annotations unchanged in x and raw caches.
+  controlled <- matrix(FALSE,nrow=nrow(x),ncol=length(variables))
+  for(j in seq_along(variables)) {
+    annotation <- paste0(variables[j],"_moe_annotation")
+    if(annotation %in% names(x)) controlled[,j] <- !is.na(x[[annotation]]) & x[[annotation]]=="*****" & is.finite(estimates[,j])
+  }
+  moes[controlled] <- 0
   estimate <- rowSums(estimates) # Missing source values propagate; never sum with na.rm.
   moe <- vapply(seq_len(nrow(x)), function(i) {
     if (anyNA(estimates[i, ]) || anyNA(moes[i, ])) return(NA_real_)
     # Census guidance: multiple zero-estimate cells contribute only their largest MOE.
     tidycensus::moe_sum(moes[i, ], estimate = estimates[i, ], na.rm = FALSE)
   }, numeric(1))
-  data.frame(estimate = estimate, moe = moe)
+  data.frame(estimate = estimate, moe = moe, controlled_components = rowSums(controlled))
 }
 
 derive_housing_percentage <- function(x, definition) {
@@ -39,6 +47,7 @@ derive_housing_percentage <- function(x, definition) {
       ifelse(zero, "zero_denominator", ifelse(exceeds, "numerator_exceeds_denominator", "ok"))),
     moe_status = ifelse(!valid, "estimate_not_defined",
                         ifelse(!valid_moe, "missing_source_moe", "ok")),
+    moe_controlled_components = numerator$controlled_components + denominator$controlled_components,
     moe_method = method
   )
 }

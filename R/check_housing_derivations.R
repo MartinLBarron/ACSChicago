@@ -33,3 +33,15 @@ stopifnot(share$estimate[1] == 40, isTRUE(all.equal(share$moe[1], 3)),
   share$denominator_estimate[1] == 100, share$numerator_estimate[1] == 40,
   is.na(share$estimate[2]), share$estimate_status[2] == "zero_denominator")
 message("Renter-share denominator and percentage-point MOE checks passed.")
+
+# Controlled totals have zero sampling error; other missing MOEs stay missing.
+controlled <- data.frame(a_estimate=c(40,40),a_moe=c(5,NA_real_),
+  a_moe_annotation=c(NA_character_,"*****"),
+  total_estimate=c(100,100),total_moe=NA_real_,total_moe_annotation="*****")
+controlled_result <- derive_housing_percentage(controlled,list(numerator="a",denominator="total"))
+stopifnot(controlled_result$moe[1]==5,controlled_result$moe[2]==0,
+  controlled_result$moe_controlled_components[1]==1,controlled_result$moe_controlled_components[2]==2,
+  all(is.na(controlled$total_moe)),is.na(controlled$a_moe[2]))
+controlled$total_moe_annotation <- "**"
+stopifnot(all(is.na(derive_housing_percentage(controlled,list(numerator="a",denominator="total"))$moe)))
+message("Controlled-input MOE handling preserves raw missing values and annotations.")

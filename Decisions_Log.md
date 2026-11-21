@@ -484,3 +484,59 @@ the production loader on initial 2024 load, both historical periods, return to
 2024 and a simulated old 2024 payload lacking the new columns. Local data and
 localhost responses contained values in 865 tracts and 2,235 block groups; no
 remote URL was provided, so the specific hosted response remains unverified.
+
+## 2026-11-21 — City distribution histograms
+
+Add a View city distribution action to every citywide card, beside Compare
+cities where available. Use the selected card's measure and period with all
+whole mapped tracts/block groups, not the model complete-case sample. Each
+area has equal weight; exclude unavailable, nonfinite and negative estimates
+but retain zeros. Use 30 exact equal-width bins by default, with geography and
+5–100 bin controls in an independent native modal. Counts are area frequencies,
+not numbers of homes or residents. Keep point-estimate distributions separate
+from ACS MOE interpretation. Use existing exports, with no new download.
+Verification covered all 156 measure/period/geography combinations, exact bin
+counts, observation conservation and constant/zero-valued data.
+
+## 2026-11-21 — Extend comparisons to all ACS measures
+
+At Martin's request, collect the remaining 18 ACS measures for all existing
+peer cities and the United States in 2014, 2019 and 2024. Preserve the original
+seven comparison measures unchanged, and use year-specific model-display source
+codes and derivations for the extension. Source direct place estimates, retain
+raw E/M/EA/MA responses and tidycensus objects, and preserve derived share MOEs.
+Chicago reuses the independently prepared direct-city sources; require every
+comparison estimate/MOE to reproduce the dashboard cards.
+
+Separate supplemental-data membership from comparison availability in the shared
+frontend definitions, so enabling comparisons cannot bypass map schema checks.
+Retain US benchmark rules and label household income in annual dollars.
+CPD contains Chicago crimes only; peer crime needs a separately agreed source,
+so leave that comparison pending rather than inventing values.
+
+Martin confirmed: add every ACS comparison now and handle peer-city crime
+separately. Crime remains the only card without Compare cities.
+
+Controlled-estimate handling: Philadelphia, NYC and national B03002 totals
+include raw MOE -555555555 with ***** annotations; some Hispanic numerators
+are also controlled. Census multiyear accuracy guidance specifies zero sampling
+error for controlled inputs when calculating derived statistics. Update the
+shared component-sum helper to apply that rule only to explicitly controlled
+annotations, without mutating source MOEs/raw fields. Preserve a controlled-input
+count on derived records; ordinary missing MOEs remain missing. Synthetic checks
+verify positive, zero and genuinely missing uncertainty cases separately.
+
+Verification: comparison checks pass for 25 ACS measures × 3 periods, all
+ten cities and the US, including all MOEs and Chicago source equivalence.
+Card actions, map supplemental-schema checks, distributions and controlled-MOE
+fixtures pass. A complete cached comparison rerun reproduced both public JSON
+copies byte for byte (SHA-256).
+
+## 2026-11-21 — Five-year violent-crime trend
+
+At Martin's request, show the citywide violent-crime chart over the three
+aggregate periods, using the already-derived city totals for 2010–2014,
+2015–2019 and 2020–2024. Remove the annual-data request from the page and label
+the chart's axes, title, tooltip and units as five-year CPD totals. Counts retain
+rows without usable coordinates, as on the city cards. The local annual source
+asset remains available for auditing period sums.

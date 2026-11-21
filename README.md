@@ -374,3 +374,12 @@ ACS estimates/MOEs, validates changing table definitions and assigns crime point
 to each period's geometry. See [measure definitions and rebuild instructions](docs/model_display_measures.md).
 Upload the complete `html/data/web` directory with the updated HTML/JS.
 The Model page continues to describe the 2020–2024 regressions.
+
+### ACS comparisons for every card
+
+After core and model-display preparation, `Rscript R/run_comparisons.R` builds
+all 25 ACS comparison measures for the ten cities and US across all three
+periods, preserving estimates, MOEs, raw source responses and annotations.
+The default pipeline includes this extension. See
+[the peer comparison notes](docs/model_display_measures.md#complete-acs-peer-comparisons).
+Violent crime requires a separate peer-city source and is currently Chicago-only.

@@ -17,7 +17,7 @@
   const valueText = (row, measure) => `${format(row[`${measure.id}_estimate`], measure)} ±${format(row[`${measure.id}_moe`], measure, true)}`;
   const cityName = row => row.NAME.split(" city,")[0];
   function loadData() {
-    if (!dataPromise) dataPromise = fetch("data/web/comparison_statistics.json?v=20261121-burden30")
+    if (!dataPromise) dataPromise = fetch("data/web/comparison_statistics.json?v=20261121-all-acs-peers", { cache: "no-cache" })
       .then(response => {
         if (!response.ok) throw new Error("Comparison data could not load. Upload data/web/comparison_statistics.json and try again.");
         return response.json();
@@ -25,6 +25,8 @@
         if (!Array.isArray(rows) || rows.length !== 33 || new Set(rows.map(row => `${row.GEOID}-${row.acs_end_year}`)).size !== 33) {
           throw new Error("Unexpected comparison data. Re-run the comparison pipeline.");
         }
+        const measures = window.ChicagoMeasures.filter(measure=>!measure.administrative);
+        if(measures.some(measure=>rows.some(row=>!Object.hasOwn(row,`${measure.id}_estimate`) || !Object.hasOwn(row,`${measure.id}_moe`)))) throw new Error("Comparison data is outdated. Upload the rebuilt data/web/comparison_statistics.json file.");
         return rows;
       }).catch(error => { dataPromise = undefined; throw error; });
     return dataPromise;
@@ -75,7 +77,7 @@
   window.openChicagoComparison = (measure, year, button) => {
     activeMeasure = measure; activeYear = String(year); opener = button;
     dialog.querySelector("#comparison-title").textContent = measure.label;
-    dialog.querySelector("#comparison-period").textContent = `${year - 4}–${year} ACS · ${measure.money ? `${year} dollars per month` : measure.unit}`;
+    dialog.querySelector("#comparison-period").textContent = `${year - 4}–${year} ACS · ${measure.money ? `${year} dollars · ${measure.unit}` : measure.unit}`;
     dialog.showModal();
     render();
   };

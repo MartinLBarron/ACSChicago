@@ -7,7 +7,8 @@ vm.runInNewContext(fs.readFileSync("html/measures.js", "utf8"), context);
 const measures = context.window.ChicagoMeasures;
 assert.equal(measures.length, 26);
 assert.equal(measures.filter(m => m.latestOnly).length, 0);
-assert.equal(measures.filter(m => m.comparison === false).length, 19);
+assert.equal(measures.filter(m => m.supplemental).length, 19);
+assert.equal(measures.filter(m => m.comparison === false).length, 1);
 for (const year of [2014,2019,2024]) {
 const city = read("html/data/web/chicago_city_statistics.json").find(r => r.acs_end_year === year);
 Object.assign(city, read(`html/data/web/chicago_city_model_measures_${year}.json`)[0]);
