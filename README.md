@@ -30,6 +30,12 @@ See [docs/crime_stages.md](docs/crime_stages.md) for the specification and check
 
 ## Interactive map
 
+The map now uses tracts and block groups only. Latest-period model measures,
+including recorded violent crime, are documented in
+[docs/model_display_measures.md](docs/model_display_measures.md). Rebuild their
+map/dashboard supplements with `Rscript R/run_model_display.R` after the ACS and
+crime stages. Include the complete `html/data/web/` folder when uploading.
+
 The local MapLibre GL JS webpage in `html/` displays city limits, community areas,
 and ACS rent choropleths for three periods, for whole block groups and tracts, with measure and
 geography selectors, boundary toggles, and click-to-inspect estimates and MOEs.
@@ -282,7 +288,11 @@ nine comparison cities, plus the United States, for all three ACS periods.
 See [the housing codebook](docs/acs_housing_codebook.md#city-and-national-comparisons)
 for geography definitions, outputs, and validation.
 
-### PUMA boundary overlay
+### Archived PUMA boundary overlay
+
+**Retired from the website and default pipeline on 2026-11-20.** The following
+describes the earlier workflow; source scripts and cached outputs are retained
+for historical reproducibility only. Active maps now use tracts and block groups.
 
 The map's optional **PUMAs** checkbox displays whole Public Use Microdata
 Areas with positive Chicago overlap, selected directly against matching-year
@@ -321,7 +331,7 @@ stages as tracts and block groups. Validate the finished PUMA data with
 `Rscript R/check_puma_data.R`. See the housing codebook for table-level
 caching and the documented recovery from Census server timeouts.
 
-### PUMS housing microdata (2020–2024)
+### Archived PUMS housing microdata (2020–2024)
 
 The modeling pipeline starts with a separate local housing-unit extract:
 
@@ -335,15 +345,23 @@ The download uses `tidycensus::get_pums(recode = TRUE, return_vacant = TRUE)`
 for Illinois, with housing and replicate weights. Preparation retains the
 same 18 PUMAs selected for the 2024 map. See the
 [PUMS housing codebook](docs/pums_housing_codebook.md) for variables, output
-paths, sampling-unit safeguards, and geographic limitations. The full pipeline
-includes these steps. Microdata are not published to the website.
+paths, sampling-unit safeguards, and geographic limitations. The default pipeline no longer includes these legacy steps. Microdata are not published to the website.
 
 ### First contract-rent models
 
 After PUMS preparation, run `Rscript R/model_contract_rent.R` and
-`Rscript R/check_rent_model.R`. The full pipeline includes the model step.
+`Rscript R/check_rent_model.R`. This legacy model is no longer run by the default pipeline.
 It compares housing-weighted log contract rent models with and without PUMA
 fixed effects, using ACS replicate weights for uncertainty. The local report
 is `output/models/contract_rent_2024/report.md`. See
 [the model documentation](docs/contract_rent_model.md) for sample rules,
 inflation adjustment, interpretation, diagnostics, and reproducibility checks.
+
+### Paired contract- and gross-rent models
+
+Run `Rscript R/run_rent_outcome_comparison.R` after preparing the crime/model
+sample. It fits the crime-first M0–M4 specifications to both log rent outcomes
+on identical complete cases and tract folds, with diagnostics and a joint
+open-ended-median sensitivity. The report is
+`output/models/rent_outcome_comparison_2024/report.html`; its source is
+`R/rent_outcome_comparison.Rmd`. The crime-stages runner includes this comparison.

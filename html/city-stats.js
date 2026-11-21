@@ -3,22 +3,23 @@
 (() => {
   const allMeasures = window.ChicagoMeasures;
   const isValue = value => typeof value === "number" && Number.isFinite(value) && value >= 0;
-  const period = row => `${row.acs_start_year}–${row.acs_end_year}`;
+  const period = row => row.acs_start_year === row.acs_end_year ? String(row.acs_end_year) : `${row.acs_start_year}–${row.acs_end_year}`;
   const format = window.formatChicagoValue;
   let rows = [];
+  let crimeAnnual = [];
   const statisticsPeriod = document.getElementById("city-period");
   let selectedYear = statisticsPeriod.value;
   const annotations = window.chicagoValueNotes;
   function summary(row, measure) {
     const moe = row[`${measure.id}_moe`];
-    return `${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
+    return `${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${measure.administrative ? "recorded rows" : isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
   }
   function renderCards() {
     const row = rows.find(row => String(row.acs_end_year) === selectedYear);
     const root = document.getElementById("city-cards");
     root.replaceChildren();
     if (!row) return;
-    for (const measure of allMeasures) {
+    for (const measure of allMeasures.filter(measure => !measure.latestOnly || selectedYear === "2024")) {
       const card = document.createElement("article");
       card.className = "stat-card";
       const heading = document.createElement("h3"); heading.textContent = measure.label;
@@ -39,7 +40,8 @@
       moe.setAttribute("aria-label", isValue(margin)
         ? `90% margin of error: plus or minus ${format(margin, measure, true)}`
         : "90% margin of error unavailable");
-      valueLine.append(value, moe);
+      valueLine.append(value);
+      if (!measure.administrative) valueLine.append(moe);
       const description = document.createElement("p"); description.className = "stat-description";
       description.textContent = `${measure.description}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
       const action = document.createElement("button");
@@ -50,7 +52,9 @@
       action.addEventListener("click", () => window.openChicagoComparison(measure, selectedYear, action));
       const cue = document.createElement("span"); cue.className = "stat-compare-cue";
       cue.textContent = "Compare cities ↗";
-      card.append(heading, valueLine, unit, description, cue, action); root.append(card);
+      card.append(heading, valueLine, unit, description);
+      if (measure.comparison !== false) card.append(cue, action);
+      root.append(card);
     }
   }
   const revealedCharts = new Set();
@@ -61,30 +65,33 @@
     chartCleanups = [];
     const root = d3.select("#city-charts"); root.selectAll("*").remove();
     allMeasures.forEach((measure, index) => {
+      if (measure.latestOnly && selectedYear !== "2024") return;
+      const seriesRows = measure.administrative ? crimeAnnual : rows;
+      const valid = seriesRows.filter(row => isValue(row[`${measure.id}_estimate`]));
+      if (valid.length < 2) return; // A single-period estimate is a card, not a trend.
       const article = root.append("article").attr("class", "trend-chart");
       article.append("h3").text(measure.label);
-      article.append("p").attr("class", "chart-unit").text(measure.money ? "Monthly dollars · not inflation-adjusted" : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
+      article.append("p").attr("class", "chart-unit").text(measure.administrative ? "Annual CPD recorded rows · no survey MOE" : measure.money ? `${measure.unit} · not inflation-adjusted` : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
       const width = Math.max(290, article.node().getBoundingClientRect().width - 40);
       const height = 270;
       const margin = { top: 24, right: 24, bottom: 45, left: measure.money ? 62 : 72 };
-      const valid = rows.filter(row => isValue(row[`${measure.id}_estimate`]));
       const upper = d3.max(valid, row => row[`${measure.id}_estimate`] + (isValue(row[`${measure.id}_moe`]) ? row[`${measure.id}_moe`] : 0)) || 1;
-      const x = d3.scalePoint().domain(rows.map(row => row.acs_end_year)).range([margin.left, width - margin.right]).padding(0.25);
+      const x = d3.scalePoint().domain(seriesRows.map(row => row.acs_end_year)).range([margin.left, width - margin.right]).padding(0.25);
       const y = d3.scaleLinear().domain([0, measure.percent ? Math.max(100, upper * 1.05) : upper * 1.12]).nice().range([height - margin.bottom, margin.top]);
       const svg = article.append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("role", "img")
         .attr("aria-labelledby", `trend-title-${index} trend-desc-${index}`);
-      svg.append("title").attr("id", `trend-title-${index}`).text(`${measure.label} across three ACS periods`);
-      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.money ? "Nominal monthly dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}${rows.map(row => summary(row, measure)).join(". ")}`);
+      svg.append("title").attr("id", `trend-title-${index}`).text(`${measure.label}: ${measure.administrative ? "annual CPD records" : "three ACS periods"}`);
+      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.administrative ? "Annual CPD recorded counts; not ACS estimates. " : measure.money ? "Nominal dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}${seriesRows.map(row => summary(row, measure)).join(". ")}`);
       svg.append("g").attr("class", "chart-grid").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(4).tickSize(-(width - margin.left - margin.right)).tickFormat(""))
         .call(g => g.select(".domain").remove());
       svg.append("g").attr("class", "chart-axis").attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x).tickSize(0).tickPadding(14).tickFormat(year => `${year - 4}–${year}`));
+        .call(d3.axisBottom(x).tickSize(0).tickPadding(14).tickFormat(year => measure.administrative ? String(year) : `${year - 4}–${year}`));
       svg.append("g").attr("class", "chart-axis").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(4).tickSize(0).tickPadding(10).tickFormat(measure.money ? d3.format("$,.0f") : measure.percent ? value => `${value}%` : d3.format("~s")))
         .call(g => g.select(".domain").remove());
       const estimate = row => row[`${measure.id}_estimate`];
-      const trendLine = svg.append("path").datum(rows).attr("class", "trend-line").attr("stroke", measure.color)
+      const trendLine = svg.append("path").datum(seriesRows).attr("class", "trend-line").attr("stroke", measure.color)
         .attr("d", d3.line().defined(row => isValue(estimate(row))).x(row => x(row.acs_end_year)).y(row => y(estimate(row))));
       const points = svg.append("g").selectAll("circle").data(valid).join("circle")
         .attr("cx", row => x(row.acs_end_year)).attr("cy", row => y(estimate(row)))
@@ -98,7 +105,7 @@
       }
       function drawPositions(pointY) {
         trendLine.attr("d", d3.line().defined(row => isValue(estimate(row)))
-          .x(row => x(row.acs_end_year)).y(pointY)(rows));
+          .x(row => x(row.acs_end_year)).y(pointY)(seriesRows));
         points.attr("cy", pointY);
 
       }
@@ -169,14 +176,21 @@
     if (rows.length) { renderCards(); if (typeof d3 !== "undefined") renderCharts(); }
   });
   async function startCityStats() {
-    const response = await fetch("data/web/chicago_city_statistics.json?v=20261118-renter-share");
+    const response = await fetch("data/web/chicago_city_statistics.json?v=20261120-model-measures");
     if (!response.ok) throw new Error(`Citywide statistics could not load (HTTP ${response.status}). Upload data/web/chicago_city_statistics.json.`);
     rows = await response.json(); rows.sort((a, b) => a.acs_end_year - b.acs_end_year);
     if (rows.length !== 3 || rows.some(row => row.GEOID !== "1714000") || new Set(rows.map(row => row.acs_end_year)).size !== 3) throw new Error("Unexpected citywide statistics. Re-run the city web export.");
+    const [supplement, annual] = await Promise.all([
+      fetch("data/web/chicago_city_model_measures_2024.json?v=20261120-model-measures"),
+      fetch("data/web/chicago_annual_violent_crime.json?v=20261120-model-measures")]);
+    if (!supplement.ok || !annual.ok) throw new Error("Model measure data could not load. Upload the complete data/web folder.");
+    const city = await supplement.json();
+    Object.assign(rows.find(row=>row.acs_end_year===2024),city[0]);
+    crimeAnnual = await annual.json();
     renderCards();
     if (typeof d3 === "undefined") throw new Error("Cards are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();
-    document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. Charts show all three periods.";
+    document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. New model measures are available for 2020–2024. ACS trend charts require multiple periods; crime uses annual CPD counts.";
     let resizeFrame;
     window.addEventListener("resize", () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderCharts); });
   }

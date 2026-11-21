@@ -1,3 +1,19 @@
+# Model measures on map/dashboard; retire PUMAs — 2026-11-20
+
+- Martin requested adding the complete model's source measures to the map and
+  dashboard, then specified that only tracts and block groups are needed.
+  Remove PUMA geography/overlay controls and default PUMA/PUMS downloads/model
+  steps; retain historical scripts and data without deletion.
+- Display latest-model measures for 2020–2024, using readable percentages and
+  annual income dollars. Earlier periods retain existing measures. Preserve
+  ACS E/M and raw/annotation caches. Use whole mapped areas, not the fit sample.
+- City ACS measures are direct Chicago-place estimates. New cards are Chicago-only;
+  original measures retain peer comparisons. Single-period ACS values are cards,
+  not manufactured trends; crime receives an annual 2020–2024 recorded-count chart.
+- Map crime counts exclude unusable locations; the citywide recorded total includes
+  them. No sampling MOE is assigned to administrative counts. Community names are
+  displayed through outlines/popups, including BG model assignment where available.
+
 # Crime-first staged report — 2026-11-20
 
 - Martin reframed the question as the association between median rent and violent
@@ -385,3 +401,16 @@ These describe in-sample conditional area associations. Diagnostics flag five
 categories with fewer than 30 observations and maximum weighted leverage
 0.731, so sparse-category sensitivity and additional model checks remain
 appropriate before treating this as a finished research result.
+
+## 2026-11-20 — Compare contract and gross rent
+
+Fit both natural-log outcomes using the current crime-first M0–M4 models,
+equal BG weights, identical controls and existing tract folds. Use the shared
+1,451-BG sample (17 original contract-model cases lack usable gross rent)
+to avoid confounding outcome differences with sample selection. Compare
+in-sample/held-out R² as relative fit and report log RMSE separately; avoid
+cross-outcome AIC ranking. Contract has higher relative fit at every stage;
+M4 R² is 0.7338 versus 0.7099, and held-out R² is 0.6768 versus 0.6545.
+Gross has lower absolute log error and lower outcome dispersion. Preserve
+original reports and add a separate paired report with diagnostics, crime
+coefficient charts and a shared non-open-ended-median sensitivity.

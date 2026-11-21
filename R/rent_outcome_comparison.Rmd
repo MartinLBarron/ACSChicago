@@ -1,0 +1,118 @@
+---
+title: "Which rent measure is better described by the models?"
+subtitle: "Paired contract- and gross-rent models · Chicago ACS/CPD 2020–2024"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    theme: readable
+    mathjax: null
+params:
+  project_root: "."
+---
+
+```{r setup,include=FALSE}
+knitr::opts_knit$set(root.dir=params$project_root)
+source(file.path(params$project_root,"R/crime_stages_config.R"))
+source(file.path(params$project_root,"R/bg_report_helpers.R"))
+r<-readRDS(file.path(params$project_root,"data/analytic/rent_outcome_comparison_2024/model_results.rds"))
+library(ggplot2)
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,fig.width=9,fig.height=5.5,dpi=160,dev="png",out.width="100%")
+m<-r$metrics
+wide<-tidyr::pivot_wider(m[c("model","outcome","r_squared","predictive_R2","RMSE_log")],names_from=outcome,values_from=c(r_squared,predictive_R2,RMSE_log))
+pct<-function(x)sprintf("%.1f%%",100*x)
+```
+
+<style>body{color:#233747;line-height:1.65}.main-container{max-width:1120px}h1,h2{color:#18354a}table{font-size:.85em;width:100%}td,th{padding:7px!important}th{border-bottom:2px solid #278f9b}</style>
+
+# Answer
+
+**Contract rent is better explained by the model covariates as a share of observed variation.** It has higher in-sample and held-out R² at each nontrivial stage. In the full M4, contract-rent R² is **`r pct(wide$r_squared_contract[wide$model=="M4"])`**, versus **`r pct(wide$r_squared_gross[wide$model=="M4"])`** for gross rent. Held-out R² is **`r pct(wide$predictive_R2_contract[wide$model=="M4"])` versus `r pct(wide$predictive_R2_gross[wide$model=="M4"])`**.
+
+Gross rent nevertheless has a **lower log-scale prediction RMSE**. Its log outcomes also vary less overall, so a smaller absolute log error does not mean that the predictors account for a larger proportion of its variation. For the question “Which outcome is better described by these characteristics?”, the relative improvement over an intercept-only benchmark—held-out R²—is the primary comparison. Neither result establishes causal explanatory power or dictates which rent concept is substantively preferable.
+
+# Fair comparison and specifications
+
+Both outcomes are natural logs of published block-group medians in 2024 dollars. Contract rent excludes separately paid utilities; gross rent adds utilities and fuels paid separately by renters. Thus they describe different aspects of housing cost, not two estimates of an identical outcome.
+
+The comparison uses **`r nrow(r$data)` identical block groups**, from the original `r r$original_n`-area model sample. **`r r$excluded_missing` areas** lack a usable positive estimate for one of the outcomes and are excluded from both fits. The differences from earlier contract-only results therefore reflect a deliberately shared sample. Both outcomes use identical predictors, equal BG weights, geography rules, raw five-year crime counts and original tract-fold assignments.
+
+```{r specs}
+bg_table(data.frame(model=names(crime_stage_formulas),specification=unname(crime_stage_labels)))
+```
+
+M0 is intercept-only; M1 adds raw violent crime; M2 adds housing composition and renter profile (recent moves and householder age); M3 adds poverty, log household income, education and racial/ethnic context; M4 adds community-area indicators. The crime variable is not logged, annualized or converted to a rate. No model is tuned separately for the two outcomes.
+
+Cross-validation keeps each tract in one fold and scores all models and outcomes on the same eligible held-out BGs, excluding communities absent from a training fold. Held-out R² compares squared errors with each outcome's training-fold mean. It describes prediction within represented communities, not unseen communities or future years. The same folds were used in earlier exploration; these are paired comparative diagnostics, not independent post-selection validation.
+
+# Fit results
+
+```{r comparison}
+bg_table(wide,digits=4,caption="Paired in-sample R², held-out R² and log-scale prediction RMSE. Every row compares identical areas and predictors.")
+bg_table(m[c("outcome","model","n","parameters","adjusted_r_squared","test_BGs","RMSE_log","MAE_log")],digits=4)
+```
+
+```{r fit-chart,fig.height=5}
+plot_data<-dplyr::bind_rows(data.frame(model=m$model,outcome=m$outcome,metric="In-sample R²",value=m$r_squared),
+  data.frame(model=m$model,outcome=m$outcome,metric="Held-out R²",value=m$predictive_R2))
+ggplot(plot_data,aes(model,value,color=outcome,group=outcome))+geom_line()+geom_point(size=2.5)+
+  facet_wrap(~metric)+scale_color_manual(values=c(contract="#18354a",gross="#af7146"))+
+  scale_y_continuous(limits=c(0,1),labels=function(x)paste0(100*x,"%"))+
+  labs(x=NULL,y="Share of observed log-rent variation",color="Outcome",title="Contract rent has the larger relative fit")+bg_theme()+theme(legend.position="bottom")
+```
+
+```{r dispersion}
+bg_table(data.frame(outcome=names(r$results),log_outcome_SD=vapply(r$results,`[[`,numeric(1),"outcome_sd")),digits=4,
+  caption="Outcome dispersion on the same cases. Gross rent's lower spread helps explain its smaller absolute log-scale errors.")
+```
+
+No cross-outcome AIC ranking is used. The outcomes have different distributions and meanings. Higher relative fit also does not mean that contract rent is a better measure of tenants' total housing costs; gross rent is the more comprehensive cost concept.
+
+# Does the crime association depend on the rent definition?
+
+```{r effects}
+bg_table(r$effects[c("outcome","model","percent_per100_estimate","percent_per100_hc3_conf_low","percent_per100_hc3_conf_high",
+  "percent_per100_cluster_conf_low","percent_per100_cluster_conf_high")],digits=3,
+  caption="Conditional percent differences per 100 additional recorded violent rows. The fitted predictor remains the literal count; intervals are 95%.")
+```
+
+```{r effect-chart,fig.height=5}
+e<-r$effects;e$model<-factor(e$model,levels=c("M4","M3","M2","M1"))
+ggplot(e,aes(percent_per100_estimate,model,color=outcome))+geom_vline(xintercept=0,color="grey70")+
+  geom_errorbar(aes(xmin=percent_per100_hc3_conf_low,xmax=percent_per100_hc3_conf_high),orientation="y",width=.2,position=position_dodge(width=.5))+
+  geom_point(position=position_dodge(width=.5),size=2.5)+scale_color_manual(values=c(contract="#18354a",gross="#af7146"))+
+  labs(x="Associated rent difference per 100 additional recorded rows (%)",y=NULL,color="Outcome",
+    title="Crime coefficients under both rent definitions",caption="95% HC3 intervals; associations, not causal effects.")+bg_theme()+theme(legend.position="bottom")
+```
+
+# Diagnostics and open-ended median sensitivity
+
+```{r diagnostics}
+z<-r$diagnostics;z$BP_p<-format.pval(z$BP_p,digits=3,eps=.0001);z$RESET_p<-format.pval(z$RESET_p,digits=3,eps=.0001)
+bg_table(z,digits=4,caption="Paired specification diagnostics; residual Moran statistics use the common-sample queen graph.")
+```
+
+Heteroskedasticity, functional form and residual spatial structure remain issues to review. HC3 and community-clustered uncertainty do not fully propagate ACS estimation error, repair nonlinearity or resolve spatial dependence. M4's saturated singleton handling follows the established inference safeguards. Administrative crime reporting/location errors remain shared by both comparisons.
+
+Published open-ended rent medians are represented by numeric endpoints and may lack MOEs. A sensitivity excludes **`r r$excluded_open_ended` areas with a noncomputable rent MOE for either outcome**, from both outcomes together. It retains the same formulas and fold assignments and refits both outcomes on the shared restricted cases.
+
+```{r closed-categories}
+bg_table(r$closed_metrics[c("outcome","model","n","r_squared","adjusted_r_squared","predictive_R2","RMSE_log")],digits=4)
+```
+
+The comparison is limited to areas with both outcomes and full covariate availability. It does not establish which outcome would perform better under different predictors, alternative functional forms, different periods or a new validation sample. All claims concern aggregate area medians.
+
+# Reproduce
+
+```bash
+Rscript R/run_rent_outcome_comparison.R
+```
+
+The runner uses the prepared CPD/ACS sample; no new download is needed. The original reports are preserved. Source code is `R/compare_rent_outcomes.R`; this R Markdown source is `R/rent_outcome_comparison.Rmd`. Fitted bundles reside in `data/analytic/rent_outcome_comparison_2024`; output tables, HTML, Markdown, PNGs and input MD5 provenance reside in `output/models/rent_outcome_comparison_2024`.
+
+Checks verify identical fit/scoring rows and folds, full-rank nested models and independent bivariate correlation/slope identities for each outcome. Repeat the complete runner to independently verify numerical reproducibility.
+
+Source definitions: [ACS median contract rent, B25058](https://api.census.gov/data/2024/acs/acs5/groups/B25058.html),
+[ACS median gross rent, B25064](https://api.census.gov/data/2024/acs/acs5/groups/B25064.html),
+and [CPD reported crime records](https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2).

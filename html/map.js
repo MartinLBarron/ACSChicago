@@ -5,13 +5,13 @@ const status = document.getElementById("status");
 const rentBreaks = [750, 1000, 1250, 1500, 2000, 2500];
 // A separate zero class distinguishes estimated zero from missing data.
 const countBreaks = [1, 100, 250, 500, 1000, 2000];
-const pumaCountBreaks = [1, 10000, 20000, 30000, 40000, 50000];
-const countMeasures = new Set(["cash_rent_units", "renter_occupied_units"]);
+const countMeasures = new Set(["cash_rent_units", "renter_occupied_units", "violent_crime_count"]);
 function selectedScale() {
-  const isCount = countMeasures.has(measureControl.value);
   const measure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
-  const isPercent = measure?.percent || false;
-  return { isCount, isPercent, breaks: isPercent ? measure.breaks || [10, 20, 30, 40, 50, 75] : isCount ? (geographyControl.value === "pumas" ? pumaCountBreaks : countBreaks) : rentBreaks };
+  const isCount = countMeasures.has(measureControl.value);
+  const breaks = geographyControl.value === "tracts" && measure.tractBreaks ? measure.tractBreaks :
+    measure.breaks || (measure.percent ? [10,20,30,40,50,75] : isCount ? countBreaks : rentBreaks);
+  return { isCount, isPercent: !!measure.percent, breaks };
 }
 const colors = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#0c2c84"];
 const missingColor = "#bdbdbd";
@@ -20,18 +20,22 @@ const definitions = [
   { id: "blocks", file: "block_group_rent_2024", color: "#655c79", width: 0.5 },
   { id: "tracts", file: "tract_rent_2024", color: "#403a50", width: 0.8 },
   { id: "communities", file: "chicago_community_areas", color: "#126875", width: 1.8 },
-  { id: "pumas", file: "puma_rent_2024", color: "#a66523", width: 2 },
   { id: "city", file: "chicago_city", color: "#b83246", width: 3 }
 ];
 const measureControl = document.getElementById("measure");
-// Keep all measures together in a single flat list.
+// Native optgroups provide accessible headings without selectable separator rows.
 const initialMeasure = measureControl.value;
 measureControl.replaceChildren();
-for (const measure of window.ChicagoMeasures) {
-  const option = document.createElement("option");
-  option.value = measure.id;
-  option.textContent = measure.label;
-  measureControl.append(option);
+for (const [group, label] of Object.entries(window.ChicagoMeasureGroups)) {
+  const section = document.createElement("optgroup");
+  section.label = label;
+  for (const measure of window.ChicagoMeasures.filter(measure => measure.group === group)) {
+    const option = document.createElement("option");
+    option.value = measure.id;
+    option.textContent = measure.label;
+    section.append(option);
+  }
+  measureControl.append(section);
 }
 measureControl.value = initialMeasure;
 const geographyControl = document.getElementById("geography");
@@ -43,18 +47,17 @@ function renderLegend() {
   const list = document.getElementById("legend");
   list.replaceChildren();
   const { isCount, isPercent, breaks } = selectedScale();
+  const measure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+  const unit = measure.administrative ? "recorded rows" : "units";
+  const money = value => dollars.format(value);
   const labels = isPercent
-    ? [`Under ${breaks[0]}%`, ...breaks.slice(0, -1).map((value, index) => `${value}% to under ${breaks[index + 1]}%`), `${breaks[breaks.length - 1]}% or more`, "Unavailable / no eligible units"]
-    : isCount
-    ? ["0 units (estimated)", ...breaks.slice(0, -1).map((value, index) => `${value.toLocaleString("en-US")}–${(breaks[index + 1] - 1).toLocaleString("en-US")} units`), `${breaks[breaks.length - 1].toLocaleString("en-US")} or more units`, "No estimate available"]
-    : ["Under $750", "$750 to under $1,000", "$1,000 to under $1,250", "$1,250 to under $1,500",
-      "$1,500 to under $2,000", "$2,000 to under $2,500", "$2,500 or more", "No estimate available"];
-  list.setAttribute("aria-label", isPercent ? "Percentage color scale" : isCount ? "Estimated housing-unit count color scale" : "Monthly rent color scale");
-  document.getElementById("legend-note").textContent = isPercent
-    ? `${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed breaks across all periods. Gray includes missing inputs or no eligible units. MOEs are in percentage points.`
-    : isCount
-    ? "Estimated housing-unit counts, not percentages or density. Breaks are fixed across periods; PUMAs use wider count bins than tracts and block groups. Zero is an estimate, not proof of no rental housing. Gray means no estimate."
-    : `Monthly ${periodControl.value} dollars; not adjusted for inflation. ${window.ChicagoMeasures.find(measure => measure.id === measureControl.value).description}. Fixed dollar breaks across periods. Gray means no estimate.`;
+    ? [`Under ${breaks[0]}%`, ...breaks.slice(0,-1).map((v,i)=>`${v}% to under ${breaks[i+1]}%`), `${breaks.at(-1)}% or more`, "Unavailable / no eligible population"]
+    : isCount ? [`0 ${unit}`, ...breaks.slice(0,-1).map((v,i)=>`${v.toLocaleString()}–${(breaks[i+1]-1).toLocaleString()} ${unit}`), `${breaks.at(-1).toLocaleString()} or more ${unit}`, "Unavailable"]
+    : [`Under ${money(breaks[0])}`, ...breaks.slice(0,-1).map((v,i)=>`${money(v)} to under ${money(breaks[i+1])}`), `${money(breaks.at(-1))} or more`, "Unavailable"];
+  list.setAttribute("aria-label", `${measure.label} color scale`);
+  document.getElementById("legend-note").textContent = measure.administrative
+    ? "2020–2024 CPD recorded rows with usable coordinates, within whole Census areas. Raw counts, not rates or resident risk. Zero means zero assigned records. No survey MOE applies."
+    : `${measure.description}. ${isPercent ? "MOEs are in percentage points." : measure.money ? `${periodControl.value} dollars ${measure.unit}; not inflation-adjusted.` : "Counts are survey estimates."} Gray means unavailable. Community names appear in the popup and boundary outlines.`;
   labels.forEach((label, i) => {
     const row = document.createElement("li");
     const swatch = document.createElement("span");
@@ -139,15 +142,25 @@ async function start() {
   map.on("error", () => { status.textContent = "A map resource failed to load. Check your connection and reload."; });
   const loaded = new Promise(resolve => map.on("load", resolve));
   async function fetchLayer(file) {
-    const response = await fetch(`data/web/${file}.geojson?v=20261118-puma-aggregates`);
+    const response = await fetch(`data/web/${file}.geojson?v=20261120-model-measures`);
     if (!response.ok) throw new Error(`Could not load data/web/${file}.geojson (HTTP ${response.status}). Upload the complete html folder contents, including data/web.`);
     return response.json();
   }
   const periodCache = new Map();
   function loadPeriod(year) {
     if (!periodCache.has(year)) {
-      const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`), fetchLayer(`puma_rent_${year}`)])
-        .then(([blocks, tracts, pumas]) => ({ blocks, tracts, pumas }))
+      const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`)])
+        .then(async ([blocks, tracts]) => {
+          if (year === "2024") {
+            await Promise.all([["block_group",blocks],["tract",tracts]].map(async ([tag,collection])=>{
+              const response=await fetch(`data/web/${tag}_model_measures_2024.json?v=20261120-model-measures`);
+              if(!response.ok) throw new Error(`Could not load model measures (${response.status}). Upload the complete data/web folder.`);
+              const rows=await response.json(); const lookup=new Map(rows.map(row=>[row.GEOID,row]));
+              collection.features.forEach(feature=>Object.assign(feature.properties,lookup.get(feature.properties.GEOID)||{}));
+            }));
+          }
+          return {blocks,tracts};
+        })
         .catch(error => { periodCache.delete(year); throw error; });
       periodCache.set(year, request);
     }
@@ -155,7 +168,7 @@ async function start() {
   }
   const initialPeriod = await loadPeriod(periodControl.value);
   const data = await Promise.all(definitions.map(async definition => {
-    if (["blocks", "tracts", "pumas"].includes(definition.id)) return initialPeriod[definition.id];
+    if (["blocks", "tracts"].includes(definition.id)) return initialPeriod[definition.id];
     return fetchLayer(definition.file);
   }));
   await loaded;
@@ -167,7 +180,7 @@ async function start() {
       layout: { visibility: document.querySelector(`[data-layer="${definition.id}"]`).checked ? "visible" : "none" },
       paint: { "line-color": definition.color, "line-width": definition.width } });
   });
-  // Keep all optional outlines above every choropleth fill, including PUMAs.
+  // Keep optional outlines above the choropleth fills.
   definitions.forEach(definition => map.moveLayer(`${definition.id}-line`));
   const layerData = Object.fromEntries(definitions.map((definition, i) => [definition.id, data[i]]));
   const bounds = new maplibregl.LngLatBounds();
@@ -200,24 +213,32 @@ async function start() {
   let areaPopup;
   function updateMap() {
     if (areaPopup) areaPopup.remove();
+    for (const option of measureControl.options) {
+      const measure=window.ChicagoMeasures.find(m=>m.id===option.value);
+      option.disabled=!!measure.latestOnly && periodControl.value!=="2024";
+      option.textContent=measure.label+(option.disabled?" (2020–2024 only)":"");
+    }
+    if(measureControl.selectedOptions[0]?.disabled) measureControl.value="median_contract_rent";
     const field = `${measureControl.value}_estimate`;
     const numeric = ["to-number", ["get", field], -1];
     const step = ["step", numeric, colors[0]];
     selectedScale().breaks.forEach((boundary, i) => step.push(boundary, colors[i + 1]));
     // Null must be tested explicitly: it must never become a zero observation.
     const fill = ["case", ["all", ["!=", ["get", field], null], [">=", numeric, 0]], step, missingColor];
-    for (const id of ["blocks", "tracts", "pumas"]) {
+    for (const id of ["blocks", "tracts"]) {
       map.setPaintProperty(`${id}-fill`, "fill-color", fill);
       const checked = document.querySelector(`[data-layer="${id}"]`).checked;
       const selected = id === geographyControl.value;
-      // A transparent PUMA fill supplies hit-testing when only outlines are shown.
-      map.setPaintProperty(`${id}-fill`, "fill-opacity", id === "pumas" && !selected ? 0 : 0.82);
-      map.setLayoutProperty(`${id}-fill`, "visibility", selected || (id === "pumas" && checked) ? "visible" : "none");
+      map.setPaintProperty(`${id}-fill`, "fill-opacity", 0.82);
+      map.setLayoutProperty(`${id}-fill`, "visibility", selected ? "visible" : "none");
       map.setLayoutProperty(`${id}-line`, "visibility", checked ? "visible" : "none");
     }
     renderLegend();
     document.dispatchEvent(new CustomEvent("chicago:period-change", { detail: { year: periodControl.value } }));
-    document.getElementById("map-period").textContent = `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
+    const selectedMeasure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+    document.getElementById("map-period").textContent = selectedMeasure.administrative
+      ? "2020–2024 CPD records · 2024 Census boundaries"
+      : `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
     const features = layerData[geographyControl.value].features;
     const unavailable = features.filter(feature => typeof feature.properties[field] !== "number" || feature.properties[field] < 0).length;
     status.textContent = `${periodLabel(periodControl.value)} · ${features.length.toLocaleString()} ${geographyControl.selectedOptions[0].textContent.toLowerCase()} · ${unavailable.toLocaleString()} without an estimate`;
@@ -235,14 +256,14 @@ async function start() {
     document.getElementById("rent-controls").disabled = true;
     status.textContent = `Loading ${periodLabel(year)}…`;
     // Hide prior-period Census geometry until all new sources are ready.
-    for (const id of ["blocks", "tracts", "pumas"]) {
+    for (const id of ["blocks", "tracts"]) {
       map.setLayoutProperty(`${id}-fill`, "visibility", "none");
       map.setLayoutProperty(`${id}-line`, "visibility", "none");
     }
     let failure;
     try {
       const next = await loadPeriod(year);
-      for (const id of ["blocks", "tracts", "pumas"]) {
+      for (const id of ["blocks", "tracts"]) {
         map.getSource(id).setData(next[id]);
         layerData[id] = next[id];
       }
@@ -262,27 +283,26 @@ async function start() {
   document.querySelectorAll("[data-layer]").forEach(input => {
     input.addEventListener("change", () => {
       map.setLayoutProperty(`${input.dataset.layer}-line`, "visibility", input.checked ? "visible" : "none");
-      if (input.dataset.layer === "pumas") {
-        map.setLayoutProperty("pumas-fill", "visibility", input.checked || geographyControl.value === "pumas" ? "visible" : "none");
-      }
     });
   });
   map.on("click", event => {
     if (switchingPeriod) return;
-    const features = map.queryRenderedFeatures(event.point, { layers: [...new Set(["communities-fill", `${geographyControl.value}-fill`, "pumas-fill"])] });
+    const features = map.queryRenderedFeatures(event.point, { layers: [...new Set(["communities-fill", `${geographyControl.value}-fill`])] });
     const community = features.find(feature => feature.layer.id === "communities-fill");
     const area = features.find(feature => feature.layer.id === `${geographyControl.value}-fill`);
-    const puma = features.find(feature => feature.layer.id === "pumas-fill");
     const details = document.createElement("div");
     details.className = "area-popup";
     const lines = [];
     if (community) lines.push(`Community: ${community.properties.community} (area ${community.properties.area_numbe})`);
-    if (puma && (geographyControl.value === "pumas" || document.querySelector('[data-layer="pumas"]').checked)) lines.push(`PUMA ${puma.properties.puma_code}: ${puma.properties.NAME} · ${puma.properties.puma_definition_year} definition`);
     if (area) {
       lines.push(`${area.properties.NAME} · GEOID ${area.properties.GEOID}`);
       lines.push(`${periodLabel(area.properties.acs_end_year)} ACS · ${area.properties.boundary_year} boundaries · rents in ${area.properties.dollar_year} dollars.`);
       const selectedMeasure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
-      if (selectedMeasure.percent) lines.push(percentageText(area.properties, selectedMeasure));
+      const selectedValue=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_estimate`],selectedMeasure);
+      const selectedMoe=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_moe`],selectedMeasure,true);
+      const selectedNotes = window.chicagoValueNotes(area.properties, selectedMeasure);
+      lines.push(`${selectedMeasure.label}: ${selectedValue}${selectedMeasure.administrative ? " recorded rows; no sampling MOE" : selectedMoe==="Not available" ? " (MOE unavailable)" : ` ±${selectedMoe}`}. ${selectedMeasure.description}.${selectedNotes ? ` ${selectedNotes}.` : ""}`);
+      if(area.properties.model_community)lines.push(`Block-group model community assignment: ${area.properties.model_community}`);
       lines.push(rentText(area.properties, "median_contract_rent", "Median contract rent"));
       lines.push(rentText(area.properties, "median_gross_rent", "Median gross rent"));
       lines.push(countText(area.properties, "cash_rent_units", "Occupied units paying cash rent"));

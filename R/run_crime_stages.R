@@ -2,3 +2,4 @@
 source("R/model_crime_stages.R")
 source("R/check_crime_stages.R")
 source("R/render_crime_stages.R")
+source("R/run_rent_outcome_comparison.R")

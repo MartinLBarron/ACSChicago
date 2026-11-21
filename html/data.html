@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>About the data · Chicago Rent</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link href="style.css?v=20261118-puma-aggregates" rel="stylesheet">
+  <link href="style.css?v=20261120-model-measures" rel="stylesheet">
 </head>
 <body>
   <a class="skip-link" href="#about-data">Skip to data information</a>
@@ -30,9 +30,12 @@
       <p>The 50% or more rent-burden measure shows the share spending at least half of household income on gross rent. Its denominator excludes units for which the rent/income ratio could not be computed.</p>
       <p>Percentage margins of error are approximate and shown in percentage points (pp), using Census-style formulas for sums and subset proportions. Missing inputs and zero denominators remain unavailable, rather than becoming zero percentages. Citywide percentages are calculated from citywide counts, not by averaging mapped areas.</p>
     </section>
-    <section aria-labelledby="puma-data-heading">
-      <h2 id="puma-data-heading">PUMA areas</h2>
-      <p>PUMA maps use published estimates for whole Public Use Microdata Areas, rather than averages of tract or block-group estimates. Some retained PUMAs extend beyond Chicago. The 2010–2014 and 2015–2019 periods use 2010-defined PUMAs; 2020–2024 uses 2020-defined PUMAs, so the boundaries differ across these periods.</p>
+    <section aria-labelledby="model-measures-heading">
+      <h2 id="model-measures-heading">Model variables and violent crime</h2>
+      <p>The additional housing, renter-profile, poverty, income, education and racial/ethnic measures currently cover 2020–2024. Tract and block-group values use their own published ACS counts and margins of error. Chicago dashboard values come directly from the Chicago city place—not averages of small areas. Household income is shown in annual dollars, although it enters the regression in logs.</p>
+      <p>Housing and renter-profile shares use renter-occupied units or households. Education shares use adults age 25+, poverty uses the population with poverty status determined, and racial/ethnic shares use all residents. Recent moves means the householder moved into the unit in 2020 or later; it is not an annual turnover rate.</p>
+      <p>Violent crime counts use the frozen <a href="https://data.cityofchicago.org/d/ijzp-q8t2">CPD 2020–2024 records</a> and the documented IUCR definition: Index murder, criminal sexual assault, robbery and aggravated assault/battery. Each row counts once, including separate murder-victim rows. The map counts usable geocoded rows within whole Census areas; the citywide total includes missing-coordinate rows. Zero assigned rows does not establish no violence. These are raw counts, not rates or resident risk, and no survey margin of error applies. The annual chart uses single-year CPD counts rather than five-year ACS estimates.</p>
+      <p>Community-area outlines and popup names show the location controls used in the model. Whole block groups can cross community and city boundaries; the block-group model assignment uses the largest community overlap. City-comparison popups remain available for the original dashboard measures; new model-measure cards are Chicago-only.</p>
     </section>
   </main>
   <footer class="site-footer"><span>Chicago Rent / a public-interest housing dashboard</span><span>© 2026 Martin Barron</span><a class="chicago-stars" href="#page-top" aria-label="Return to top of page">✶ ✶ ✶ ✶</a></footer>
