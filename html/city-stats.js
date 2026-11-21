@@ -232,7 +232,7 @@
     renderCards();
     if (typeof d3 === "undefined") throw new Error("Cards are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();
-    document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. All measures cover all three periods. ACS charts show five-year estimates; the crime chart shows annual CPD counts within the selected period.";
+    document.getElementById("city-status").textContent = "";
     let resizeFrame;
     window.addEventListener("resize", () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderCharts); });
   }
