@@ -426,3 +426,30 @@ explorer contrasts use the actual count difference with unscaled coefficients.
 Replace the superseded partition/before-after displays with a crime-association
 chart across adjustments; show current spatial tests and strict-boundary
 sensitivity. Verify R metrics/residuals and 51 JS contrasts against R fixtures.
+
+## 2026-11-21 — Extend all display measures to every period
+
+At Martin's request, extend the 17 model/crime measures to 2010–2014 and
+2015–2019, retaining all 23 measures across three waves. Each geographic
+selection and crime point assignment uses the corresponding ACS-year geometry.
+Martin approved available recent-move categories with explicit cutoff labels:
+2010+, 2015+, 2020+. B25036 construction cells require year-specific mappings;
+verify these and renter universes against cached official Census labels. Preserve
+raw ACS E/M/annotations and derive shares with existing MOE methods.
+
+Reuse the frozen 2024 crime definition and snapshot. Download historical
+IUCR-or-FBI selected violent rows, crosscheck classification equality, cache
+all-offense/violent yearly source totals, retain unique-ID rows and audit missing
+coordinates. City counts include missing coordinates; polygon counts exclude
+them. Historical extracts are revised records, not end-of-period snapshots.
+
+All map and dashboard periods now load their own supplements. Show ACS trends
+for the added measures and annual crime within each selected five-year period.
+Keep original six peer comparisons; added measures remain Chicago-only.
+The regression models remain the separately specified 2020–2024 study.
+
+Verification: all three period checks and browser-calculation tests pass. A full
+cached rerun reproduced all ten public supplement/annual JSON outputs byte for
+byte (SHA-256). Historical coverage is 2,330 block groups and 872 tracts per
+release; 2024 coverage remains 2,312 and 868. All eight dashboard tabs and
+23 cards were exercised for every period, including keyboard navigation.

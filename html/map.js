@@ -47,7 +47,7 @@ function renderLegend() {
   const list = document.getElementById("legend");
   list.replaceChildren();
   const { isCount, isPercent, breaks } = selectedScale();
-  const measure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+  const measure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
   const unit = measure.administrative ? "recorded rows" : "units";
   const money = value => dollars.format(value);
   const labels = isPercent
@@ -56,7 +56,7 @@ function renderLegend() {
     : [`Under ${money(breaks[0])}`, ...breaks.slice(0,-1).map((v,i)=>`${money(v)} to under ${money(breaks[i+1])}`), `${money(breaks.at(-1))} or more`, "Unavailable"];
   list.setAttribute("aria-label", `${measure.label} color scale`);
   document.getElementById("legend-note").textContent = measure.administrative
-    ? "2020–2024 CPD recorded rows with usable coordinates, within whole Census areas. Raw counts, not rates or resident risk. Zero means zero assigned records. No survey MOE applies."
+    ? `${periodLabel(periodControl.value)} CPD recorded rows with usable coordinates, within whole Census areas. Raw counts, not rates or resident risk. Zero means zero assigned records. No survey MOE applies.`
     : `${measure.description}. ${isPercent ? "MOEs are in percentage points." : measure.money ? `${periodControl.value} dollars ${measure.unit}; not inflation-adjusted.` : "Counts are survey estimates."} Gray means unavailable. Community names appear in the popup and boundary outlines.`;
   labels.forEach((label, i) => {
     const row = document.createElement("li");
@@ -151,14 +151,13 @@ async function start() {
     if (!periodCache.has(year)) {
       const request = Promise.all([fetchLayer(`block_group_rent_${year}`), fetchLayer(`tract_rent_${year}`)])
         .then(async ([blocks, tracts]) => {
-          if (year === "2024") {
             await Promise.all([["block_group",blocks],["tract",tracts]].map(async ([tag,collection])=>{
-              const response=await fetch(`data/web/${tag}_model_measures_2024.json?v=20261120-model-measures`);
+              const response=await fetch(`data/web/${tag}_model_measures_${year}.json?v=20261121-all-periods`);
               if(!response.ok) throw new Error(`Could not load model measures (${response.status}). Upload the complete data/web folder.`);
               const rows=await response.json(); const lookup=new Map(rows.map(row=>[row.GEOID,row]));
-              collection.features.forEach(feature=>Object.assign(feature.properties,lookup.get(feature.properties.GEOID)||{}));
+              if(rows.length!==collection.features.length || lookup.size!==rows.length || rows.some(row=>row.acs_end_year!==Number(year)) || collection.features.some(feature=>!lookup.has(feature.properties.GEOID))) throw new Error(`Mismatched ${tag} measures for ${year}. Upload the complete data/web folder.`);
+              collection.features.forEach(feature=>Object.assign(feature.properties,lookup.get(feature.properties.GEOID)));
             }));
-          }
           return {blocks,tracts};
         })
         .catch(error => { periodCache.delete(year); throw error; });
@@ -215,8 +214,8 @@ async function start() {
     if (areaPopup) areaPopup.remove();
     for (const option of measureControl.options) {
       const measure=window.ChicagoMeasures.find(m=>m.id===option.value);
-      option.disabled=!!measure.latestOnly && periodControl.value!=="2024";
-      option.textContent=measure.label+(option.disabled?" (2020–2024 only)":"");
+      option.disabled=false;
+      option.textContent=window.chicagoMeasureForYear(measure,periodControl.value).label;
     }
     if(measureControl.selectedOptions[0]?.disabled) measureControl.value="median_contract_rent";
     const field = `${measureControl.value}_estimate`;
@@ -235,9 +234,9 @@ async function start() {
     }
     renderLegend();
     document.dispatchEvent(new CustomEvent("chicago:period-change", { detail: { year: periodControl.value } }));
-    const selectedMeasure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+    const selectedMeasure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
     document.getElementById("map-period").textContent = selectedMeasure.administrative
-      ? "2020–2024 CPD records · 2024 Census boundaries"
+      ? `${periodLabel(periodControl.value)} CPD records · ${periodControl.value} Census boundaries`
       : `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
     status.textContent = "";
   }
@@ -295,7 +294,7 @@ async function start() {
     if (area) {
       lines.push(`${area.properties.NAME} · GEOID ${area.properties.GEOID}`);
       lines.push(`${periodLabel(area.properties.acs_end_year)} ACS · ${area.properties.boundary_year} boundaries · rents in ${area.properties.dollar_year} dollars.`);
-      const selectedMeasure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
+      const selectedMeasure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
       const selectedValue=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_estimate`],selectedMeasure);
       const selectedMoe=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_moe`],selectedMeasure,true);
       const selectedNotes = window.chicagoValueNotes(area.properties, selectedMeasure);

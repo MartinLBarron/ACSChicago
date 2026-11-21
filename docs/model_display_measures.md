@@ -1,65 +1,77 @@
 # Model measures on the map and dashboard
 
-The 2020–2024 model source measures are added alongside the six existing dashboard
-measures. The display uses percentages and annual household-income dollars,
-rather than regression coding in 10-percentage-point units or logged income.
-The new fields are available for 2020–2024 only. Older-period selections retain
-their original measures; the controls mark new measures as unavailable there.
+All 23 display measures cover ACS **2010–2014, 2015–2019 and 2020–2024**.
+They use tract and block-group boundaries matching each release, retaining whole
+areas with positive Chicago overlap and excluding the configured lake-only tract.
+The separate regression study still uses 2020–2024 only.
 
-The active map geographies and default aggregate pipeline are now **tracts and
-block groups only**. PUMA/PUMS source scripts and existing caches are retained
-as historical workflows, but they are not requested or displayed by default.
+## Definitions
 
-## Definitions and coverage
+- Rental stock: studio/one-bedroom and 3+-bedroom shares; rental shares in 2–4,
+  5–19 and 20+-unit buildings; pre-1940 and 2000+ construction shares.
+- Renter profile: recent move-ins; householders under 35 and age 65+.
+- Context: poverty, median household income, bachelor+ and no diploma/GED shares
+  among adults 25+, non-Hispanic Black and Hispanic/Latino population shares.
+- Crime: raw CPD violent-crime rows dated within each five-year period.
 
-- Rental stock: studio/one-bedroom and 3+-bedroom shares; shares in 2–4, 5–19 and
-  20+-unit structures; pre-1940 and 2000+ construction shares.
-- Renter profile: moved in 2020+; householder under 35 and age 65+ shares.
-- Context: poverty rate; median household income; bachelor+ and no diploma/GED
-  shares among adults 25+; non-Hispanic Black and Hispanic/Latino population shares.
-- Crime: raw 2020–2024 violent recorded rows, with the frozen IUCR definition.
-- Community names remain location labels in popups and outline layers. Block-group
-  popups also show the model's largest-overlap community assignment.
+Recent move-ins mean **2010+, 2015+ and 2020+**, respectively. The first release
+uses B25038_010; the others sum _010 and _011. These are stock shares with
+period-specific cutoffs, not annual turnover rates. Controls, cards and tooltips
+label the applicable cutoff. Construction-era cells in B25036 also differ:
+2014's renter total is _012 and its 2000+ numerator is _013 + _014; later totals
+are _013 and 2000+ numerators are _014 + _015 + _016. The pipeline verifies these
+positions against cached official Census metadata and saves a per-period codebook.
 
-All mapped areas are retained (2,312 BGs; 868 tracts), not just the model's
-complete-case sample. ACS measures use each geography's own source counts,
-preserving raw responses, estimates, 90% MOEs and available annotations. Derived
-share MOEs follow the same subset-proportion/sum formulas as the modeling data.
-Chicago cards use direct **Chicago city place** source counts and medians; no
-average of block-group or tract medians is used. City-comparison popups continue
-for the original six measures; new cards are Chicago-only.
+Each geography uses its own source counts and medians. Raw API responses retain
+E/M and available EA/MA annotations alongside tidycensus outputs. Derived share
+MOEs use the existing subset-proportion and sum formulas. Chicago uses direct
+city-place estimates, never averages of tract or block-group estimates. Income
+and rent are nominal end-year dollars. Changing geography and dollar values
+limit direct comparisons; no cross-period spatial crosswalk is applied.
 
-Mapped crime counts exclude unusable coordinates and count within whole polygons.
-The citywide CPD total includes selected records lacking coordinates. Neither
-has an ACS sampling MOE; zero assigned rows is not verified absence of violence.
-The annual crime chart uses five single-year CPD totals for 2020–2024, not five
-ACS waves. New single-period ACS values appear as cards, not invented trend lines.
+## Crime coverage
 
-## Rebuild
+The frozen 2024 IUCR definition applies to all periods: Index murder, criminal
+sexual assault, robbery, aggravated assault/battery, including the documented
+child-sexual-assault and ritual-battery codes. Each unique CPD row counts once;
+separate murder-victim rows remain separate. No rates, annualization or nearby
+buffers are used. Unusable coordinates are excluded from mapped counts, while
+city totals retain them. No survey MOE applies; reporting and location errors
+remain. Zero assigned rows does not establish absence of violence.
 
-After the baseline ACS and crime pipelines:
+The historical downloader retrieves rows selected by the IUCR definition **or**
+the corresponding FBI violent categories, then requires their classifications
+to agree. It caches independent all-offense and selected yearly counts, verifies
+unique IDs/counts/dates, and records coordinate coverage, query provenance and
+checksums. Historical records are revised administrative data, not snapshots as
+of each period's end. The original 2020–2024 snapshot is retained unchanged.
+
+## Rebuild and outputs
+
+After the core ACS and original crime preparation:
 
 ```sh
 Rscript R/run_model_display.R
+node tests/check_model_display.cjs
 ```
 
-The default `R/run_pipeline.R` runs this stage last. The downloader obtains direct
-2024 tract and Chicago-place estimates through tidycensus plus raw API responses;
-BG values reuse the existing full modeling input extraction. Raw caches live at
-`data/raw_data/model_display_2024_v1`, analytic supplements under
-`data/analytic/model_display_2024`. No new dependencies are introduced.
+The default `R/run_pipeline.R` runs this stage last. For each release, the stage
+validates table definitions, downloads ACS sources and historical crime inputs,
+derives measures, exports and checks geographic coverage, source ratios, MOEs,
+crime conservation and unchanged 2024 model-sample values. Rerun the complete
+stage to verify numerical reproducibility; cached inputs avoid new downloads.
 
-Public supplements in `html/data/web` are:
+- Raw ACS: `data/raw_data/model_display_{year}_v1`; table metadata:
+  `data/raw_data/model_display_metadata`.
+- Historical raw crime: `data/raw_data/cpd_display_crime_{start}_{end}_v1`;
+  analytic local records/audits: `data/analytic/display_crime_{start}_{end}`.
+- Analytic supplements and codebooks: `data/analytic/model_display_{year}`.
+- Public JSON: `html/data/web/{block_group,tract,chicago_city}_model_measures_{year}.json`.
+- Annual city crime: `html/data/web/chicago_annual_violent_crime.json` (2010–2024).
 
-- `block_group_model_measures_2024.json`
-- `tract_model_measures_2024.json`
-- `chicago_city_model_measures_2024.json`
-- `chicago_annual_violent_crime.json`
-
-Upload the entire `html/` folder including the new files. The map joins supplements
-by GEOID to the matching 2024 geometry. The dashboard merges the city supplement
-only into its 2024 row. Existing period and original city-comparison data are kept.
-
-`R/check_model_display.R` verifies full geographic coverage, source/model value
-agreement, direct city ratios, E/M round trips, crime count conservation and annual
-totals. Rerun the stage to confirm numerical reproducibility.
+Upload the complete `html/` folder, including all three years' supplements. The
+map joins by GEOID and period. All dashboard tabs work in all periods. ACS charts
+connect all three estimates; the crime chart shows the five annual totals within
+the selected period. The original six measures retain peer-city comparisons;
+additional measures remain Chicago-only. No point-level crime data is published.
+No new R package dependencies are introduced.

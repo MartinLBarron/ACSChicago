@@ -14,7 +14,7 @@ window.ChicagoMeasures = [
   ,{ id: "structure_20_plus_pct", label: "Rentals in 20+-unit buildings", description: "Share of renter-occupied units in buildings with at least 20 units" }
   ,{ id: "pre1940_pct", label: "Rentals built before 1940", description: "Share of renter-occupied units in buildings constructed before 1940" }
   ,{ id: "built2000_plus_pct", label: "Rentals built in 2000 or later", description: "Share of renter-occupied units in buildings constructed in 2000 or later", breaks: [1,5,10,20,35,50] }
-  ,{ id: "recent_movers_pct", label: "Renters who moved in during 2020 or later", description: "Share of renter households whose householder moved into the unit in 2020 or later; not an annual turnover rate" }
+  ,{ id: "recent_movers_pct", label: "Recent renter move-ins", description: "Share of renter households whose householder moved into the unit during the period; not an annual turnover rate" }
   ,{ id: "young_renters_pct", label: "Renter householders under 35", description: "Share of renter-occupied households with a householder under age 35" }
   ,{ id: "older_renters_pct", label: "Renter householders age 65+", description: "Share of renter-occupied households with a householder age 65 or older", breaks: [5,10,15,25,40,60] }
   ,{ id: "poverty_pct", label: "Poverty rate", unit: "percent of people with poverty status determined", description: "Population below the poverty threshold divided by the population for whom poverty status is determined", breaks: [5,10,15,20,30,40] }
@@ -23,9 +23,9 @@ window.ChicagoMeasures = [
   ,{ id: "no_high_school_pct", label: "Adults without a high-school diploma or GED", unit: "percent of adults age 25+", description: "Share of adults age 25+ without a high-school diploma or GED", breaks: [2,5,10,15,25,40] }
   ,{ id: "nh_black_pct", label: "Non-Hispanic Black population share", unit: "percent of residents", description: "Share of the total population identifying as Black alone and not Hispanic or Latino", breaks: [5,15,30,50,70,90] }
   ,{ id: "hispanic_pct", label: "Hispanic/Latino population share", unit: "percent of residents", description: "Share of the total population identifying as Hispanic or Latino, of any race", breaks: [5,15,30,50,70,90] }
-  ,{ id: "violent_crime_count", label: "Recorded violent crime, 2020–2024", administrative: true, percent: false, count: true, unit: "recorded rows over five years", description: "Raw count of selected CPD violent-crime rows; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
+  ,{ id: "violent_crime_count", label: "Recorded violent crime", administrative: true, percent: false, count: true, unit: "recorded rows over five years", description: "Raw count of selected CPD violent-crime rows; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
  ].map((measure,index) => ({ unit: "percent of eligible units", color: "#2b6550",
-  ...(index >= 6 ? { latestOnly: true, comparison: false, percent: true, group: "model", unit: "percent of renter-occupied homes" } : {}), ...measure }));
+  ...(index >= 6 ? { comparison: false, percent: true, group: "model", unit: "percent of renter-occupied homes" } : {}), ...measure }));
 window.ChicagoMeasureGroups = {
   rent: "Rent and affordability",
   tenure: "Rental stock and tenure",
@@ -66,4 +66,14 @@ window.chicagoValueNotes = (row, measure) => {
   }
   if (measure.administrative) notes.push("CPD recorded rows, not an ACS estimate; no sampling MOE applies");
   return notes.join(". ");
+};
+
+// Period-specific definitions remain explicit in controls, cards and tooltips.
+window.chicagoMeasureForYear = (measure, year) => {
+  const start = Number(year) - 4;
+  if (measure.id === "recent_movers_pct") return { ...measure,
+    label: `Renters who moved in during ${start} or later`,
+    description: `Share of renter households whose householder moved into the unit in ${start} or later; not an annual turnover rate` };
+  if (measure.administrative) return { ...measure, label: `Recorded violent crime, ${start}–${year}` };
+  return measure;
 };

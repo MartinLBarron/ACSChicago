@@ -365,3 +365,12 @@ on identical complete cases and tract folds, with diagnostics and a joint
 open-ended-median sensitivity. The report is
 `output/models/rent_outcome_comparison_2024/report.html`; its source is
 `R/rent_outcome_comparison.Rmd`. The crime-stages runner includes this comparison.
+
+### All-period map and citywide measures
+
+`Rscript R/run_model_display.R` now builds every display measure for 2010–2014,
+2015–2019 and 2020–2024, including historical violent-crime counts. It preserves
+ACS estimates/MOEs, validates changing table definitions and assigns crime points
+to each period's geometry. See [measure definitions and rebuild instructions](docs/model_display_measures.md).
+Upload the complete `html/data/web` directory with the updated HTML/JS.
+The Model page continues to describe the 2020–2024 regressions.

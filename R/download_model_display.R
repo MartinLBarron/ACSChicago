@@ -2,6 +2,7 @@ source("R/model_display_config.R")
 source("R/acs_helpers.R")
 require_acs_packages()
 cfg <- model_display_config
+acs_config <- acs_config_for_year(cfg$year)
 dir.create(cfg$raw_dir,recursive=TRUE,showWarnings=FALSE)
 dir.create(cfg$analytic_dir,recursive=TRUE,showWarnings=FALSE)
 manifest <- file.path(cfg$raw_dir,"manifest.csv")
@@ -9,13 +10,14 @@ if(file.exists(manifest)) {
   old <- readr::read_csv(manifest,show_col_types=FALSE)
   stopifnot(all(file.exists(old$path)),all(unname(tools::md5sum(old$path))==old$md5))
 }
-for(tag in c("tract","chicago_city")) {
+for(tag in c("block_group","tract","chicago_city")) {
+  if(tag=="block_group" && cfg$year==2024L) next # Reuse the existing full BG extraction.
   core <- readRDS(file.path(acs_config$analytic_dir,paste0(tag,"_housing.rds")))
-  kind <- if(tag=="chicago_city")"place" else tag
-  counties <- if(tag=="tract")sort(unique(substr(core$GEOID,3,5))) else NA_character_
+  kind <- if(tag=="chicago_city")"place" else if(tag=="block_group")"block group" else tag
+  counties <- if(tag!="chicago_city")sort(unique(substr(core$GEOID,3,5))) else NA_character_
   responses <- list()
-  for(group in names(bg_variable_groups)) {
-    variables <- bg_variable_groups[[group]]
+  for(group in names(model_display_groups)) {
+    variables <- model_display_groups[[group]]
     batches <- split(variables,ceiling(seq_along(variables)/12))
     prepared_parts <- list()
     for(county in counties) for(i in seq_along(batches)) {
@@ -29,7 +31,7 @@ for(tag in c("tract","chicago_city")) {
         args<-list(geography=kind,
           state=config$state,variables=config$variables,year=cfg$year,survey="acs5",geometry=FALSE,
           output="tidy",moe_level=90,key=Sys.getenv("CENSUS_API_KEY"),show_call=FALSE)
-        if(tag=="tract")args$county<-county
+        if(tag!="chicago_city")args$county<-county
         message("Model display: ",tag," ",group," batch ",i)
         tidy<-do.call(tidycensus::get_acs,args)
         saveRDS(tidy,tidy_path)
@@ -45,7 +47,7 @@ for(tag in c("tract","chicago_city")) {
     responses[[group]]<-list(long=long,wide=wide)
   }
   long<-dplyr::bind_rows(lapply(responses,`[[`,"long"))
-  long$unit<-ifelse(long$variable=="area_median_income","2024 annual household-income dollars","count in the published ACS table universe")
+  long$unit<-ifelse(long$variable=="area_median_income",paste(cfg$year,"annual household-income dollars"),"count in the published ACS table universe")
   wide<-responses[[1]]$wide
   for(part in responses[-1])wide<-dplyr::left_join(wide,part$wide[c("GEOID",setdiff(names(part$wide),metadata))],by="GEOID")
   stopifnot(setequal(wide$GEOID,core$GEOID),!anyDuplicated(wide$GEOID))

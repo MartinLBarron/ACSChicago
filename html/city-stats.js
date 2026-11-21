@@ -11,7 +11,7 @@
   let selectedYear = statisticsPeriod.value;
   const annotations = window.chicagoValueNotes;
   let selectedGroup = Object.keys(window.ChicagoMeasureGroups)[0];
-  const groupAvailable = group => allMeasures.some(m => m.group === group && (!m.latestOnly || selectedYear === "2024"));
+  const groupAvailable = group => allMeasures.some(m => m.group === group);
   function renderTabs() {
     const root = document.getElementById("city-tabs");
     if (!groupAvailable(selectedGroup)) selectedGroup = Object.keys(window.ChicagoMeasureGroups).find(groupAvailable);
@@ -23,7 +23,7 @@
       tab.setAttribute("aria-selected", String(group === selectedGroup));
       tab.tabIndex = group === selectedGroup ? 0 : -1;
       tab.disabled = !groupAvailable(group);
-      if (tab.disabled) tab.title = "Available for 2020–2024";
+
       tab.addEventListener("click", () => {
         selectedGroup = group; renderTabs();
         document.getElementById(`city-tab-${group}`).focus();
@@ -45,14 +45,14 @@
 
   function summary(row, measure) {
     const moe = row[`${measure.id}_moe`];
-    return `${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${measure.administrative ? "recorded rows" : isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
+    return `${measure.id === "recent_movers_pct" ? window.chicagoMeasureForYear(measure,row.acs_end_year).label + "; " : ""}${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${measure.administrative ? "recorded rows" : isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
   }
   function renderCards() {
     const row = rows.find(row => String(row.acs_end_year) === selectedYear);
     const root = document.getElementById("city-cards");
     root.replaceChildren();
     if (!row) return;
-    for (const measure of allMeasures.filter(measure => measure.group === selectedGroup && (!measure.latestOnly || selectedYear === "2024"))) {
+    for (const measure of allMeasures.filter(measure => measure.group === selectedGroup).map(measure => window.chicagoMeasureForYear(measure,selectedYear))) {
       const card = document.createElement("article");
       card.className = "stat-card";
       const heading = document.createElement("h3"); heading.textContent = measure.label;
@@ -97,13 +97,14 @@
     chartCleanups.forEach(cleanup => cleanup());
     chartCleanups = [];
     const root = d3.select("#city-charts"); root.selectAll("*").remove();
-    allMeasures.forEach((measure, index) => {
-      if (measure.group !== selectedGroup || (measure.latestOnly && selectedYear !== "2024")) return;
-      const seriesRows = measure.administrative ? crimeAnnual : rows;
+    allMeasures.forEach((baseMeasure, index) => {
+      const measure = window.chicagoMeasureForYear(baseMeasure,selectedYear);
+      if (measure.group !== selectedGroup) return;
+      const seriesRows = measure.administrative ? crimeAnnual.filter(row => row.acs_end_year >= Number(selectedYear)-4 && row.acs_end_year <= Number(selectedYear)) : rows;
       const valid = seriesRows.filter(row => isValue(row[`${measure.id}_estimate`]));
       if (valid.length < 2) return; // A single-period estimate is a card, not a trend.
       const article = root.append("article").attr("class", "trend-chart");
-      article.append("h3").text(measure.label);
+      article.append("h3").text(measure.id === "recent_movers_pct" ? "Recent renter move-ins (period-specific cutoff)" : measure.label);
       article.append("p").attr("class", "chart-unit").text(measure.administrative ? "Annual CPD recorded rows · no survey MOE" : measure.money ? `${measure.unit} · not inflation-adjusted` : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
       const width = Math.max(290, article.node().getBoundingClientRect().width - 40);
       const height = 270;
@@ -215,17 +216,21 @@
     if (!response.ok) throw new Error(`Citywide statistics could not load (HTTP ${response.status}). Upload data/web/chicago_city_statistics.json.`);
     rows = await response.json(); rows.sort((a, b) => a.acs_end_year - b.acs_end_year);
     if (rows.length !== 3 || rows.some(row => row.GEOID !== "1714000") || new Set(rows.map(row => row.acs_end_year)).size !== 3) throw new Error("Unexpected citywide statistics. Re-run the city web export.");
-    const [supplement, annual] = await Promise.all([
-      fetch("data/web/chicago_city_model_measures_2024.json?v=20261120-model-measures"),
-      fetch("data/web/chicago_annual_violent_crime.json?v=20261120-model-measures")]);
-    if (!supplement.ok || !annual.ok) throw new Error("Model measure data could not load. Upload the complete data/web folder.");
-    const city = await supplement.json();
-    Object.assign(rows.find(row=>row.acs_end_year===2024),city[0]);
+    const supplements = await Promise.all(rows.map(async row => {
+      const response = await fetch(`data/web/chicago_city_model_measures_${row.acs_end_year}.json?v=20261121-all-periods`);
+      if (!response.ok) throw new Error("Model measure data could not load. Upload the complete data/web folder.");
+      const data = await response.json();
+      if (data.length !== 1 || data[0].GEOID !== row.GEOID || data[0].acs_end_year !== row.acs_end_year) throw new Error("Mismatched city supplement period");
+      return data[0];
+    }));
+    rows.forEach((row,i) => Object.assign(row,supplements[i]));
+    const annual = await fetch("data/web/chicago_annual_violent_crime.json?v=20261121-all-periods");
+    if (!annual.ok) throw new Error("Annual crime data could not load.");
     crimeAnnual = await annual.json();
     renderCards();
     if (typeof d3 === "undefined") throw new Error("Cards are available, but D3 could not load. Check your connection to load the charts.");
     renderCharts();
-    document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. New model measures are available for 2020–2024. ACS trend charts require multiple periods; crime uses annual CPD counts.";
+    document.getElementById("city-status").textContent = "This period selector updates the citywide cards independently of the map. All measures cover all three periods. ACS charts show five-year estimates; the crime chart shows annual CPD counts within the selected period.";
     let resizeFrame;
     window.addEventListener("resize", () => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(renderCharts); });
   }

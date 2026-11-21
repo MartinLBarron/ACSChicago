@@ -8,10 +8,10 @@
   <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
   <link href="style.css?v=20261121-city-tabs-20261120-model-measures" rel="stylesheet">
   <script defer src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
-  <script defer src="measures.js?v=20261120-measure-groups"></script>
-  <script defer src="map.js?v=20261121-sidebar"></script>
+  <script defer src="measures.js?v=20261121-all-periods"></script>
+  <script defer src="map.js?v=20261121-all-periods"></script>
   <script defer src="vendor/d3.v7.9.0.min.js"></script>
-  <script defer src="city-stats.js?v=20261121-city-tabs"></script>
+  <script defer src="city-stats.js?v=20261121-all-periods"></script>
   <script defer src="comparisons.js?v=20261120-model-measures"></script>
 </head>
 <body>
@@ -34,7 +34,7 @@
       <p class="note">Each period uses matching Census boundaries. Rent is in that period’s end-year dollars, without adjustment for inflation.</p>
       <label for="measure">Measure</label>
       <select id="measure"><option value="median_gross_rent">Median gross rent</option><option value="median_contract_rent">Median contract rent</option><option value="cash_rent_units">Occupied units paying cash rent</option><option value="renter_occupied_units">Renter-occupied units</option><option value="renter_occupied_pct">Renter-occupied share</option></select>
-      <p class="note">Model measures and violent-crime counts are available for 2020–2024 only. Community names appear in outlines and popups.</p>
+      <p class="note">All measures are available for each period. Community names appear in outlines and popups.</p>
       <label for="geography">Geography</label>
       <select id="geography"><option value="tracts">Census tracts</option><option value="blocks">Block groups</option></select>
     </fieldset>
@@ -66,7 +66,7 @@
     <div id="city-group-panel" role="tabpanel" tabindex="0">
     <p id="city-status" role="status">Loading Chicago statistics…</p>
     <div id="city-cards" class="city-cards" aria-live="polite"></div>
-    <div class="trends-heading" id="city-trends-heading"><p class="eyebrow">Three periods / One city</p><h2>How the numbers have changed.</h2><p>Each point represents a five-year ACS estimate, not a single year. ACS lines connect the three non-overlapping periods. New model measures currently have one period and appear in the cards; the crime chart shows annual 2020–2024 records. Hover or focus a point to highlight it and see its estimate and margin of error.</p></div>
+    <div class="trends-heading" id="city-trends-heading"><p class="eyebrow">Three periods / One city</p><h2>How the numbers have changed.</h2><p>Each point represents a five-year ACS estimate, not a single year. ACS lines connect the three non-overlapping periods. The recent-mover share uses each period’s move-in cutoff (2010+, 2015+, 2020+). The crime chart shows annual records within the selected period. Hover or focus a point to highlight it and see its estimate and margin of error.</p></div>
     <div id="city-charts" class="city-charts"></div>
     </div>
   </section>
