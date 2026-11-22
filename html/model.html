@@ -7,9 +7,9 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <meta name="description" content="Explore how housing, socioeconomic conditions and community location are associated with Chicago rents, using ACS block-group models.">
   <link href="style.css?v=20261118-bg-model" rel="stylesheet">
-  <link href="model.css?v=20261121-formal-fit-format" rel="stylesheet">
+  <link href="model.css?v=20261122-no-formal-divider" rel="stylesheet">
   <script defer src="vendor/d3.v7.9.0.min.js"></script>
-  <script defer src="model.js?v=20261121-formal-fit-format"></script>
+  <script defer src="model.js?v=20261122-no-coefficient-table"></script>
 </head>
 <body>
   <a class="skip-link" href="#model">Skip to model information</a>
@@ -32,14 +32,13 @@
     <section class="model-section model-summary-section" id="summary" aria-labelledby="summary-heading">
       <p class="eyebrow">01 / Summary</p>
       <h2 id="summary-heading">Rent and violent crime in context.</h2>
+      <p class="model-project-intro"><strong>Does violent crime help explain differences in Chicago rents?</strong> We use regression analysis to compare rents across block groups while accounting for housing characteristics, socioeconomic conditions, and community location. Higher crime counts are associated with lower rents when modeled alone, but the association become much smaller after other factors are considered. The fully adjusted models suggest a negligible impact of crime on rent.</p>
       <div class="model-summary-grid">
         <div><h3>Research question</h3><p>What is the association between median contract rent and violent crime across Chicago block groups, and how does that association change after accounting for housing, socioeconomic conditions, and community-area location?</p></div>
         <div><h3>Models built</h3><p>Five nested linear models use the natural log of median monthly contract rent, with equal weight per block group. M0 is the intercept-only baseline; M1 adds violent crime; M2 adds housing and renter profile; M3 adds socioeconomic context; M4 adds indicators for the 77 community areas.</p></div>
-        <div><h3>Data used</h3><p id="summary-data"></p><p>ACS estimates describe housing composition, renter profiles, income, poverty, education and racial/ethnic composition. CPD records supply the five-year count of violent crimes located within each block group. Crime records without usable coordinates are excluded from these counts.</p></div>
-        <div><h3>Main findings</h3><p id="summary-results"></p><p id="summary-uncertainty"></p></div>
+        <div><h3>Data used</h3><p id="summary-data"></p><p>ACS estimates describe housing composition, renter profiles, income, poverty, education and racial/ethnic composition. CPD records supply the five-year count of violent crimes located within each block group. More data details can be found under <a href="data.html">About the data</a>.</p></div>
+        <div><h3>Main findings</h3><p id="summary-results"></p></div>
       </div>
-      <div class="model-overview" id="model-overview"></div>
-      <div class="model-notice"><strong>A working model.</strong> These results describe associations among area medians, not causal effects or individual tenants. Residual spatial dependence, unequal variance and ACS measurement error remain important limitations.</div>
     </section>
 
 
@@ -62,35 +61,29 @@
           </tbody>
         </table>
       </div>
-      <p class="model-caption">Housing and renter-profile measures describe renter-occupied homes or households. Poverty, income, education and racial/ethnic measures describe their respective area populations, including owners and renters. Crime is a count, not a population-adjusted rate. These adjustments describe conditional associations and do not establish a causal effect.</p>
       <h3 class="model-results-heading">Comparing model fit</h3>
       <p class="model-intro">The results below show how much each stage adds. R² measures the share of observed log-rent variation accounted for in this sample; adjusted R² accounts for the number of predictors relative to the sample size.</p>
       <div class="table-scroll model-table-wrap" tabindex="0" role="region" aria-label="Model comparison table"><table class="model-table"><caption>Staged model comparison · equal weight per block group</caption><thead><tr><th scope="col">Model</th><th scope="col">What is included</th><th scope="col">N</th><th scope="col">Parameters</th><th scope="col">R²</th><th scope="col"><abbr class="model-term" tabindex="0" title="Adjusted R² adjusts for the number of parameters in the model." aria-label="Adjusted R squared: adjusts for the number of parameters in the model.">Adjusted R²</abbr></th></tr></thead><tbody id="model-table"></tbody></table></div>
-      <p class="model-finding" id="community-finding"></p>
-      <p class="model-finding" id="housing-location-finding"></p>
       <details class="model-details" id="formal-specification">
         <summary>Formal model specification</summary>
         <p>Outcome: natural log of median monthly contract rent. Cells show the estimated coefficient, its 95% HC3 confidence interval in brackets, and a statistical significance indicator. Models are ordinary least squares with equal weight per block group.</p>
         <div class="table-scroll formal-table-wrap" tabindex="0" role="region" aria-label="Formal model coefficient matrix" aria-describedby="formal-table-notes">
           <table class="model-table formal-model-table"><caption>OLS estimates · log median contract rent · 2020–2024</caption><thead><tr><th scope="col">Parameter / statistic</th><th scope="col">M0</th><th scope="col">M1</th><th scope="col">M2</th><th scope="col">M3</th><th scope="col">M4</th></tr></thead><tbody id="formal-fit"></tbody><tbody id="formal-coefficients"></tbody></table>
         </div>
-        <p>The overall F statistic and its p-value are conventional OLS tests of all slopes jointly. Residual degrees of freedom are shown in parentheses. M0 has no slopes, so its F test is not applicable. These F tests assume independent, constant-variance errors; the coefficient intervals below use HC3 uncertainty.</p>
-        <p id="formal-table-notes">* p &lt; 0.05; ** p &lt; 0.01; *** p &lt; 0.001. Coefficient tests are two-sided and use HC3 uncertainty, with no multiple-testing adjustment. A dash means the parameter is excluded from that model. NE means its HC3 interval and significance are not estimable.</p>
+        <p id="formal-table-notes">* p &lt; 0.05; ** p &lt; 0.01; *** p &lt; 0.001. Coefficient tests are two-sided and use HC3 uncertainty, with no multiple-testing adjustment.</p>
         <p>Coefficients are in log-rent units, rather than the percentage differences shown below. Share predictors enter per 10 percentage points; household income enters as its natural logarithm; crime enters as the untransformed five-year row count.</p>
         <p id="formal-reference"></p>
-        <p>Community indicators are relative to the reference community. Oakland has one usable block group, so its community coefficient has no estimable HC3 interval. HC3 inference otherwise uses the established singleton safeguard; it does not address all spatial dependence or ACS measurement error.</p>
       </details>
     </section>
 
     <section class="model-section" id="effects" aria-labelledby="effects-heading">
       <p class="eyebrow">03 / Variable associations</p>
       <h2 id="effects-heading">Variable associations.</h2>
-      <p class="model-intro">Compare otherwise similar block groups within the model. Share coefficients describe a 10-percentage-point difference; income describes a 10% difference; crime describes 100 additional recorded violent crimes over five years. Controls are held fixed, so some hypothetical combinations may be uncommon or infeasible.</p>
+      <p class="model-intro">Compare associations of variables holding other variables constant. Share coefficients describe a 10-percentage-point difference; income describes a 10% difference; crime describes 100 additional recorded violent crimes.</p>
       <div class="model-panel">
         <div class="model-panel-heading"><div><h3>Conditional associations</h3><p class="model-caption">See how estimates change as the model adds context and community location.</p></div><div class="model-control"><label for="coefficient-model">Model</label><select id="coefficient-model"><option value="M4" selected>M4 · Crime + all controls + community</option><option value="M3">M3 · Crime + housing/profile + context</option><option value="M2">M2 · Crime + housing/profile</option><option value="M1">M1 · Crime only</option></select></div></div>
         <div id="coefficient-chart" class="model-chart"></div>
-        <p class="model-caption">Dots show estimated percent differences; lines show 95% HC3 intervals. Crossing zero means the interval includes both higher and lower rent. These intervals condition on the ACS estimates and do not fully capture measurement error.</p>
-        <details class="model-details"><summary>Show coefficient estimates and uncertainty as a table</summary><div class="table-scroll" tabindex="0" role="region" aria-label="Coefficient estimates"><table class="model-table"><caption id="coefficient-caption"></caption><thead><tr><th scope="col">Variable &amp; comparison</th><th scope="col">Difference</th><th scope="col">95% HC3 interval</th><th scope="col">95% community-clustered interval</th></tr></thead><tbody id="coefficient-table"></tbody></table></div></details>
+        <p class="model-caption">Dots show estimated percent differences; lines show 95% HC3 intervals. Crossing zero means the variable is not statistically significant.</p>
       </div>
     </section>
 

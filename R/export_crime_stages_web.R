@@ -6,10 +6,10 @@ d <- r$data
 baseline <- readRDS(file.path(bg_model_config$analytic_dir, "model_results.rds"))
 model_names <- c(M0="Baseline", M1="Violent crime", M2="Crime + housing/profile",
   M3="Adding socioeconomic context", M4="Adding community location")
-specifications <- c(M0="Intercept only", M1="Raw violent-crime count, 2020–2024",
+specifications <- c(M0="Intercept only", M1="Violent-crime count",
   M2="M1 + bedrooms, building size/age, recent movers and renter householder age",
   M3="M2 + poverty, income, education and racial/ethnic composition",
-  M4="M3 + indicators for the 77 community areas")
+  M4="M3 + indicators for the community areas")
 metrics <- r$metrics[r$metrics$model %in% names(model_names), ]
 metrics$label <- unname(model_names[metrics$model])
 metrics$specification <- unname(specifications[metrics$model])

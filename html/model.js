@@ -75,26 +75,11 @@
     const m1 = data.models.find(d=>d.model==="M1");
     const m4 = data.models.find(d=>d.model==="M4");
     const gain = m4.r_squared-m3.r_squared;
-    $("housing-location-finding").textContent = `Crime alone accounts for ${percent(m1.r_squared)} of log-rent variation. Its association changes as housing, socioeconomic conditions and community location enter the models. This does not identify an effect of crime on rent.`;
     const crimeOnly = data.effects.find(row=>row.model==="M1");
     const crimeFull = data.effects.find(row=>row.model==="M4");
-    $("summary-data").textContent = `The study combines 2020–2024 ACS five-year estimates, matching 2024 Census boundaries and 2020–2024 Chicago Police Department records. It includes ${number(data.sample_n)} complete-case block groups across ${data.communities_n} community areas. Whole block groups must have at least half their area inside Chicago. Contract rent excludes separately paid utilities.`;
-    $("summary-results").textContent = `Crime alone accounts for ${percent(m1.r_squared)} of observed log-rent variation. In M1, 100 additional recorded violent-crime rows are associated with ${signed(crimeOnly.percent_per100_estimate)} rent. That association becomes much smaller after adding the measured controls. The full M4 accounts for ${percent(m4.r_squared)} of log-rent variation, with ${percent(m4.predictive_R2)} held out in tract-blocked cross-validation.`;
-    $("summary-uncertainty").textContent = `In M4, the crime association is ${signed(crimeFull.percent_per100_estimate)} per 100 additional records (95% HC3 interval: ${signed(crimeFull.percent_per100_hc3_conf_low)} to ${signed(crimeFull.percent_per100_hc3_conf_high)}). This interval includes zero; the community-clustered interval does not (${signed(crimeFull.percent_per100_cluster_conf_low)} to ${signed(crimeFull.percent_per100_cluster_conf_high)}). The evidence therefore depends on how uncertainty is estimated.`;
-    const cards = [
-      { title: "Block groups in the study", value: number(data.sample_n), note: `${data.communities_n} community areas · 2020–2024 ACS` },
-      { title: "Variation accounted for by M4", value: percent(m4.r_squared), note: `Observed log-rent variation · ${percent(m4.predictive_R2)} held out` },
-      { title: "Added fit from community location", value: `${d3.format(".1f")(gain*100)} pp`, note: `${percent(gain/(1-m3.r_squared))} of the variation remaining after measured controls` }
-    ];
-    for (const card of cards) {
-      const article = document.createElement("article"); article.className="model-summary";
-      const title=document.createElement("h3"); title.textContent=card.title;
-      const value=document.createElement("strong"); value.textContent=card.value;
-      const note=document.createElement("p"); note.textContent=card.note;
-      article.append(title,value,note); $("model-overview").append(article);
-    }
-    $("community-finding").textContent = `After measured housing and contextual controls, community location adds ${d3.format(".1f")(gain*100)} percentage points of in-sample R². That is ${percent(gain/(1-m3.r_squared))} of the remaining variation—not the share of rent caused by neighborhoods.`;
-    for (const m of data.models) cellRow($("model-table"), [m.model, `${m.label}: ${m.specification}`,number(m.n),m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared)]);
+    $("summary-data").textContent = `The study combines 2020–2024 ACS five-year estimates, matching 2024 Census boundaries and 2020–2024 Chicago Police Department records. It includes ${number(data.sample_n)} complete-case block groups across ${data.communities_n} community areas.`;
+    $("summary-results").textContent = `Crime alone accounts for ${percent(m1.r_squared)} of rent variation. In M1, 100 additional recorded violent-crime rows are associated with ${signed(crimeOnly.percent_per100_estimate)} rent. That association becomes much smaller after adding the measured controls. The full M4 accounts for ${percent(m4.r_squared)} of rent variation, with crime associated with a ${signed(crimeFull.percent_per100_estimate)} per 100 crime reduction in rent (95% CI: ${signed(crimeFull.percent_per100_hc3_conf_low)} to ${signed(crimeFull.percent_per100_hc3_conf_high)}). This effect is not statistically significant.`;
+    for (const m of data.models) cellRow($("model-table"), [m.model, m.model === "M0" ? `${m.label}: ${m.specification}` : m.specification,number(m.n),m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared)]);
     for (const row of data.spatial.filter(d=>d.weights==="queen")) cellRow($("spatial-table"), [row.model==="observed_log_rent"?"Observed log rent":`${row.model} residuals`,d3.format(".3f")(row.Moran_I),probability(row.permutation_p)]);
     const knn=data.spatial.find(d=>d.weights==="knn4" && d.model==="M4");
     $("spatial-note").textContent=`999 permutations, two-sided add-one probabilities. Fitted-residual tests are exploratory under unequal variance. The symmetric four-nearest-neighbor sensitivity gives M4 Moran’s I = ${d3.format(".3f")(knn.Moran_I)}, p = ${probability(knn.permutation_p)}. Clustering uncertainty by community does not resolve all spatial dependence.`;
@@ -146,14 +131,14 @@
     cellRow($("formal-fit"),["Overall F p-value",...data.models.map(overallP)]);
     for(const [label,field,format] of [["R²","r_squared",percent],["Adjusted R²","adjusted_r_squared",percent],["N","n",number]])
       cellRow($("formal-fit"),[label,...data.models.map(model=>format(model[field]))]);
-    $("formal-reference").textContent=`Reference categories: two-bedroom rentals; detached/attached one-unit buildings and mobile/other structures; buildings built in 1940–1999; renter householders age 35–64; and ${data.reference_community} for community location. Reference categories have no separate estimated coefficients.`;
+    $("formal-reference").textContent=`Reference categories: two-bedroom rentals; detached/attached one-unit buildings and mobile/other structures; buildings built in 1940–1999; renter householders age 35–64; and ${data.reference_community} for community location.`;
   }
   function coefficientChart() {
     const model=$("coefficient-model").value;
     const rows=data.coefficients.filter(d=>d.model===model);
     const width=Math.max(320,$("coefficient-chart").getBoundingClientRect().width), small=width<720;
     const step=small?70:40, top=20, bottom=55;
-    const {svg,height}=svgRoot("coefficient-chart",top+rows.length*step+bottom,`${model} conditional associations`,"Percent associations and 95% HC3 intervals. A complete accessible table with HC3 and community-clustered intervals follows.");
+    const {svg,height}=svgRoot("coefficient-chart",top+rows.length*step+bottom,`${model} conditional associations`,"Percent associations and 95% HC3 intervals. Focus a point to read its estimate and interval.");
     const left=small?20:390, right=45;
     const lo=Math.min(0,d3.min(rows,d=>d.percent_hc3_conf_low)), hi=Math.max(0,d3.max(rows,d=>d.percent_hc3_conf_high));
     const pad=(hi-lo)*.08||1;
@@ -174,9 +159,6 @@
       const dot=svg.append("circle").datum(row).attr("class","plot-hit").attr("cx",x(row.percent_estimate)).attr("cy",y).attr("r",5).attr("fill",colors.ink);
       tips(dot,d=>`${d.label}: ${signed(d.percent_estimate)} (95% HC3: ${signed(d.percent_hc3_conf_low)} to ${signed(d.percent_hc3_conf_high)}).`,true);
     });
-    $("coefficient-table").replaceChildren();
-    $("coefficient-caption").textContent=`${model} · percent differences in median contract rent`;
-    for (const row of rows) cellRow($("coefficient-table"),[row.label,signed(row.percent_estimate),`${signed(row.percent_hc3_conf_low)} to ${signed(row.percent_hc3_conf_high)}`,`${signed(row.percent_cluster_conf_low)} to ${signed(row.percent_cluster_conf_high)}`]);
   }
   function diagnostics() {
     const maximum=d3.max(data.points,d=>Math.max(d.observed,d.fitted))*1.05;
