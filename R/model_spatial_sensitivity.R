@@ -115,7 +115,7 @@ for(rule in names(graphs))for(spec in c("Original","Drop both"))for(stage in c("
   interval<-range(1/range(graph$eigenvalues));interval<-sort(interval)
   eff<-sp_effects(beta,V,theta,spatial_name,family,graph$eigenvalues,graph$island_fraction,interval,crime_stages_config$seed+index)
   eff$percent_equiv_per100<-100*expm1(100*eff$log_effect);eff$percent_equiv_low<-100*expm1(100*eff$log_low);eff$percent_equiv_high<-100*expm1(100*eff$log_high)
-  gmm_summary[[key]]<-cbind(data.frame(spec=spec,stage=stage,weights=rule,family=family,theta=unname(theta),theta_se=se,theta_p=2*pnorm(-abs(theta/se))),eff)
+  gmm_summary[[key]]<-cbind(data.frame(spec=spec,stage=stage,weights=rule,family=family,theta=unname(theta),theta_se=unname(se),theta_p=unname(2*pnorm(-abs(theta/se)))),eff)
 }
 metrics<-dplyr::bind_rows(diagnostics) |> dplyr::group_by(spec,stage,weights) |>
   dplyr::mutate(delta_AIC=AIC-min(AIC),delta_BIC=BIC-min(BIC),AIC_gain_over_OLS=AIC[family=="OLS"]-AIC) |> dplyr::ungroup()

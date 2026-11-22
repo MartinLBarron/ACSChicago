@@ -651,3 +651,20 @@ and MASS to packages.txt; required packages installed locally.
 
 Cached end-to-end reproducibility verified: all 13 CSV, self-contained HTML
 and PNG artifacts reproduced byte for byte (SHA-256).
+
+## 2026-11-22 — Promote reduced crime-first models to the website
+
+Omit college-educated share and 20+-unit-building share throughout M0–M4 where
+previously present, retaining the original 1,468-case sample and staged order.
+Original model bundles and reports remain archived. The current branch is
+R/run_current_model_web.R, with estimates, HC3 intervals, F tests, VIFs, plots,
+same-fold cross-validation and boundary/open-ended-median sensitivities rebuilt.
+
+Reduced M4 R² is 0.72847582 and adjusted R² is 0.71051891. Its crime association
+is −2.31797% per 100 records (95% HC3 interval −4.56750% to −0.01542%); the page
+therefore no longer describes that interval as statistically insignificant.
+Moran tests now use regression-adjusted lm.morantest inference. The diagnostic
+section includes matching reduced SEM/SAR models, queen/KNN4 sensitivity and
+heteroskedastic GMM checks. M4 spatial AIC gains are small and BIC favors OLS;
+these checks do not establish spatial independence. Assertions verify sample,
+coefficient and fit identity between website and spatial bundles.

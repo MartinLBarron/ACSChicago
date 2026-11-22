@@ -1,8 +1,10 @@
 # Publish aggregate model results, not R objects or PUMS housing-unit records.
 source("R/crime_stages_config.R")
 cfg <- crime_stages_config
+cfg$analytic_dir <- "data/analytic/crime_stages_reduced_2024"
 r <- readRDS(file.path(cfg$analytic_dir, "model_results.rds"))
 d <- r$data
+predictors <- setdiff(bg_predictors,r$removed_terms)
 baseline <- readRDS(file.path(bg_model_config$analytic_dir, "model_results.rds"))
 model_names <- c(M0="Baseline", M1="Violent crime", M2="Crime + housing/profile",
   M3="Adding socioeconomic context", M4="Adding community location")
@@ -25,7 +27,7 @@ overall_f <- dplyr::bind_rows(lapply(names(r$models),function(name) {
     f_log10_p=unname(stats::pf(statistic[1],statistic[2],statistic[3],lower.tail=FALSE,log.p=TRUE)/log(10)))
 }))
 metrics <- dplyr::left_join(metrics,overall_f,by="model")
-variables <- dplyr::bind_rows(lapply(bg_predictors, function(term) {
+variables <- dplyr::bind_rows(lapply(predictors, function(term) {
   income <- term == "log_income"
   source <- if (income) "income" else sub("_10pp$", "_pct", term)
   values <- d[[source]]
@@ -35,7 +37,7 @@ variables <- dplyr::bind_rows(lapply(bg_predictors, function(term) {
     domain = if (term %in% bg_housing_terms) "Housing" else "Context",
     p05 = q[1], p25 = q[2], median = q[3], p75 = q[4], p95 = q[5])
 }))
-coefficients <- r$coefficients[r$coefficients$term %in% bg_predictors &
+coefficients <- r$coefficients[r$coefficients$term %in% predictors &
   r$coefficients$model %in% c("M1", "M2a", "M2", "M3", "M4"), ]
 fit <- r$models$M4
 points <- data.frame(community = d$community, observed = d$rent,
@@ -47,9 +49,12 @@ qq <- data.frame(theoretical = stats::qnorm(stats::ppoints(length(standardized))
 quantiles <- stats::quantile(standardized, c(.25,.75))
 slope <- unname(diff(quantiles) / diff(stats::qnorm(c(.25,.75))))
 intercept <- unname(quantiles[1] - slope * stats::qnorm(.25))
-sensitivities <- tidyr::pivot_wider(r$strict_metrics[c("model","n","r_squared")], names_from="model", values_from="r_squared")
-sensitivities$sensitivity <- "At least 99% of area inside Chicago"
-sensitivities$increment <- sensitivities$M4 - sensitivities$M3
+sensitivity_row <- function(metrics,label) {
+  x<-tidyr::pivot_wider(metrics[c("model","n","r_squared")],names_from="model",values_from="r_squared")
+  x$sensitivity<-label;x$increment<-x$M4-x$M3;x
+}
+sensitivities<-dplyr::bind_rows(sensitivity_row(r$strict_metrics,"At least 99% of area inside Chicago"),
+  sensitivity_row(r$closed_metrics,"Exclude open-ended rent medians"))
 crime_q <- unname(stats::quantile(d$violent_crime_count,c(.05,.25,.5,.75,.95)))
 variables <- dplyr::bind_rows(data.frame(term="violent_crime_count",label="Recorded violent crimes",coefficient_label="Violent crime (+100 recorded rows)",unit="count",domain="Crime",p05=crime_q[1],p25=crime_q[2],median=crime_q[3],p75=crime_q[4],p95=crime_q[5]),variables)
 crime_coef <- r$coefficients[r$coefficients$term=="violent_crime_count",]
@@ -71,19 +76,29 @@ community_rows <- grepl("^community_id",formal_coefficients$term)
 community_ids <- sub("^community_id","",formal_coefficients$term[community_rows])
 formal_coefficients$label[community_rows] <- paste("Community:",d$community[match(community_ids,as.character(d$community_id))])
 stopifnot(!anyNA(formal_coefficients$label),!anyDuplicated(formal_coefficients[c("model","term")]))
+# Publish only spatial comparisons matching the now-primary reduced specification.
+spatial_models<-readRDS("data/analytic/spatial_sensitivity_2024/model_results.rds")
+stopifnot(identical(spatial_models$data$GEOID,d$GEOID))
+for(name in c("M3","M4"))for(rule in c("queen","knn4")) {
+  comparison_fit<-spatial_models$fits[[paste("Drop both",name,rule,"OLS",sep=" / ")]]
+  stopifnot(isTRUE(all.equal(coef(comparison_fit),coef(r$models[[name]]),check.attributes=FALSE)))
+}
+robustness<-list(metrics=spatial_models$metrics[spatial_models$metrics$spec=="Drop both",],
+ effects=spatial_models$effects[spatial_models$effects$spec=="Drop both",],
+ gmm=spatial_models$gmm[spatial_models$gmm$spec=="Drop both",])
 payload <- list(
-  version = 2L, period = "2020–2024", sample_n = nrow(d), communities_n = nlevels(d$community_id),
+  version = 3L, period = "2020–2024", sample_n = nrow(d), communities_n = nlevels(d$community_id),
   majority_city_n = sum(baseline$all_data$majority_city), missing_rent_n = sum(baseline$all_data$majority_city & !is.finite(baseline$all_data$log_rent)),
   missing_income_n = sum(baseline$all_data$majority_city & is.finite(baseline$all_data$log_rent) & !is.finite(baseline$all_data$log_income)),
   singleton_n = sum(table(d$community_id) == 1), open_ended_rent_n = sum(!is.finite(d$rent_moe)),
   cv_excluded_n = r$cv$excluded_unseen, models = metrics, variables = variables, coefficients = coefficients,
-  effects = r$effects, formal_coefficients = formal_coefficients, reference_community = reference_community, diagnostics = diagnostic_rows,
+  vif = r$vif, spatial_robustness = robustness, removed_terms = r$removed_terms, effects = r$effects, formal_coefficients = formal_coefficients, reference_community = reference_community, diagnostics = diagnostic_rows,
   spatial = r$spatial, spatial_graph = baseline$spatial$graph, sensitivity = sensitivities,
   points = points, qq = qq, qq_reference = list(slope = slope, intercept = intercept),
   sample_flow = r$sample_flow, synthetic_data = r$synthetic_data,
   previous_comparison = list(),
   notes = list(confidence_model = .95, confidence_acs = .90, primary_weighting = "Equal block groups",
-               outcome = "Log median monthly contract rent", model_version = "Crime-first M0–M4 · 2026-11-20"))
+               outcome = "Log median monthly contract rent", model_version = "Reduced crime-first M0–M4 · 2026-11-22"))
 out <- "html/data/web"
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 path <- file.path(out, "block_group_model_2024.json")
@@ -95,6 +110,4 @@ stopifnot(check$sample_n == stats::nobs(fit), !check$synthetic_data,
   max(abs(check$formal_coefficients$estimate-r$coefficients$estimate)) < 1e-12,
   max(abs(check$models$r_squared - metrics$r_squared)) < 1e-12,
   max(abs(check$points$residual - stats::residuals(fit))) < 1e-12)
-report <- file.path(cfg$output_dir, "report.html")
-stopifnot(file.exists(report), file.copy(report, file.path(out, "block_group_model_report.html"), overwrite = TRUE))
 message("Exported current block-group models, effects and diagnostics to ", path)

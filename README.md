@@ -394,6 +394,16 @@ audits, numerical checks and a self-contained R Markdown HTML report.
 
 Report: `output/models/spatial_sensitivity_2024/report.html`; source:
 `R/spatial_sensitivity_report.Rmd`. Models/cache: `data/analytic/spatial_sensitivity_2024`.
-This is a separate diagnostic branch and does not replace the website models.
+The spatial fits are robustness checks; OLS remains the website's primary model.
 Install the listed packages before running; rerun the runner to verify cached
 reproducibility.
+
+### Current reduced website models
+
+Run `Rscript R/run_current_model_web.R` after the original crime-stage inputs
+exist. This rebuilds M0–M4 without college-educated share or the 20+-unit-building
+share, keeps the same 1,468 block groups, refreshes diagnostics and spatial
+checks, and exports `html/data/web/block_group_model_2024.json`. The full
+`R/run_crime_stages.R` pipeline includes this step. Original fits remain archived.
+Run `node tests/check_current_model_page.cjs` to check the rendered table content.
+Deploy the updated `html/model.html`, `html/model.js` and JSON together.
