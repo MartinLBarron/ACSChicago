@@ -17,6 +17,14 @@ metrics$r_squared[abs(metrics$r_squared) < 1e-12] <- 0
 metrics$adjusted_r_squared[abs(metrics$adjusted_r_squared) < 1e-12] <- 0
 
 metrics$predictive_R2[abs(metrics$predictive_R2) < 1e-12] <- 0
+# Conventional overall OLS F tests; keep log p-values to avoid numeric underflow.
+overall_f <- dplyr::bind_rows(lapply(names(r$models),function(name) {
+  statistic <- summary(r$models[[name]])$fstatistic
+  if(is.null(statistic))return(data.frame(model=name,f_statistic=NA_real_,f_df1=NA_real_,f_df2=NA_real_,f_log10_p=NA_real_))
+  data.frame(model=name,f_statistic=unname(statistic[1]),f_df1=unname(statistic[2]),f_df2=unname(statistic[3]),
+    f_log10_p=unname(stats::pf(statistic[1],statistic[2],statistic[3],lower.tail=FALSE,log.p=TRUE)/log(10)))
+}))
+metrics <- dplyr::left_join(metrics,overall_f,by="model")
 variables <- dplyr::bind_rows(lapply(bg_predictors, function(term) {
   income <- term == "log_income"
   source <- if (income) "income" else sub("_10pp$", "_pct", term)
@@ -52,13 +60,24 @@ coefficients <- dplyr::bind_rows(crime_coef,coefficients)
 diagnostic_rows <- dplyr::bind_rows(
   data.frame(model=r$diagnostics$model,test="Breusch–Pagan",statistic=r$diagnostics$BP_statistic,p_value=r$diagnostics$BP_p),
   data.frame(model=r$diagnostics$model,test="RESET (HC3)",statistic=NA_real_,p_value=r$diagnostics$RESET_p))
+# Full raw log-rent coefficients for the academic model matrix, including intercepts/FE.
+formal_coefficients <- r$coefficients[c("model","term","estimate","hc3_conf_low","hc3_conf_high","hc3_p_value","label")]
+formal_coefficients$label[formal_coefficients$term=="(Intercept)"] <- "Intercept"
+formal_coefficients$label[formal_coefficients$term=="log_income"] <- "Log median household income"
+formal_coefficients$label[formal_coefficients$term=="violent_crime_count"] <- "Violent crime (one recorded row)"
+reference_id <- r$models$M4$xlevels$community_id[1]
+reference_community <- d$community[match(reference_id,as.character(d$community_id))]
+community_rows <- grepl("^community_id",formal_coefficients$term)
+community_ids <- sub("^community_id","",formal_coefficients$term[community_rows])
+formal_coefficients$label[community_rows] <- paste("Community:",d$community[match(community_ids,as.character(d$community_id))])
+stopifnot(!anyNA(formal_coefficients$label),!anyDuplicated(formal_coefficients[c("model","term")]))
 payload <- list(
   version = 2L, period = "2020–2024", sample_n = nrow(d), communities_n = nlevels(d$community_id),
   majority_city_n = sum(baseline$all_data$majority_city), missing_rent_n = sum(baseline$all_data$majority_city & !is.finite(baseline$all_data$log_rent)),
   missing_income_n = sum(baseline$all_data$majority_city & is.finite(baseline$all_data$log_rent) & !is.finite(baseline$all_data$log_income)),
   singleton_n = sum(table(d$community_id) == 1), open_ended_rent_n = sum(!is.finite(d$rent_moe)),
   cv_excluded_n = r$cv$excluded_unseen, models = metrics, variables = variables, coefficients = coefficients,
-  effects = r$effects, diagnostics = diagnostic_rows,
+  effects = r$effects, formal_coefficients = formal_coefficients, reference_community = reference_community, diagnostics = diagnostic_rows,
   spatial = r$spatial, spatial_graph = baseline$spatial$graph, sensitivity = sensitivities,
   points = points, qq = qq, qq_reference = list(slope = slope, intercept = intercept),
   sample_flow = r$sample_flow, synthetic_data = r$synthetic_data,
@@ -72,6 +91,8 @@ jsonlite::write_json(payload, path, dataframe = "rows", auto_unbox = TRUE, na = 
 check <- jsonlite::read_json(path, simplifyVector = TRUE)
 stopifnot(check$sample_n == stats::nobs(fit), !check$synthetic_data,
   nrow(check$coefficients) == nrow(coefficients),
+  nrow(check$formal_coefficients) == nrow(r$coefficients),
+  max(abs(check$formal_coefficients$estimate-r$coefficients$estimate)) < 1e-12,
   max(abs(check$models$r_squared - metrics$r_squared)) < 1e-12,
   max(abs(check$points$residual - stats::residuals(fit))) < 1e-12)
 report <- file.path(cfg$output_dir, "report.html")

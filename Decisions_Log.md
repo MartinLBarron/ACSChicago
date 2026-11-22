@@ -540,3 +540,15 @@ aggregate periods, using the already-derived city totals for 2010–2014,
 the chart's axes, title, tooltip and units as five-year CPD totals. Counts retain
 rows without usable coordinates, as on the city cards. The local annual source
 asset remains available for auditing period sums.
+
+## 2026-11-21 — Formal model specification matrix
+
+Replace the crime-adjustment chart disclosure with Formal model specification.
+Export all 127 stored M0–M4 coefficients, including intercepts and community
+indicators, into a 94-parameter-row matrix. Show raw log-rent coefficients,
+95% HC3 intervals and two-sided HC3 significance stars (* .05, ** .01, *** .001).
+Retain missing intervals as NE for Oakland's saturated singleton, and excluded
+parameters as dashes. Label parameter units and Rogers Park community reference.
+Existing coefficient-association charts retain percent transformations.
+Verified exported values/CIs/p-values against the fitted R bundle and tested
+matrix rendering, significance, omitted parameters and singleton handling.
