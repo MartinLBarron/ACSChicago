@@ -552,3 +552,102 @@ parameters as dashes. Label parameter units and Rogers Park community reference.
 Existing coefficient-association charts retain percent transformations.
 Verified exported values/CIs/p-values against the fitted R bundle and tested
 matrix rendering, significance, omitted parameters and singleton handling.
+
+## 2026-11-22 — Building-size VIF diagnostics
+
+At Martin's request, refit crime-first M2–M4 on the same 1,468 cases with
+structure_20_plus_10pp omitted or summed with structure_5_19_10pp as a 5+ share.
+Keep all other controls and community effects. These are diagnostic alternatives;
+main models, reports and website remain unchanged. Omission changes the housing
+reference group; pooling imposes equal slopes on the original two shares.
+
+Largest housing VIFs, original/omitted/pooled: M2 6.067/2.161/5.267;
+M3 6.553/2.346/5.534; M4 9.695/2.718/8.086. Contextual collinearity persists.
+M4 R² is 0.730103/0.730033/0.729822, and crime percent contrasts per100 rows
+are -2.121/-2.091/-2.145. Do not select controls by VIF alone. Code:
+R/diagnose_building_size_vif.R; separate report/output under
+output/models/building_size_vif_2024. Original fits/VIFs reproduce existing
+results, identical-sample/rank/constraint checks pass, and the second execution
+reproduces all CSVs and report bytes exactly.
+
+## 2026-11-22 — Joint building-size/college-share diagnostic
+
+At Martin's request, compare original M2–M4, omission of 20+ units only, and
+omission of both 20+ units and college share on the unchanged 1,468 BG sample.
+College share was absent from M2; both omission variants therefore match there.
+Retain the no-high-school measure and all other controls, including community
+indicators in M4. Main models and the website remain unchanged.
+
+Maximum overall VIF original/joint omission: M2 6.067/2.161, M3 6.609/3.760,
+M4 13.713/11.444. Non-Hispanic Black share is the maximum in the new M3/M4.
+R² original/new: M2 .466675/.460605, M3 .670662/.659534, M4 .730103/.728476.
+M4 crime contrast shifts from -2.121% to -2.318% per100 rows; its 95% HC3
+interval is [-4.567%, -.015%], narrowly excluding zero in this exploratory
+specification. This is specification sensitivity, not independent validation.
+Code: R/diagnose_building_college_vif.R; separate tables/report/model bundle
+under building_college_vif_2024. Retained-parameter, identical-case, rank and
+nested-fit checks pass; rerunning reproduces all CSVs and report exactly.
+
+## 2026-11-22 — Regression-aware spatial diagnostics
+
+For Martin's question about spatial lag/error models, repeat ordinary residual
+permutations on the joint-omission models and add regression-aware Moran tests
+and adjusted Rao score tests for original/reduced M3/M4 under queen and KNN4.
+Same 1,468 IDs and cached graphs. Earlier permutation p-values treated fitted
+residuals as exchangeable and do not account for the model-dependent null,
+especially with community fixed effects. They should not be the main evidence
+for residual independence. Regression-aware original M4 queen I=.027815 has
+expected I=-.041613 and p=.0000373; reduced M4 I=.028292, p=.0000346.
+
+Queen M3 adjusted scores favor error dependence, KNN4 favors lag dependence.
+M4 score evidence is weaker and weights-sensitive. These conventional tests
+remain limited by known heteroskedasticity; adjusted score tests are adjusted
+for the competing spatial alternative, not arbitrary heteroskedasticity.
+Moran I does not select lag versus error or imply a causal spillover. Consider
+spatial models as sensitivity analyses; do not automatically replace OLS.
+
+Scripts: R/check_reduced_model_spatial.R and R/diagnose_regression_spatial.R.
+Results and explanatory note under output/models/building_college_vif_2024.
+Regression-aware diagnostics reproduced the initial calculation. Existing main
+model reports and website were not changed in this diagnostic discussion.
+
+## 2026-11-22 — Spatial SEM/SAR comparison report
+
+At Martin's request, fit original and joint-omission M3/M4 as OLS, SEM and
+SAR on the same 1,468 BGs under cached queen and symmetric KNN4 graphs. Use
+Gaussian ML with exact eigenvalue log determinants, same covariates/sample,
+AIC/BIC/LR comparisons, innovation diagnostics, marginal/reduced-form means,
+and heteroskedasticity-robust sphet GMM sensitivity. Preserve queen's 15 islands
+with zero spatial lag; sparse W input avoids the package's default listw
+island-conversion failure. Keep the main models/site separate.
+
+Report SAR direct/indirect/total crime responses rather than treating beta as
+a total impact. Exact inverse-matrix checks account for islands; 4,000 seeded
+joint crime/rho normal draws generate intervals. Percentage-equivalent
+transformations are of average log responses, not arithmetic mean BG changes.
+
+M3 ML favors SEM under queen (AIC gains 65.25 original / 75.80 reduced) and
+SAR under KNN4 (86.25 / 109.39). M4 gains at most 1.01 AIC points and BIC
+prefers OLS in every fixed-specification/W comparison. Robust M4 KNN4 SAR
+rho estimates (.265/.279) substantially exceed ML (.051/.058), so no universal
+spatial replacement is established. Crime magnitudes remain modest and
+interval inclusion of zero is specification/uncertainty sensitive.
+
+Do not interpret near-zero spatial-model innovation Moran I as a formal
+independence test: fitting changes its null distribution. Report regression-aware
+Moran p-values only for OLS; explain the earlier unrestricted-permutation
+limitation. Heteroskedasticity/functional-form and tail issues persist.
+
+Independent checks reconstruct all likelihoods using sparse determinants and
+innovations, validate sample/parameter identity, and verify SAR impacts with
+full inverse matrices. Reconstruct robust SAR GMM point estimates from X/WX/W2X
+instruments; first stages show relevance but have many excluded instruments
+and do not establish exogeneity. Six scientific plots reviewed visually.
+
+Runner: R/run_spatial_sensitivity.R; report source R/spatial_sensitivity_report.Rmd;
+output output/models/spatial_sensitivity_2024/report.html; model caches and
+bundle data/analytic/spatial_sensitivity_2024. Added spatialreg, sphet, Matrix
+and MASS to packages.txt; required packages installed locally.
+
+Cached end-to-end reproducibility verified: all 13 CSV, self-contained HTML
+and PNG artifacts reproduced byte for byte (SHA-256).

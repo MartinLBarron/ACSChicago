@@ -383,3 +383,17 @@ periods, preserving estimates, MOEs, raw source responses and annotations.
 The default pipeline includes this extension. See
 [the peer comparison notes](docs/model_display_measures.md#complete-acs-peer-comparisons).
 Violent crime requires a separate peer-city source and is currently Chicago-only.
+
+### Spatial error and lag sensitivity report
+
+After the original crime-first and joint-omission diagnostic fits, run
+`Rscript R/run_spatial_sensitivity.R`. It compares OLS, SEM and SAR versions of
+original/reduced M3/M4 on identical cases under queen and symmetric KNN4 weights,
+with heteroskedasticity-robust GMM sensitivity, exact SAR impacts, instrument
+audits, numerical checks and a self-contained R Markdown HTML report.
+
+Report: `output/models/spatial_sensitivity_2024/report.html`; source:
+`R/spatial_sensitivity_report.Rmd`. Models/cache: `data/analytic/spatial_sensitivity_2024`.
+This is a separate diagnostic branch and does not replace the website models.
+Install the listed packages before running; rerun the runner to verify cached
+reproducibility.

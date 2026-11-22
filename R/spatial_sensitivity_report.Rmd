@@ -1,0 +1,245 @@
+---
+title: "Does the Chicago rent analysis need a spatial model?"
+subtitle: "OLS, spatial error and spatial lag · original and reduced M3/M4 · ACS/CPD 2020–2024"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: readable
+    mathjax: null
+params:
+  project_root: "."
+---
+
+```{r setup,include=FALSE}
+knitr::opts_knit$set(root.dir=params$project_root)
+source(file.path(params$project_root,"R/acs_config.R"))
+source(file.path(params$project_root,"R/bg_report_helpers.R"))
+library(ggplot2);library(dplyr);library(tidyr)
+r<-readRDS(file.path(params$project_root,"data/analytic/spatial_sensitivity_2024/model_results.rds"))
+display_order<-function(x) {
+ x$spec<-factor(x$spec,levels=c("Original","Drop both"));x$weights<-factor(x$weights,levels=c("queen","knn4"))
+ x$family<-factor(x$family,levels=c("OLS","SEM","SAR"));x
+}
+m<-display_order(r$metrics);e<-display_order(r$effects);g<-display_order(r$gmm);z<-display_order(r$residuals)
+bg_table<-function(x,digits=3,caption=NULL)knitr::asis_output(paste0('<div class="table-scroll">',
+ knitr::kable(x,digits=digits,caption=caption,row.names=FALSE,format="html"),'</div>'))
+fmtp<-function(x)ifelse(is.na(x),"—",ifelse(x<.00001,"<.00001",format.pval(x,digits=3,eps=.00001)))
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE,fig.width=10,fig.height=5.5,dpi=150,dev="png",out.width="100%")
+family_colors<-c(OLS="#18354a",SEM="#278f9b",SAR="#af7146")
+```
+
+<style>body{color:#233747;line-height:1.7}.main-container{max-width:1180px}h1,h2,h3{color:#18354a}table{font-size:.8em;width:100%}td,th{padding:7px!important}th{border-bottom:2px solid #278f9b}.finding{background:#edf5f5;border-left:4px solid #278f9b;padding:18px;margin:20px 0}.table-scroll{overflow-x:auto}</style>
+
+# Assessment and practical recommendation
+
+<div class="finding">
+**Spatial modeling adds substantial fit for M3; it adds little Gaussian-likelihood improvement once M4 includes community-area indicators. No single spatial replacement is preferred consistently across geography and estimation assumptions.**
+
+For M3, spatial error is preferred under shared-boundary (queen) neighbors, while spatial lag is preferred under symmetric four-nearest-neighbor weights. For M4, the largest AIC gain over OLS is only about one point; BIC prefers OLS in every specification/weights comparison. Heteroskedasticity-robust GMM nevertheless finds meaningful lag dependence under KNN4, so weak ML improvement is not proof of spatial independence.
+</div>
+
+**Recommended use:** retain M4 OLS as a transparent descriptive baseline, and present spatial models as sensitivity analyses until the neighborhood process and heteroskedasticity assumptions are better resolved. If using queen adjacency as the primary definition, SEM is the better-supported spatial extension of M3. Under KNN4, SAR is the better-fitting M3 alternative. Choosing a different W changes the substantive neighborhood assumption, not merely a tuning setting.
+
+The crime association itself stays small: M3 estimates/impacts remain close to zero, while M4 estimates are generally around a 2% lower rent equivalent per 100 additional recorded rows. Some M4 intervals include zero and others narrowly exclude it. This is specification and uncertainty sensitivity, rather than robust evidence of no association or a causal crime effect.
+
+## Compact decision table
+
+```{r decision}
+decision<-m |> group_by(spec,stage,weights) |>
+  summarise(AIC_preferred=family[which.min(AIC)],BIC_preferred=family[which.min(BIC)],
+    SEM_AIC_gain=AIC_gain_over_OLS[family=="SEM"],SAR_AIC_gain=AIC_gain_over_OLS[family=="SAR"],.groups="drop")
+bg_table(decision,digits=2,caption="Positive AIC gain means improvement over OLS; compare families within the same specification, stage and W.")
+```
+
+AIC differences of approximately one point provide little separation here. The recommendation combines the magnitude of fit improvement, residual behavior, coefficient/impact stability, estimator sensitivity and the meaning of the spatial process. A significant diagnostic alone does not establish that one particular spatial model is necessary.
+
+# Research design and specifications
+
+The outcome is **log median monthly contract rent**, excluding separately paid utilities. Crime is the literal count of selected CPD violent-crime rows in 2020–2024 within each whole block group. Neither a crime rate nor a log count is substituted. All fits use the same **`r nrow(r$data)` block groups**, equal observation weights, the same 2024 TIGER geometries and community assignments. No observations are added after dropping controls.
+
+- **Original M3:** crime; studio/one-bedroom and 3+-bedroom rental shares; 2–4, 5–19 and 20+-unit-building shares; pre-1940 and 2000+ construction shares; recent move-ins; renter-householder shares under 35 and age 65+; poverty; log median household income; college and no-high-school shares; non-Hispanic Black and Hispanic/Latino shares.
+- **Original M4:** original M3 plus community-area indicators.
+- **Drop-both M3/M4:** corresponding original specification without the 20+-unit-building and college-educated shares. The no-high-school share remains.
+
+ACS margins of error are not propagated through these regressions. The sample also retains `r sum(!is.finite(r$data$rent_moe))` open-ended contract-rent medians without computable MOEs, using their supplied numeric endpoints, as in the baseline study.
+
+The omission is an exploratory sensitivity, not a claim that the two removed covariates are irrelevant. M4 estimates within-community conditional associations under common slopes. M3 uses both within- and between-community differences.
+
+## What the spatial models mean
+
+| Family | Equation | Interpretation |
+|---|---|---|
+| OLS | y = Xβ + ε | Baseline conditional log-rent association. |
+| SEM | y = Xβ + u; u = λWu + ε | Unobserved influences on rent follow a spatially correlated process. The mean remains Xβ. |
+| SAR | y = ρWy + Xβ + ε | Neighboring outcomes are jointly linked through the assumed W. Mean = (I − ρW)⁻¹Xβ. |
+
+SEM does not imply neighboring crime has a causal spillover. SAR introduces an outcome-feedback process; its raw β is not the total marginal association. Neither model identifies causation or remedies endogenous covariates, omitted amenities, reporting differences or ACS estimation error.
+
+## Spatial weights and coverage
+
+```{r graph-table}
+graph_table<-bind_rows(lapply(names(r$graphs),function(rule){lw<-r$graphs[[rule]]$listw
+ data.frame(weights=rule,islands=sum(spdep::card(lw$neighbours)==0),components=spdep::n.comp.nb(lw$neighbours)$nc,
+ mean_neighbors=mean(spdep::card(lw$neighbours))) }))
+bg_table(graph_table,digits=2)
+```
+
+Both graphs are row-standardized and are constructed on the complete-case modeling sample. Queen adjacency is primary; its 15 isolated BGs remain in all fits with spatial lag zero. Symmetric KNN4 has no islands and connects the sample, but may link areas across gaps or barriers. Sample exclusions create holes in the queen graph. These differences help explain why the apparent lag/error mechanism changes with W.
+
+# Likelihood fit and spatial parameters
+
+Gaussian maximum likelihood uses exact eigenvalue log determinants, with the same X and y in each family. OLS likelihood uses the same Gaussian likelihood convention, including maximum-likelihood residual variance. AIC/BIC count slopes, intercept, variance and the added spatial parameter. **Use AIC/BIC across families within an identical specification/sample; do not compare an SEM innovation RMSE with a conventional prediction RMSE.**
+
+```{r fit-tables}
+tab<-m |> select(spec,stage,weights,family,n,parameters,logLik,AIC,BIC,delta_AIC,delta_BIC,theta,theta_se,theta_p,LR_vs_OLS,LR_p)
+tab$theta_low<-tab$theta-qnorm(.975)*tab$theta_se;tab$theta_high<-tab$theta+qnorm(.975)*tab$theta_se
+tab$theta_p<-fmtp(tab$theta_p);tab$LR_p<-fmtp(tab$LR_p)
+bg_table(tab,digits=3,caption="θ is λ for SEM and ρ for SAR. LR tests compare each spatial family with its nested OLS null (one extra parameter); SEM vs SAR is nonnested.")
+```
+
+```{r fit-chart,fig.height=8}
+ggplot(m,aes(family,delta_AIC,fill=family))+geom_col(width=.65)+
+ geom_text(aes(label=sprintf("%.1f",delta_AIC)),vjust=-.35,size=3)+facet_grid(spec+stage~weights)+
+ scale_fill_manual(values=family_colors)+labs(x=NULL,y="AIC above the best family in the panel",fill="Family",title="The preferred spatial family depends on W; M4 gains are small")+bg_theme()+theme(legend.position="none")
+```
+
+Likelihood gains depend on the Gaussian, constant-variance innovation model. They can reward a misspecified covariance process and do not imply better causal identification. BIC's stronger complexity penalty explains why it rejects small M4 spatial gains. Comparing M3 with M4 additionally changes the community adjustment set and research interpretation.
+
+# Does spatial modeling change the crime association?
+
+## Conditional associations and direct impacts
+
+For OLS/SEM, a coefficient is a conditional log-rent association. For SAR we report **average direct, indirect and total impacts** of the crime predictor, accounting for spatial feedback. We use exact matrix/eigenvalue calculations and explicitly retain islands; we do not apply β/(1−ρ) indiscriminately to queen weights.
+
+Reported percentage equivalents are **100 × expm1(100 × average log response)**. This transforms the average log response per 100 rows; it is not the arithmetic average of all BG-specific percentage responses. Direct plus indirect equals total on the log scale, not necessarily after exponentiation. These are model-implied associations, not causal intervention effects.
+
+OLS intervals are 95% HC3 with the established singleton safeguard. SEM ML intervals use asymptotic model covariance. SAR ML/GMM intervals are central 95% intervals from 4,000 seeded joint normal draws of the crime coefficient and ρ, rejecting draws outside the invertibility interval. Heteroskedasticity-robust GMM intervals are described below. The interval types therefore differ and should not be treated as interchangeable.
+
+```{r crime-table}
+bg_table(e |> select(spec,stage,weights,family,effect,percent_equiv_per100,percent_equiv_low,percent_equiv_high),digits=3,
+ caption="Crime associations or impacts: percentage-equivalent response per 100 additional recorded rows; 95% intervals.")
+```
+
+```{r crime-plot,fig.height=10}
+ml<-e |> filter(effect %in% c("Conditional association","Direct")) |>
+ mutate(estimator=ifelse(family=="OLS","OLS / HC3","Spatial ML"))
+robust<-g |> filter(effect %in% c("Conditional association","Direct")) |> mutate(estimator="Spatial GMM / hetero")
+plot_effects<-bind_rows(ml,robust)
+ggplot(plot_effects,aes(percent_equiv_per100,family,color=estimator))+geom_vline(xintercept=0,color="grey65")+
+ geom_errorbar(aes(xmin=percent_equiv_low,xmax=percent_equiv_high),orientation="y",width=.15,position=position_dodge(width=.45))+
+ geom_point(position=position_dodge(width=.45),size=2)+facet_grid(spec+stage~weights)+
+ labs(x="Crime association / direct impact, percentage equivalent per 100 rows",y=NULL,color="Estimation / uncertainty",title="Crime magnitudes are more stable than significance thresholds")+
+ bg_theme()+theme(legend.position="bottom")
+```
+
+```{r sar-impacts,fig.height=9}
+ggplot(e |> filter(family=="SAR"),aes(percent_equiv_per100,effect))+geom_vline(xintercept=0,color="grey65")+
+ geom_errorbar(aes(xmin=percent_equiv_low,xmax=percent_equiv_high),orientation="y",width=.15,color="#af7146")+
+ geom_point(color="#18354a",size=2)+facet_grid(spec+stage~weights)+labs(x="SAR ML crime impact, percentage equivalent per 100 rows",y=NULL,title="Direct and indirect crime associations under SAR")+bg_theme()
+```
+
+# Residual diagnostics and remaining assumptions
+
+For OLS, innovations are the ordinary residuals. For SEM they are **(I−λW)(y−Xβ)**; for SAR they are **(I−ρW)y−Xβ**. Comparing raw SEM errors y−Xβ would conflate the modeled error dependence with unmodeled innovation dependence.
+
+The Moran statistics below are **descriptive for fitted spatial-model innovations**. We do not reuse an OLS null distribution or freely permute those innovations to declare that a spatial fit has passed an independence test. Model fitting changes the reference distribution. Formal spatial-model residual calibration would require an appropriate model-based simulation or equivalent diagnostic. A near-zero I by itself does not establish independence.
+
+**Why the OLS p-values differ from earlier reports:** those reports used unrestricted permutations of fitted residuals, treating them as exchangeable observations. Here the OLS test is `spdep::lm.morantest`, which accounts for the fitted regression and its model-dependent null expectation. For original queen M4, the same I ≈ 0.0278 has a regression-aware p ≈ 0.000037, versus the earlier permutation p = 0.098. The new test is more appropriate for the fitted model, although conventional error assumptions still limit it. Evidence of residual structure does not identify which spatial extension would correct it.
+
+```{r diagnostic-table}
+bg_table(m |> select(spec,stage,weights,family,innovation_Moran,OLS_regression_Moran_p,variance_mean_p,max_abs_standard_innovation),digits=5,
+ caption="Moran p-values shown only for regression-aware OLS tests. Variance-vs-mean p-values are exploratory studentized BP diagnostics conditional on the fitted spatial parameters.")
+```
+
+All variance-vs-mean diagnostics remain strongly significant. Spatial covariance modeling has **not resolved the variance/functional-form problems**. Remaining heavy tails/outliers also motivate the robust sensitivity analysis and future functional-form work.
+
+```{r innovation-plot,fig.height=7}
+focus<-z |> filter(spec=="Drop both",weights=="queen")
+ggplot(focus,aes(mean_fit,standard_innovation))+geom_hline(yintercept=0,color="grey65")+geom_point(alpha=.18,size=.6,color="#278f9b")+
+ geom_smooth(method="loess",se=FALSE,color="#af7146",linewidth=.6)+facet_grid(stage~family)+
+ labs(x="Reduced-form / marginal mean log rent",y="Innovation / model residual SD",title="Reduced models, queen: spatial terms do not remove changing residual spread")+bg_theme()
+```
+
+```{r qq-plot,fig.height=7}
+ggplot(focus,aes(sample=standard_innovation))+stat_qq(alpha=.3,size=.6,color="#278f9b")+stat_qq_line(color="#af7146")+
+ facet_grid(stage~family)+labs(x="Normal theoretical quantile",y="Standardized innovation quantile",title="Innovation tails remain imperfectly Gaussian")+bg_theme()
+```
+
+```{r spatial-maps,fig.height=8}
+map_rows<-z |> filter(stage=="M4",weights=="queen") |> select(GEOID,spec,family,standard_innovation)
+map_data<-left_join(r$geometry["GEOID"],map_rows,by="GEOID",relationship="many-to-many")
+map_data$display_innovation<-pmax(-3,pmin(3,map_data$standard_innovation))
+ggplot(map_data)+geom_sf(aes(fill=display_innovation),color=NA)+facet_grid(spec~family)+coord_sf(datum=NA)+
+ scale_fill_gradient2(low="#225ea8",mid="#f7f7f2",high="#b44d3f",midpoint=0,limits=c(-3,3))+
+ labs(title="M4 innovations under queen weights",fill="Innovation / SD",caption="Display clipped at ±3 SD only; diagnostics use unclipped values. Whole modeled BGs, common scale.")+bg_theme()
+```
+
+## Mean fit is not conditional fit using observed neighboring rents
+
+```{r mean-fit}
+bg_table(m |> select(spec,stage,weights,family,mean_R2,mean_RMSE,innovation_RMSE),digits=4)
+```
+
+Mean R² here is the descriptive 1−SSE/SST for **Xβ (OLS/SEM)** or **(I−ρW)⁻¹Xβ (SAR)**, not a standard spatial-model adjusted R². We deliberately avoid a conditional SAR fit containing observed Wy, which would use neighboring outcomes. These are in-sample summaries with no new held-out assessment. SEM can improve likelihood while leaving mean R² unchanged or lower because it models covariance rather than adding mean predictors.
+
+# Heteroskedasticity-robust GMM sensitivity
+
+`sphet::spreg(het=TRUE)` estimates the corresponding SEM/SAR with heteroskedasticity-robust GMM. The same sparse W is passed directly, preserving islands rather than dropping observations. For SAR, default spatial instruments use exogenous covariate lags up to order two. Instrument validity and strength are substantive assumptions, especially with many community indicators; robustness to heteroskedasticity does not validate those instruments or eliminate endogenous X.
+
+```{r instrument-audit}
+instruments<-readr::read_csv(file.path(params$project_root,"output/models/spatial_sensitivity_2024/instrument_audit.csv"),show_col_types=FALSE)
+bg_table(instruments,digits=4,caption="SAR first-stage audit: instruments X, WX and W²X, after the package's rank pruning. Classical first-stage F is descriptive, not a heteroskedasticity-robust weak-instrument test.")
+```
+
+The audit independently reconstructs every SAR GMM point estimate (maximum coefficient discrepancy below 10⁻⁶). Spatial instruments have substantial joint relevance, but M4 uses roughly 180 excluded instruments; relevance alone does not demonstrate valid exclusion restrictions or eliminate many-instrument concerns. No generic first-stage-F cutoff establishes validity here.
+
+**Important tension:** GMM does not support a material queen spatial parameter in M4, but KNN4 SAR estimates much larger positive ρ than Gaussian ML and rejects zero. This estimator/weights sensitivity prevents an unconditional “OLS is sufficient” conclusion. Before adopting KNN4 SAR as primary, investigate spatial-instrument strength/validity and whether its neighborhood links reflect the intended housing-market process. No Gaussian AIC/BIC is assigned to GMM fits.
+
+```{r robust-parameters}
+gpar<-g |> distinct(spec,stage,weights,family,theta,theta_se,theta_p)
+gpar$theta_low<-gpar$theta-qnorm(.975)*gpar$theta_se;gpar$theta_high<-gpar$theta+qnorm(.975)*gpar$theta_se
+gpar$theta_p<-fmtp(gpar$theta_p)
+bg_table(gpar,digits=4,caption="Heteroskedasticity-robust GMM spatial parameters; θ means λ for SEM and ρ for SAR.")
+bg_table(g |> select(spec,stage,weights,family,effect,percent_equiv_per100,percent_equiv_low,percent_equiv_high),digits=3,
+ caption="GMM conditional/direct/indirect/total crime responses and 95% intervals.")
+```
+
+# How to decide what to use
+
+1. **If the aim is the existing within-community association:** M4 OLS remains a useful transparent baseline. Its ML spatial extensions improve AIC by at most about one point and lose under BIC, while crime magnitudes change little.
+2. **If retaining M3 without community controls:** the large spatial fit gains warrant a spatial extension or richer contextual specification. Queen SEM and KNN4 SAR are the leading alternatives under their respective W definitions.
+3. **If prioritizing robustness to unequal variance:** inspect the GMM results alongside ML. M4 KNN4 SAR's strong GMM spatial parameter conflicts with its weak ML evidence; resolve that disagreement before naming a universally preferred estimator.
+4. **Use the crime conclusion at its supported precision:** magnitudes are modest and uncertainty/specification sensitive. Neither a spatial term nor a near-zero innovation Moran I establishes causal effects or absence of effects.
+
+This report is a model comparison, not an automatic selection rule. No tests are corrected for the many exploratory comparisons. Changing the covariates, W or estimation method after inspecting results makes the resulting p-values descriptive evidence rather than independent confirmation.
+
+# Numerical checks, coefficient detail and reproducibility
+
+The fitting step checks identical case order and parameter sets, reconstructs each Gaussian likelihood from innovations and the exact log determinant, and verifies SAR direct/total impact calculations against the full inverse matrix—including islands. Simulation draws preserve the joint crime–ρ covariance and are seeded. Diagnostics count every usable observation; no records are added to improve collinearity.
+
+```{r warnings}
+if(nrow(r$warnings))bg_table(r$warnings) else cat("No fitting or numerical warnings were captured across the ML and robust GMM fits.")
+```
+
+<details><summary>Primary queen coefficient tables (raw log-rent scale)</summary>
+
+```{r coefficients}
+bg_table(r$coefficients |> filter(weights=="queen",!grepl("^community_id",term)),digits=5,
+ caption="Intercept and continuous slopes. OLS uses HC3; spatial ML uses model-based asymptotic covariance. Full community coefficients are retained in coefs.csv.")
+```
+
+</details>
+
+```bash
+Rscript R/run_spatial_sensitivity.R
+```
+
+The runner fits/checks/renders this report from existing source datasets. It does not alter the default website models. Fit caches are tied to input checksums, formulas, weights, package versions and estimation settings. Rerun the complete runner to verify numerical reproducibility from cached inputs.
+
+Sources and primary method references: [spatialreg ML equations and estimation](https://r-spatial.github.io/spatialreg/reference/ML_models.html), [SAR impact definitions](https://r-spatial.github.io/spatialreg/reference/impacts.html), [regression-aware Moran tests](https://r-spatial.github.io/spdep/reference/lm.morantest.html), [adjusted score diagnostics](https://r-spatial.github.io/spdep/reference/lm.RStests.html), and [sphet heteroskedasticity-robust models](https://cran.r-project.org/web/packages/sphet/index.html).
+
+Outputs: `metrics.csv`, `coefs.csv`, `effects.csv`, `gmm.csv`, `warning_table.csv`, `instrument_audit.csv`, `provenance.json` and this self-contained report under `output/models/spatial_sensitivity_2024`. Model bundles and individual fit caches are under `data/analytic/spatial_sensitivity_2024`. All observations are official public aggregates, not synthetic data.

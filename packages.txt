@@ -12,3 +12,7 @@ spdep
 ggplot2
 knitr
 rmarkdown
+spatialreg
+sphet
+Matrix
+MASS
