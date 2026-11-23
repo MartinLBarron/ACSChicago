@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>About the project · Chicago Rent</title>
+  <meta name="description" content="Chicago Rent is a public-interest housing dashboard and research project exploring rent, violent crime, and the strengths and limits of analysis with AI agents.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link href="style.css?v=20261118-puma-aggregates" rel="stylesheet">
 </head>
@@ -13,14 +14,34 @@
     <a class="brand" href="index.html"><span class="chicago-stars" aria-hidden="true">✶ ✶ ✶ ✶</span><span>Chicago <span class="brand-light">Rent</span></span></a>
     <nav aria-label="Main navigation"><a href="index.html">Dashboard</a><a href="model.html">Model</a><a href="data.html">About the data</a><a href="about.html" aria-current="page">About the project</a></nav>
   </header>
-  <main id="about-project" class="project-page">
+  <main id="about-project" class="project-page data-page">
     <p class="eyebrow">About the project</p>
     <h1>Understanding rent in Chicago.</h1>
-    <p class="project-lede">A closer look at rental housing and the differences between Chicago’s communities.</p>
-    <section class="project-placeholder" aria-labelledby="coming-soon">
-      <h2 id="coming-soon">More about the project, coming soon.</h2>
-      <p>This page will introduce the research questions, approach, and people behind Chicago Rent.</p>
-      <a href="index.html">Explore the dashboard <span aria-hidden="true">↗</span></a>
+    <p class="project-lede">A public-interest housing dashboard and research project about Chicago’s rental market—and what it takes to study it responsibly with AI agents.</p>
+    <section aria-labelledby="public-interest-heading">
+      <h2 id="public-interest-heading">Housing data for public understanding</h2>
+      <p>Rent shapes who can afford to live in Chicago and how residents experience the city. Public data can help us understand that landscape, but it often arrives in large tables, unfamiliar geographies and technical documentation. Chicago Rent brings those sources together in a form that residents can explore and question.</p>
+      <p>The <a href="index.html">dashboard</a> lets readers examine differences across neighborhoods, compare Chicago with other cities and follow changes across three five-year periods. Its intended audience is civically engaged Chicago residents, alongside researchers, journalists and others interested in housing. The goal is to make the evidence accessible while keeping its uncertainty visible.</p>
+    </section>
+    <section aria-labelledby="research-heading">
+      <h2 id="research-heading">The research question</h2>
+      <p>The initial study asks: how is median contract rent associated with recorded violent crime across Chicago block groups? It also asks how that association changes when we account for rental-housing composition, the characteristics of renters, socioeconomic conditions and community-area location.</p>
+      <p>The analysis combines American Community Survey estimates with geocoded Chicago Police Department records. A sequence of regression models starts with crime alone, then adds groups of controls. Comparing those models helps distinguish the broad geographic association from the association that remains after accounting for measured differences between areas.</p>
+      <p>The crime association becomes much smaller as those controls enter the models. Its size and statistical uncertainty depend on the specification and method used. The <a href="model.html">Model page</a> presents the estimates, diagnostics and spatial robustness checks so readers can examine that evidence rather than relying on a single headline.</p>
+      <p>This is an analysis of associations between areas, not a test of whether crime causes rents to change. An area’s median rent does not describe every home or renter, and the measured controls cannot capture every difference between neighborhoods. The results also do not measure the broader harms or costs of violence.</p>
+    </section>
+    <section aria-labelledby="agents-heading">
+      <h2 id="agents-heading">A second question: doing research with AI</h2>
+      <p>This project is also an experiment in working with AI agents on an extended analytical task. Agents help write and revise R code, assemble data pipelines, build the website, fit models and draft explanations. The question is not simply whether an agent can produce an analysis, but what makes that analysis understandable, reproducible and worthy of scrutiny.</p>
+      <p>There are clear opportunities. An agent can help connect documentation, code, statistical output and a public-facing interface. It can make it easier to explore alternative specifications, automate repeated work and turn technical results into material that more people can read.</p>
+      <p>There are also weaknesses. An agent can choose an inappropriate variable, misread a table definition, introduce a coding error or describe a result more confidently than the evidence warrants. Plausible prose and polished charts can hide those problems. A check written by an agent can repeat the same mistaken assumption as the code it is checking.</p>
+      <p>For that reason, human judgment remains central: defining the question, choosing the comparisons, assessing assumptions and deciding what conclusions are justified. Reproducible code, preserved source data, explicit definitions and checks against documentation and model output make the work easier to audit. They support that judgment; they do not replace it.</p>
+    </section>
+    <section aria-labelledby="open-work-heading">
+      <h2 id="open-work-heading">A project that can be questioned and revised</h2>
+      <p>Chicago Rent is developed by Martin Barron as a public research and portfolio project. It brings together data engineering, statistical analysis and visual communication, while examining how AI assistance changes each part of that process.</p>
+      <p>The work is iterative. Decisions about geography, missing estimates, variable selection and uncertainty affect the story the data can tell. As those decisions are reviewed, the analysis and its presentation may change. Making those choices inspectable is part of the project’s purpose.</p>
+      <p>Start with the <a href="index.html">Dashboard</a> to explore the patterns, visit <a href="model.html">Model</a> for the research, or read <a href="data.html">About the data</a> for sources, definitions and limitations.</p>
     </section>
   </main>
   <footer class="site-footer"><span>Chicago Rent / a public-interest housing dashboard</span><span>© 2026 Martin Barron</span><a class="chicago-stars" href="#page-top" aria-label="Return to top of page">✶ ✶ ✶ ✶</a></footer>
