@@ -17,24 +17,20 @@
   <main id="about-project" class="project-page data-page">
     <p class="eyebrow">About the project</p>
     <h1>Understanding rent in Chicago.</h1>
-    <p class="project-lede">A public-interest housing dashboard and research project about Chicago’s rental market—and what it takes to study it responsibly with AI agents.</p>
-    <section aria-labelledby="public-interest-heading">
-      <h2 id="public-interest-heading">Housing data for public understanding</h2>
+    <section aria-label="Project introduction">
       <p>Rent shapes who can afford to live in Chicago and how residents experience the city. Public data can help us understand that landscape, but it often arrives in large tables, unfamiliar geographies and technical documentation. Chicago Rent brings those sources together in a form that residents can explore and question.</p>
-      <p>The <a href="index.html">dashboard</a> lets readers examine differences across neighborhoods, compare Chicago with other cities and follow changes across three five-year periods. Its intended audience is civically engaged Chicago residents, alongside researchers, journalists and others interested in housing. The goal is to make the evidence accessible while keeping its uncertainty visible.</p>
+      <p>The <a href="index.html">dashboard</a> lets readers examine differences across neighborhoods, compare Chicago with other cities and follow changes across three five-year periods. The goal is to make the evidence accessible while keeping its uncertainty visible.</p>
     </section>
     <section aria-labelledby="research-heading">
       <h2 id="research-heading">The research question</h2>
-      <p>The initial study asks: how is median contract rent associated with recorded violent crime across Chicago block groups? It also asks how that association changes when we account for rental-housing composition, the characteristics of renters, socioeconomic conditions and community-area location.</p>
-      <p>The analysis combines American Community Survey estimates with geocoded Chicago Police Department records. A sequence of regression models starts with crime alone, then adds groups of controls. Comparing those models helps distinguish the broad geographic association from the association that remains after accounting for measured differences between areas.</p>
-      <p>The crime association becomes much smaller as those controls enter the models. Its size and statistical uncertainty depend on the specification and method used. The <a href="model.html">Model page</a> presents the estimates, diagnostics and spatial robustness checks so readers can examine that evidence rather than relying on a single headline.</p>
-      <p>This is an analysis of associations between areas, not a test of whether crime causes rents to change. An area’s median rent does not describe every home or renter, and the measured controls cannot capture every difference between neighborhoods. The results also do not measure the broader harms or costs of violence.</p>
+      <p>The <a href="model.html">Model page</a> explores the question: is violent crime in an area associated with variations in rent prices in those areas? The analysis combines American Community Survey estimates with Chicago Police Department records. A sequence of regression models starts with crime alone, then adds groups of controls. Comparing those models helps distinguish the broad geographic association from the association that remains after accounting for measured differences between areas.</p>
+      <p>In brief, the crime association becomes much smaller as those controls enter the models. Its size and statistical uncertainty depend on the specification and method used. The <a href="model.html">Model page</a> presents the estimates, diagnostics and spatial robustness checks.</p>
     </section>
     <section aria-labelledby="agents-heading">
-      <h2 id="agents-heading">A second question: doing research with AI</h2>
-      <p>This project is also an experiment in working with AI agents on an extended analytical task. Agents help write and revise R code, assemble data pipelines, build the website, fit models and draft explanations. The question is not simply whether an agent can produce an analysis, but what makes that analysis understandable, reproducible and worthy of scrutiny.</p>
+      <h2 id="agents-heading">A meta question: conducting research with AI</h2>
+      <p>This project is also an experiment in working with AI agents on an extended analytical task. Agents helped write and revise R code, assemble data pipelines, build the website, fit models and draft explanations. The question is not simply whether an agent can produce an analysis, but what makes that analysis understandable, reproducible and trustworthy.</p>
       <p>There are clear opportunities. An agent can help connect documentation, code, statistical output and a public-facing interface. It can make it easier to explore alternative specifications, automate repeated work and turn technical results into material that more people can read.</p>
-      <p>There are also weaknesses. An agent can choose an inappropriate variable, misread a table definition, introduce a coding error or describe a result more confidently than the evidence warrants. Plausible prose and polished charts can hide those problems. A check written by an agent can repeat the same mistaken assumption as the code it is checking.</p>
+      <p>There are also weaknesses. An agent can choose an inappropriate variable, misread a table definition, introduce a coding error or describe a result more confidently than the evidence warrants. Plausible prose and polished charts can hide those problems.</p>
       <p>For that reason, human judgment remains central: defining the question, choosing the comparisons, assessing assumptions and deciding what conclusions are justified. Reproducible code, preserved source data, explicit definitions and checks against documentation and model output make the work easier to audit. They support that judgment; they do not replace it.</p>
     </section>
     <section aria-labelledby="open-work-heading">
