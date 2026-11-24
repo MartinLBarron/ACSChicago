@@ -83,6 +83,17 @@ button:disabled { opacity: .5; cursor: wait; }
 @media (max-width: 850px) { .site-header { gap: 20px; flex-wrap: wrap; padding: 15px 0; } nav { flex-wrap: wrap; gap: 18px; } nav a { min-height: 36px; } }
 
 .data-page { max-width: 960px; }
+.data-page:has(.variable-dictionary) { max-width: 1280px; }
+.data-dictionary-scroll { overflow-x: auto; margin: 25px 0; border: 1px solid var(--line); }
+.data-dictionary { width: 100%; min-width: 850px; border-collapse: collapse; font-size: 14px; line-height: 1.65; text-align: left; }
+.data-dictionary caption { text-align: left; padding: 16px; color: var(--muted); }
+.data-dictionary th, .data-dictionary td { padding: 16px; vertical-align: top; border-top: 1px solid var(--line); }
+.data-dictionary thead { background: var(--paper); }
+.data-dictionary th[scope="row"] { width: 20%; font-weight: 600; }
+.data-dictionary td:nth-child(2) { width: 28%; }
+.data-dictionary td:nth-child(3) { width: 40%; }
+.data-dictionary code { font-size: 12px; overflow-wrap: anywhere; }
+.data-dictionary a { color: #2b6550; text-underline-offset: 3px; }
 .data-page h2 { font: normal 30px/1.2 var(--serif); margin: 30px 0 16px; }
 .data-page p:not(.eyebrow) { color: var(--muted); max-width: 700px; font-size: 15px; line-height: 1.8; }
 .data-page .source-notes { margin-top: 32px; padding-top: 25px; border-top: 1px solid var(--line); max-width: 700px; font-size: 14px; }
