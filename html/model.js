@@ -82,39 +82,8 @@
     const finding=crimeFull.hc3_p_value<.05 ? "This association is statistically significant at the 5% level using HC3, with its confidence interval narrowly excluding zero." : "This association is not statistically significant using HC3.";
     $("summary-results").textContent = `Crime alone accounts for ${percent(m1.r_squared)} of rent variation. In M1, 100 additional recorded violent-crime rows are associated with ${signed(crimeOnly.percent_per100_estimate)} rent. That association becomes much smaller after adding the measured controls. The full M4 accounts for ${percent(m4.r_squared)} of rent variation, with crime associated with ${signed(crimeFull.percent_per100_estimate)} rent per 100 additional recorded crimes (95% CI: ${intervalValue(crimeFull.percent_per100_hc3_conf_low)} to ${intervalValue(crimeFull.percent_per100_hc3_conf_high)}). ${finding}`;
     for (const m of data.models) cellRow($("model-table"), [m.model, m.model === "M0" ? `${m.label}: ${m.specification}` : m.specification,number(m.n),m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared)]);
-    for (const row of data.spatial.filter(d=>d.weights==="queen")) cellRow($("spatial-table"), [row.model==="observed_log_rent"?"Observed log rent":`${row.model} residuals`,d3.format(".3f")(row.Moran_I),probability(row.p_value)]);
-    const knn=data.spatial.find(d=>d.weights==="knn4" && d.model==="M4");
-    $("spatial-note").textContent=`Regression-adjusted, two-sided Moran tests account for the fitted model. The symmetric four-nearest-neighbor sensitivity gives M4 Moran’s I = ${d3.format(".3f")(knn.Moran_I)}, p = ${probability(knn.p_value)}. Clustering uncertainty by community does not resolve all spatial dependence.`;
-    for (const row of data.diagnostics.filter(d=>["M3","M4"].includes(d.model))) cellRow($("diagnostic-table"),[row.model,row.test,Number.isFinite(row.statistic)?d3.format(".2f")(row.statistic):"—",probability(row.p_value)]);
-    for (const row of data.sensitivity) cellRow($("sensitivity-table"),[row.sensitivity,number(row.n),percent(row.M2),percent(row.M3),percent(row.M4),`${d3.format(".1f")(row.increment*100)} pp`]);
-    for(const model of ["M2","M3","M4"]) {
-      const maximum=data.vif.filter(row=>row.model===model).reduce((a,b)=>a.VIF>b.VIF?a:b);
-      const label=data.coefficients.find(row=>row.model===model&&row.term===maximum.term)?.label||maximum.term;
-      cellRow($("vif-table"),[model,d3.format(".2f")(maximum.VIF),label]);
-    }
-    spatialRobustness();
     $("sample-note").textContent=`The outcome is median contract rent (B25058), excluding separately paid utilities. The ${number(data.majority_city_n)} majority-in-city block groups lose ${number(data.missing_rent_n)} without usable rent and another ${number(data.missing_income_n)} without median household income, leaving ${number(data.sample_n)} complete cases. Dollar values use 2024 dollars and matching 2024 TIGER block-group boundaries.`;
-    $("caveat-note").textContent=`${data.open_ended_rent_n} rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. ${data.singleton_n} community (Oakland) has only one usable block group and is fitted exactly. HC3 slopes use nonsingleton communities, with unchanged slope estimates. Cross-validation omits ${data.cv_excluded_n} block groups whose communities are absent from a training fold.`;
-  }
-  function spatialRobustness() {
-    const source=data.spatial_robustness;
-    const neighborName=rule=>rule==="queen"?"Shared boundary":"Nearest neighbors";
-    const effectFor=(rows,stage,weights,family)=>rows.find(row=>row.stage===stage&&row.weights===weights&&row.family===family&&["Conditional association","Direct"].includes(row.effect));
-    const interval=effect=>`${signed(effect.percent_equiv_low)} to ${signed(effect.percent_equiv_high)}`;
-    const bestM3=rule=>source.metrics.filter(row=>row.stage==="M3"&&row.weights===rule).reduce((a,b)=>a.AIC<b.AIC?a:b);
-    const queen=bestM3("queen"),knn=bestM3("knn4");
-    const bestGain=Math.max(...source.metrics.filter(row=>row.stage==="M4").map(row=>row.AIC_gain_over_OLS));
-    $("spatial-robustness-summary").textContent=`Spatial models substantially improve M3 fit: shared-boundary spatial error improves AIC by ${d3.format(".1f")(queen.AIC_gain_over_OLS)} points, while nearest-neighbor spatial lag improves it by ${d3.format(".1f")(knn.AIC_gain_over_OLS)} points. After community controls enter M4, the largest gain is only ${d3.format(".2f")(bestGain)} AIC points, and BIC prefers OLS for both neighborhood definitions. We retain M4 OLS as the primary model and use spatial models as robustness checks.`;
-    for(const row of source.metrics.filter(row=>row.stage==="M4")) {
-      const effect=effectFor(source.effects,row.stage,row.weights,row.family);
-      cellRow($("spatial-robustness-table"),[neighborName(row.weights),row.family,d3.format(".2f")(row.AIC_gain_over_OLS),signed(effect.percent_equiv_per100),interval(effect)]);
-    }
-    for(const row of source.metrics) {
-      const effect=effectFor(source.effects,row.stage,row.weights,row.family);
-      cellRow($("spatial-robustness-detail"),[row.stage,neighborName(row.weights),row.family==="OLS"?"OLS / HC3":`${row.family} / ML`,row.family==="OLS"?"—":d3.format(".3f")(row.theta),signed(effect.percent_equiv_per100),interval(effect)]);
-    }
-    for(const row of source.gmm.filter(row=>["Conditional association","Direct"].includes(row.effect)))
-      cellRow($("spatial-robustness-detail"),[row.stage,neighborName(row.weights),`${row.family} / robust GMM`,d3.format(".3f")(row.theta),signed(row.percent_equiv_per100),interval(row)]);
+    $("caveat-note").textContent=`${data.open_ended_rent_n} rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. ${data.singleton_n} community (Oakland) has only one usable block group and is fitted exactly.`;
   }
   function formalSpecification() {
     const body=$("formal-coefficients"); body.replaceChildren();

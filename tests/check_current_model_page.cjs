@@ -20,16 +20,13 @@ assert.match(nodes["summary-results"].textContent,/−2\.3%/);
 assert.match(nodes["summary-results"].textContent,/−0\.02%/);
 assert.match(nodes["summary-results"].textContent,/statistically significant/);
 assert.ok(!nodes["summary-results"].textContent.includes("not statistically significant"));
-for(const [id,count] of [["model-table",5],["formal-coefficients",92],["formal-fit",5],["spatial-table",5],
- ["vif-table",3],["spatial-robustness-table",6],["spatial-robustness-detail",20],["diagnostic-table",4],["sensitivity-table",2]])
+for(const [id,count] of [["model-table",5],["formal-coefficients",92],["formal-fit",5]])
  assert.equal(nodes[id].children.length,count,id);
 assert.match(nodes["formal-reference"].textContent,/20\+-unit/);
-assert.match(nodes["spatial-note"].textContent,/Regression-adjusted/);
-assert.ok(!source.includes("permutation_p"));
-assert.match(nodes["spatial-robustness-summary"].textContent,/75\.8/);
-assert.match(nodes["spatial-robustness-summary"].textContent,/109\.4/);
-assert.match(nodes["spatial-robustness-summary"].textContent,/1\.01/);
+for(const id of ["spatial-table","spatial-note","spatial-robustness","vif-table","diagnostic-table","sensitivity-table"])
+ assert.ok(!nodes[id],id);
+assert.ok(!html.includes("These checks explain why the current model is a starting point."));
 assert.ok(!html.includes("bachelor’s degree or higher and without"));
 assert.ok(!html.includes("rental shares in 2–4, 5–19 and 20+"));
 for(const match of source.matchAll(/\$\("([^"]+)"\)/g))assert.ok(nodes[match[1]],match[1]);
-console.log("PASS: reduced coefficients and fit, significant HC3 summary, all updated tables, spatial sensitivity and DOM references");
+console.log("PASS: reduced coefficients and fit, significant HC3 summary, remaining tables, removed diagnostic sections and DOM references");
