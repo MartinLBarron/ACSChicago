@@ -175,7 +175,9 @@ async function start() {
   }));
   await loaded;
   definitions.forEach((definition, i) => {
-    map.addSource(definition.id, { type: "geojson", data: data[i] });
+    const source = { type: "geojson", data: data[i] };
+    if (["blocks", "tracts"].includes(definition.id)) source.promoteId = "GEOID";
+    map.addSource(definition.id, source);
     map.addLayer({ id: `${definition.id}-fill`, type: "fill", source: definition.id,
       paint: { "fill-color": missingColor, "fill-opacity": 0 } });
     map.addLayer({ id: `${definition.id}-line`, type: "line", source: definition.id,
@@ -184,6 +186,17 @@ async function start() {
   });
   // Keep optional outlines above the choropleth fills.
   definitions.forEach(definition => map.moveLayer(`${definition.id}-line`));
+  for (const id of ["blocks", "tracts"]) {
+    map.addLayer({ id: `${id}-hover`, type: "line", source: id,
+      paint: { "line-color": "#ffda47", "line-width": 3,
+        "line-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 1, 0] } });
+  }
+  let hoveredArea;
+  function clearHover() {
+    if (!hoveredArea) return;
+    map.removeFeatureState(hoveredArea, "hover");
+    hoveredArea = undefined;
+  }
   const layerData = Object.fromEntries(definitions.map((definition, i) => [definition.id, data[i]]));
   const bounds = new maplibregl.LngLatBounds();
   function extend(coordinates) {
@@ -214,6 +227,7 @@ async function start() {
   reset();
   let areaPopup;
   function updateMap() {
+    clearHover();
     if (areaPopup) areaPopup.remove();
     for (const option of measureControl.options) {
       const measure=window.ChicagoMeasures.find(m=>m.id===option.value);
@@ -252,6 +266,7 @@ async function start() {
   periodControl.addEventListener("change", async () => {
     const year = periodControl.value;
     switchingPeriod = true;
+    clearHover();
     if (areaPopup) areaPopup.remove();
     document.getElementById("rent-controls").disabled = true;
     status.textContent = `Loading ${periodLabel(year)}…`;
@@ -285,6 +300,18 @@ async function start() {
       map.setLayoutProperty(`${input.dataset.layer}-line`, "visibility", input.checked ? "visible" : "none");
     });
   });
+  map.on("mousemove", event => {
+    if (switchingPeriod || map.isMoving()) return;
+    const source = geographyControl.value;
+    const [area] = map.queryRenderedFeatures(event.point, { layers: [`${source}-fill`] });
+    if (hoveredArea && hoveredArea.source === source && hoveredArea.id === area?.id) return;
+    clearHover();
+    if (area?.id == null) return;
+    hoveredArea = { source, id: area.id };
+    map.setFeatureState(hoveredArea, { hover: true });
+  });
+  map.on("movestart", clearHover);
+  map.getCanvas().addEventListener("mouseleave", clearHover);
   map.on("click", event => {
     if (switchingPeriod) return;
     const features = map.queryRenderedFeatures(event.point, { layers: [...new Set(["communities-fill", `${geographyControl.value}-fill`])] });
