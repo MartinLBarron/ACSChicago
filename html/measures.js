@@ -26,7 +26,7 @@ window.ChicagoMeasures = [
   ,{ id: "no_high_school_pct", label: "Adults without a high-school diploma or GED", unit: "percent of adults age 25+", description: "Share of adults age 25+ without a high-school diploma or GED", breaks: [2,5,10,15,25,40] }
   ,{ id: "nh_black_pct", label: "Non-Hispanic Black population share", unit: "percent of residents", description: "Share of the total population identifying as Black alone and not Hispanic or Latino", breaks: [5,15,30,50,70,90] }
   ,{ id: "hispanic_pct", label: "Hispanic/Latino population share", unit: "percent of residents", description: "Share of the total population identifying as Hispanic or Latino, of any race", breaks: [5,15,30,50,70,90] }
-  ,{ id: "violent_crime_count", comparison: false, label: "Recorded violent crime", administrative: true, percent: false, count: true, unit: "recorded rows over five years", description: "Raw count of selected CPD violent-crime rows; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
+  ,{ id: "violent_crime_count", comparison: false, label: "Recorded violent crime", administrative: true, percent: false, count: true, unit: "recorded crimes over five years", description: "Count of selected violent crimes recorded by CPD; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
  ].map((measure,index) => ({ unit: "percent of eligible units", color: "#2b6550",
   ...(index >= 7 ? { supplemental: true, comparison: true, percent: true, group: "model", unit: "percent of renter-occupied homes" } : {}), ...measure }));
 window.ChicagoMeasureGroups = {
@@ -67,7 +67,7 @@ window.chicagoValueNotes = (row, measure) => {
     const text = statusLabels[row[`${measure.id}_${suffix}`]];
     if (text && !notes.includes(text)) notes.push(text);
   }
-  if (measure.administrative) notes.push("CPD recorded rows, not an ACS estimate; no sampling MOE applies");
+  if (measure.administrative) notes.push("CPD recorded crimes, not an ACS estimate; no sampling MOE applies");
   return notes.join(". ");
 };
 

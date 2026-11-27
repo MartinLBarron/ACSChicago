@@ -48,7 +48,7 @@ function renderLegend() {
   list.replaceChildren();
   const { isCount, isPercent, breaks } = selectedScale();
   const measure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
-  const unit = measure.administrative ? "recorded rows" : "units";
+  const unit = measure.administrative ? "recorded crimes" : "units";
   const money = value => dollars.format(value);
   const labels = isPercent
     ? [`Under ${breaks[0]}%`, ...breaks.slice(0,-1).map((v,i)=>`${v}% to under ${breaks[i+1]}%`), `${breaks.at(-1)}% or more`, "Unavailable / no eligible population"]
@@ -56,7 +56,7 @@ function renderLegend() {
     : [`Under ${money(breaks[0])}`, ...breaks.slice(0,-1).map((v,i)=>`${money(v)} to under ${money(breaks[i+1])}`), `${money(breaks.at(-1))} or more`, "Unavailable"];
   list.setAttribute("aria-label", `${measure.label} color scale`);
   document.getElementById("legend-note").textContent = measure.administrative
-    ? `${periodLabel(periodControl.value)} CPD recorded rows with usable coordinates, within whole Census areas. Raw counts, not rates or resident risk. Zero means zero assigned records. No survey MOE applies.`
+    ? `${periodLabel(periodControl.value)} CPD recorded crimes with usable coordinates, within whole Census areas. Raw counts, not rates or resident risk. Zero means zero assigned records. No survey MOE applies.`
     : `${measure.description}. ${isPercent ? "MOEs are in percentage points." : measure.money ? `${periodControl.value} dollars ${measure.unit}; not inflation-adjusted.` : "Counts are survey estimates."} Gray means unavailable. Community names appear in the popup and boundary outlines.`;
   labels.forEach((label, i) => {
     const row = document.createElement("li");
@@ -301,7 +301,7 @@ async function start() {
       const selectedValue=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_estimate`],selectedMeasure);
       const selectedMoe=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_moe`],selectedMeasure,true);
       const selectedNotes = window.chicagoValueNotes(area.properties, selectedMeasure);
-      lines.push(`${selectedMeasure.label}: ${selectedValue}${selectedMeasure.administrative ? " recorded rows; no sampling MOE" : selectedMoe==="Not available" ? " (MOE unavailable)" : ` ±${selectedMoe}`}. ${selectedMeasure.description}.${selectedNotes ? ` ${selectedNotes}.` : ""}`);
+      lines.push(`${selectedMeasure.label}: ${selectedValue}${selectedMeasure.administrative ? " recorded crimes; no sampling MOE" : selectedMoe==="Not available" ? " (MOE unavailable)" : ` ±${selectedMoe}`}. ${selectedMeasure.description}.${selectedNotes ? ` ${selectedNotes}.` : ""}`);
       if(area.properties.model_community)lines.push(`Block-group model community assignment: ${area.properties.model_community}`);
       lines.push(rentText(area.properties, "median_contract_rent", "Median contract rent"));
       lines.push(rentText(area.properties, "median_gross_rent", "Median gross rent"));

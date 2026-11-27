@@ -35,7 +35,7 @@ colors <- c(M1="#af7146",M2="#278f9b",M3="#80648f",M4="#18354a")
 This study asks **“What is the association between median rent and violent crime?”** We examine block-group median monthly **contract rent**, excluding separately paid utilities, and the **raw count of recorded violent-crime rows in 2020–2024**. The outcome is log median contract rent. The crime predictor is untransformed: no logarithm, population denominator, annualization, severity weights or neighboring-area buffer is introduced.
 
 <div class="finding">
-Across **`r num(nrow(d))` block groups**, crime alone accounts for **`r pct(r$metrics$r_squared[r$metrics$model=="M1"])`** of observed log-rent variation. The associated rent difference per 100 additional recorded rows is **`r signed(e$percent_per100_estimate[e$model=="M1"])`** before controls and **`r signed(e$percent_per100_estimate[e$model=="M4"])`** after housing/renter profile, socioeconomic factors and community location. The fully adjusted 95% HC3 interval is **`r signed(e$percent_per100_hc3_conf_low[e$model=="M4"])` to `r signed(e$percent_per100_hc3_conf_high[e$model=="M4"])`**.
+Across **`r num(nrow(d))` block groups**, crime alone accounts for **`r pct(r$metrics$r_squared[r$metrics$model=="M1"])`** of observed log-rent variation. The associated rent difference per 100 additional recorded crimes is **`r signed(e$percent_per100_estimate[e$model=="M1"])`** before controls and **`r signed(e$percent_per100_estimate[e$model=="M4"])`** after housing/renter profile, socioeconomic factors and community location. The fully adjusted 95% HC3 interval is **`r signed(e$percent_per100_hc3_conf_low[e$model=="M4"])` to `r signed(e$percent_per100_hc3_conf_high[e$model=="M4"])`**.
 </div>
 
 After socioeconomic adjustment (M3), the point estimate is **`r signed(e$percent_per100_estimate[e$model=="M3"])` per 100 rows**, with its HC3 interval spanning zero. Community indicators then shift the estimate back toward a modest negative association in M4. This is not a monotonic attenuation and should not be narrated as a simple sequence of causal explanations.
@@ -120,7 +120,7 @@ forest$model<-factor(forest$model,levels=rev(names(crime_stage_formulas)[-1]))
 ggplot(forest,aes(estimate,model,color=type))+geom_vline(xintercept=0,color="grey70")+
   geom_errorbar(aes(xmin=low,xmax=high),orientation="y",width=.2,position=position_dodge(width=.45))+
   geom_point(position=position_dodge(width=.45),size=2.5)+scale_color_manual(values=c("HC3"="#18354a","Community-clustered"="#af7146"))+
-  labs(x="Associated difference in median contract rent per 100 additional recorded rows (%)",y=NULL,color="95% interval",
+  labs(x="Associated difference in median contract rent per 100 additional recorded crimes (%)",y=NULL,color="95% interval",
     title="Crime association before and after adjustment")+bg_theme()+theme(legend.position="bottom")
 ```
 

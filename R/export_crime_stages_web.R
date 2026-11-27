@@ -56,9 +56,9 @@ sensitivity_row <- function(metrics,label) {
 sensitivities<-dplyr::bind_rows(sensitivity_row(r$strict_metrics,"At least 99% of area inside Chicago"),
   sensitivity_row(r$closed_metrics,"Exclude open-ended rent medians"))
 crime_q <- unname(stats::quantile(d$violent_crime_count,c(.05,.25,.5,.75,.95)))
-variables <- dplyr::bind_rows(data.frame(term="violent_crime_count",label="Recorded violent crimes",coefficient_label="Violent crime (+100 recorded rows)",unit="count",domain="Crime",p05=crime_q[1],p25=crime_q[2],median=crime_q[3],p75=crime_q[4],p95=crime_q[5]),variables)
+variables <- dplyr::bind_rows(data.frame(term="violent_crime_count",label="Recorded violent crimes",coefficient_label="Violent crime (+100 recorded crimes)",unit="count",domain="Crime",p05=crime_q[1],p25=crime_q[2],median=crime_q[3],p75=crime_q[4],p95=crime_q[5]),variables)
 crime_coef <- r$coefficients[r$coefficients$term=="violent_crime_count",]
-crime_coef$label <- "Violent crime (+100 recorded rows)"
+crime_coef$label <- "Violent crime (+100 recorded crimes)"
 for (field in c("estimate","hc3_conf_low","hc3_conf_high","cluster_conf_low","cluster_conf_high"))
   crime_coef[[paste0("percent_",field)]] <- 100*expm1(100*crime_coef[[field]])
 coefficients <- dplyr::bind_rows(crime_coef,coefficients)

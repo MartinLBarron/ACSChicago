@@ -44,7 +44,7 @@
 
   function summary(row, measure) {
     const moe = row[`${measure.id}_moe`];
-    return `${measure.id === "recent_movers_pct" ? window.chicagoMeasureForYear(measure,row.acs_end_year).label + "; " : ""}${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${measure.administrative ? "recorded rows" : isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
+    return `${measure.id === "recent_movers_pct" ? window.chicagoMeasureForYear(measure,row.acs_end_year).label + "; " : ""}${period(row)}: ${format(row[`${measure.id}_estimate`], measure)} ${measure.administrative ? "recorded crimes" : isValue(moe) ? `±${format(moe, measure, true)}` : "(MOE unavailable)"}${annotations(row, measure) ? `. ${annotations(row, measure)}` : ""}`;
   }
   function renderCards() {
     const row = rows.find(row => String(row.acs_end_year) === selectedYear);
