@@ -22,7 +22,11 @@ bg_coefficient_table <- function(fit, name, data, confidence = .95, term_labels 
   has_fe <- "community_id" %in% names(stats::model.frame(fit))
   hc <- matrix(NA_real_, length(beta), length(beta), dimnames = list(names(beta), names(beta)))
   if (has_fe && any(singleton)) {
-    reduced <- stats::lm(stats::formula(fit), data = droplevels(data[!singleton, ]), na.action = stats::na.fail)
+    reduced_data <- droplevels(data[!singleton, ])
+    fit_weights <- stats::weights(fit)
+    reduced_data$.hc_weight <- if (is.null(fit_weights)) 1 else fit_weights[!singleton]
+    reduced <- stats::lm(stats::formula(fit), data = reduced_data, weights = .hc_weight,
+                         na.action = stats::na.fail)
     cov <- sandwich::vcovHC(reduced, type = "HC3")
     common <- intersect(rownames(cov), names(beta))
     hc[common, common] <- cov[common, common]

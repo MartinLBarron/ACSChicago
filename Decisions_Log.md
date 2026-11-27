@@ -668,3 +668,19 @@ section includes matching reduced SEM/SAR models, queen/KNN4 sensitivity and
 heteroskedastic GMM checks. M4 spatial AIC gains are small and BIC favors OLS;
 these checks do not establish spatial independence. Assertions verify sample,
 coefficient and fit identity between website and spatial bundles.
+
+## 2026-11-27 — Population-based violent crime rate
+
+Martin selected the five-year total per 1,000 residents for the analysis-only
+refinement. Use the 2020–2024 recorded violent crime count and the same whole
+block group's ACS population estimate (B03002_001). Compare the reduced M0–M4
+models using identical block groups, covariates and tract validation folds.
+Run `Rscript R/model_crime_rate_stages.R` for these fits.
+
+## 2026-11-27 — Population-weight robustness check
+
+At Martin's request, fit the five-year crime-rate specifications using each block
+group's ACS total population as its regression weight. Keep the original sample
+and the equal-weight sample's interquartile crime-rate contrast for both fits.
+Use block-group HC3 and community-clustered intervals. Report fit under both
+scoring weights. The analysis is in R/check_crime_rate_population_weights.R.
