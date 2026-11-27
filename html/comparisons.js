@@ -14,7 +14,11 @@
   let opener;
   let request = 0;
   const valid = value => typeof value === "number" && Number.isFinite(value) && value >= 0;
-  const valueText = (row, measure) => `${format(row[`${measure.id}_estimate`], measure)} ±${format(row[`${measure.id}_moe`], measure, true)}`;
+  const valueText = (row, measure) => {
+    const estimate = format(row[`${measure.id}_estimate`], measure);
+    if (row[`${measure.id}_moe_annotation`] === "*****") return `${estimate} (controlled)`;
+    return `${estimate} ±${format(row[`${measure.id}_moe`], measure, true)}`;
+  };
   const cityName = row => row.NAME.split(" city,")[0];
   function loadData() {
     if (!dataPromise) dataPromise = fetch("data/web/comparison_statistics.json?v=20261121-all-acs-peers", { cache: "no-cache" })
@@ -46,7 +50,7 @@
       if (places.length !== (includeNational ? 11 : 10) || !places.some(row => row.comparison_id === "chicago") || (includeNational && !places.some(row => row.comparison_id === "united_states"))) throw new Error("Comparison cities are missing for this period.");
       chart.replaceChildren();
       const width = Math.max(320, chart.clientWidth);
-      const margin = { left: width < 500 ? 95 : 115, right: width < 500 ? 100 : 145, top: 36, bottom: 10 };
+      const margin = { left: width < 500 ? 95 : 115, right: measure.id === "total_population" ? 150 : width < 500 ? 100 : 145, top: 36, bottom: 10 };
       const height = 510;
       const x = d3.scaleLinear().domain([0, d3.max(places, row => valid(row[`${measure.id}_estimate`]) ? row[`${measure.id}_estimate`] : 0) || 1]).nice()
         .range([margin.left, width - margin.right]);

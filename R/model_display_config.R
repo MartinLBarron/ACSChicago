@@ -25,4 +25,12 @@ if(model_display_config$year==2014L) {
       "age_1970s","age_1960s","age_1950s","age_1940s","age_pre1940"))
   model_display_shares$built2000_plus$numerator <- c("age_2014_plus","age_2010_2013","age_2000s")
 }
-model_display_measures <- c(paste0(names(model_display_shares),"_pct"),"area_median_income","violent_crime_count")
+# Publish the total-population cell already collected for the two race/ethnicity shares.
+display_direct_fields <- function(data) {
+  suffixes <- c("estimate", "moe", "estimate_raw", "moe_raw", "estimate_annotation", "moe_annotation")
+  fields <- function(variable) paste(variable, suffixes, sep = "_")
+  population <- data[fields("race_total")]
+  names(population) <- fields("total_population")
+  dplyr::bind_cols(data[fields("area_median_income")], population)
+}
+model_display_measures <- c(paste0(names(model_display_shares),"_pct"),"area_median_income","total_population","violent_crime_count")

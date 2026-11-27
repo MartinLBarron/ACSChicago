@@ -11,9 +11,7 @@ derive_display<-function(x) {
     values<-derive_housing_percentage(x,model_display_shares[[name]])
     for(field in c("estimate","moe","estimate_status","moe_status"))out[[paste0(name,"_pct_",field)]]<-values[[field]]
   }
-  for(field in c("estimate","moe","estimate_raw","moe_raw","estimate_annotation","moe_annotation"))
-    out[[paste0("area_median_income_",field)]]<-x[[paste0("area_median_income_",field)]]
-  out
+  dplyr::bind_cols(out, display_direct_fields(x))
 }
 violent<-readRDS(file.path(cfg$crime_dir,if(cfg$year==2024L)"violent_record_assignment.rds" else "violent_records.rds"))
 valid<-violent$coordinate_status=="usable"

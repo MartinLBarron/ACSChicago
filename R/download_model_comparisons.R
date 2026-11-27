@@ -50,9 +50,7 @@ for(comparison_year in acs_years) {
       values
     }))
     metadata <- c("GEOID","NAME","geography","acs_start_year","acs_end_year","period","dollar_year","boundary_year","moe_confidence","synthetic_data")
-    x <- dplyr::bind_cols(wide[metadata],derived)
-    for(field in c("estimate","moe","estimate_raw","moe_raw","estimate_annotation","moe_annotation"))
-      x[[paste0("area_median_income_",field)]] <- wide[[paste0("area_median_income_",field)]]
+    x <- dplyr::bind_cols(wide[metadata], derived, display_direct_fields(wide))
     x$comparison_id <- peer$comparison_id
     key <- paste(comparison_year,peer$comparison_id,sep="_")
     comparison_model_frames[[key]] <- x
@@ -75,6 +73,11 @@ comparison_acs_measures <- setdiff(model_display_measures,"violent_crime_count")
 stopifnot(nrow(comparison_model_data)==33L,!anyDuplicated(comparison_model_data[c("GEOID","acs_end_year")]))
 for(measure in comparison_acs_measures)for(suffix in c("estimate","moe")) {
   values <- comparison_model_data[[paste0(measure,"_",suffix)]]
+  if (measure == "total_population" && suffix == "moe") {
+    controlled <- comparison_model_data$total_population_moe_annotation %in% "*****"
+    stopifnot(all(is.na(values[controlled])))
+    values <- values[!controlled]
+  }
   stopifnot(all(is.finite(values)),all(values>=0))
   if(grepl("_pct$",measure)&&suffix=="estimate")stopifnot(all(values<=100+1e-8))
 }
@@ -109,4 +112,4 @@ for(directory in c("data/web","html/data/web")) {
     stopifnot(isTRUE(all.equal(exported[[field]],combined[[field]])))
   }
 }
-message("PASS: all 25 ACS comparisons, 33 city/national-period rows, MOEs and independent Chicago agreement")
+message("PASS: all 26 ACS comparisons, 33 city/national-period rows, MOEs and independent Chicago agreement")

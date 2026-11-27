@@ -3,8 +3,8 @@
 window.ChicagoMeasures = [
   { id: "median_contract_rent", label: "Median contract rent", unit: "per month", money: true, group: "core", color: "#2b6550", description: "Renter-occupied homes paying cash rent" },
   { id: "median_gross_rent", label: "Median gross rent", unit: "per month", money: true, group: "core", color: "#2b6550", description: "Includes renter-paid utilities and fuels" },
-  { id: "cash_rent_units", label: "Occupied units paying cash rent", unit: "housing units", group: "core", color: "#986345", description: "Occupied rental homes with cash rent" },
-  { id: "renter_occupied_units", label: "Renter-occupied units", unit: "housing units", group: "core", color: "#986345", description: "Includes homes occupied without cash rent" },
+  { id: "cash_rent_units", label: "Occupied units paying cash rent", count: true, unit: "housing units", group: "core", color: "#986345", description: "Occupied rental homes with cash rent" },
+  { id: "renter_occupied_units", label: "Renter-occupied units", count: true, unit: "housing units", group: "core", color: "#986345", description: "Includes homes occupied without cash rent" },
   { id: "renter_occupied_pct", label: "Renter-occupied share", unit: "percent of occupied homes", percent: true, group: "core", breaks: [20, 35, 50, 65, 80, 90], description: "Percentage of occupied homes that are rented; excludes vacant homes" },
   { id: "rent_burden_30plus_pct", label: "Rent burden: 30% or more", percent: true, group: "burden", description: "Share of renters with computed rent/income ratios spending 30% or more of income on gross rent" },
   { id: "rent_burden_50plus_pct", label: "Rent burden: 50% or more", percent: true, group: "burden", description: "Share of renters with computed rent/income ratios spending 50% or more of income on gross rent" }
@@ -24,6 +24,7 @@ window.ChicagoMeasures = [
   ,{ id: "area_median_income", label: "Median household income", money: true, percent: false, unit: "per year", description: "Median annual income of all households, including owners and renters", breaks: [25000,50000,75000,100000,150000,200000] }
   ,{ id: "college_pct", label: "Adults with a bachelor’s degree or higher", unit: "percent of adults age 25+", description: "Share of adults age 25+ with at least a bachelor’s degree", breaks: [10,25,40,55,70,85] }
   ,{ id: "no_high_school_pct", label: "Adults without a high-school diploma or GED", unit: "percent of adults age 25+", description: "Share of adults age 25+ without a high-school diploma or GED", breaks: [2,5,10,15,25,40] }
+  ,{ id: "total_population", label: "Total population", count: true, percent: false, unit: "residents", description: "Estimated number of residents of all ages in the selected geography", breaks: [1,500,1000,1500,2000,3000], tractBreaks: [1,1000,2500,4000,5500,7500] }
   ,{ id: "nh_black_pct", label: "Non-Hispanic Black population share", unit: "percent of residents", description: "Share of the total population identifying as Black alone and not Hispanic or Latino", breaks: [5,15,30,50,70,90] }
   ,{ id: "hispanic_pct", label: "Hispanic/Latino population share", unit: "percent of residents", description: "Share of the total population identifying as Hispanic or Latino, of any race", breaks: [5,15,30,50,70,90] }
   ,{ id: "violent_crime_count", comparison: false, label: "Recorded violent crime", administrative: true, percent: false, count: true, unit: "recorded crimes over five years", description: "Count of selected violent crimes recorded by CPD; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
@@ -36,7 +37,7 @@ window.ChicagoMeasureGroups = {
   renters: "Renter profile",
   economics: "Income and poverty",
   education: "Education",
-  population: "Race and ethnicity",
+  population: "Population, race and ethnicity",
   crime: "Violent crime"
 };
 const measureGroupMembers = {
@@ -46,7 +47,7 @@ const measureGroupMembers = {
   renters: ["recent_movers_pct", "young_renters_pct", "older_renters_pct"],
   economics: ["area_median_income", "poverty_pct"],
   education: ["college_pct", "no_high_school_pct"],
-  population: ["nh_black_pct", "hispanic_pct"],
+  population: ["total_population", "nh_black_pct", "hispanic_pct"],
   crime: ["violent_crime_count"]
 };
 for (const [group, ids] of Object.entries(measureGroupMembers)) {

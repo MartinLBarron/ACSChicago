@@ -112,7 +112,7 @@
       if (valid.length < 2) return; // A single-period estimate is a card, not a trend.
       const article = root.append("article").attr("class", "trend-chart");
       article.append("h3").text(measure.id === "recent_movers_pct" ? "Recent renter move-ins (period-specific cutoff)" : measure.administrative ? baseMeasure.label : measure.label);
-      article.append("p").attr("class", "chart-unit").text(measure.administrative ? "Five-year CPD recorded totals · no survey MOE" : measure.money ? `${measure.unit} · not inflation-adjusted` : measure.percent ? `${measure.unit} · MOEs in percentage points` : "Estimated housing units");
+      article.append("p").attr("class", "chart-unit").text(measure.administrative ? "Five-year CPD recorded totals · no survey MOE" : measure.money ? `${measure.unit} · not inflation-adjusted` : measure.percent ? `${measure.unit} · MOEs in percentage points` : `Estimated ${measure.unit}`);
       const width = Math.max(290, article.node().getBoundingClientRect().width - 40);
       const height = 270;
       const margin = { top: 24, right: 24, bottom: 45, left: measure.money ? 62 : 72 };
@@ -122,7 +122,7 @@
       const svg = article.append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("role", "img")
         .attr("aria-labelledby", `trend-title-${index} trend-desc-${index}`);
       svg.append("title").attr("id", `trend-title-${index}`).text(`${baseMeasure.label}: ${measure.administrative ? "three five-year CPD totals" : "three ACS periods"}`);
-      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.administrative ? "Five-year CPD recorded totals; not ACS estimates. " : measure.money ? "Nominal dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : "Housing-unit counts. "}${seriesRows.map(row => summary(row, measure)).join(". ")}`);
+      svg.append("desc").attr("id", `trend-desc-${index}`).text(`${measure.administrative ? "Five-year CPD recorded totals; not ACS estimates. " : measure.money ? "Nominal dollars, not inflation-adjusted. " : measure.percent ? "Percentages; MOEs in percentage points. " : `Estimated ${measure.unit}. `}${seriesRows.map(row => summary(row, measure)).join(". ")}`);
       svg.append("g").attr("class", "chart-grid").attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(4).tickSize(-(width - margin.left - margin.right)).tickFormat(""))
         .call(g => g.select(".domain").remove());

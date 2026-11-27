@@ -21,6 +21,8 @@ for(tag in c("block_group","tract","chicago_city")) {
     readRDS(file.path(cfg$analytic_dir,paste0(tag,"_source.rds")))
   # Independent ratio identities guard against wrong historical table positions.
   idx<-match(x$GEOID,source$GEOID)
+  stopifnot(identical(x$total_population_estimate, source$race_total_estimate[idx]),
+    identical(x$total_population_moe, source$race_total_moe[idx]))
   for(name in names(model_display_shares)) {
     definition<-model_display_shares[[name]]
     numerator<-rowSums(source[paste0(definition$numerator,"_estimate")])

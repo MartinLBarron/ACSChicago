@@ -18,14 +18,19 @@ function setup(stale=false){
 (async()=>{
  const context=setup();const data=await context.load();
  const measures=context.window.ChicagoMeasures.filter(m=>!m.administrative);
- assert.equal(measures.length,25);assert.ok(measures.every(m=>m.comparison!==false));
+ assert.equal(measures.length,26);assert.ok(measures.every(m=>m.comparison!==false));
  for(const year of [2014,2019,2024])for(const measure of measures){
   const includeNational=measure.money||measure.percent;
   const rows=data.filter(r=>r.acs_end_year===year&&(includeNational||r.comparison_id!=="united_states"));
   assert.equal(rows.length,includeNational?11:10);
   assert.equal(rows.some(r=>r.comparison_id==="united_states"),Boolean(includeNational));
-  for(const row of rows)for(const suffix of ["estimate","moe"])assert.ok(Number.isFinite(row[`${measure.id}_${suffix}`]),`${year}/${measure.id}/${row.comparison_id}/${suffix}`);
+  for(const row of rows) {
+   assert.ok(Number.isFinite(row[`${measure.id}_estimate`]));
+   const moe = row[`${measure.id}_moe`];
+   if (row[`${measure.id}_moe_annotation`] === "*****") assert.equal(moe,null);
+   else assert.ok(Number.isFinite(moe),`${year}/${measure.id}/${row.comparison_id}/moe`);
+  }
  }
  await assert.rejects(setup(true).load(),/outdated/);
- console.log("PASS: 75 ACS measure/period comparisons, national-row rules, MOEs and stale-data rejection");
+ console.log("PASS: 78 ACS measure/period comparisons, national-row rules, MOEs and stale-data rejection");
 })().catch(error=>{console.error(error);process.exitCode=1;});

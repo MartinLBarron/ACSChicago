@@ -5,10 +5,9 @@ const status = document.getElementById("status");
 const rentBreaks = [750, 1000, 1250, 1500, 2000, 2500];
 // A separate zero class distinguishes estimated zero from missing data.
 const countBreaks = [1, 100, 250, 500, 1000, 2000];
-const countMeasures = new Set(["cash_rent_units", "renter_occupied_units", "violent_crime_count"]);
 function selectedScale() {
   const measure = window.ChicagoMeasures.find(measure => measure.id === measureControl.value);
-  const isCount = countMeasures.has(measureControl.value);
+  const isCount = !!measure.count;
   const breaks = geographyControl.value === "tracts" && measure.tractBreaks ? measure.tractBreaks :
     measure.breaks || (measure.percent ? [10,20,30,40,50,75] : isCount ? countBreaks : rentBreaks);
   return { isCount, isPercent: !!measure.percent, breaks };
@@ -48,7 +47,7 @@ function renderLegend() {
   list.replaceChildren();
   const { isCount, isPercent, breaks } = selectedScale();
   const measure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
-  const unit = measure.administrative ? "recorded crimes" : "units";
+  const unit = measure.administrative ? "recorded crimes" : measure.unit;
   const money = value => dollars.format(value);
   const labels = isPercent
     ? [`Under ${breaks[0]}%`, ...breaks.slice(0,-1).map((v,i)=>`${v}% to under ${breaks[i+1]}%`), `${breaks.at(-1)}% or more`, "Unavailable / no eligible population"]

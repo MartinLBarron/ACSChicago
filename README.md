@@ -378,7 +378,7 @@ The Model page continues to describe the 2020–2024 regressions.
 ### ACS comparisons for every card
 
 After core and model-display preparation, `Rscript R/run_comparisons.R` builds
-all 25 ACS comparison measures for the ten cities and US across all three
+all 26 ACS comparison measures for the ten cities and US across all three
 periods, preserving estimates, MOEs, raw source responses and annotations.
 The default pipeline includes this extension. See
 [the peer comparison notes](docs/model_display_measures.md#complete-acs-peer-comparisons).
