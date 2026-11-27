@@ -684,3 +684,12 @@ group's ACS total population as its regression weight. Keep the original sample
 and the equal-weight sample's interquartile crime-rate contrast for both fits.
 Use block-group HC3 and community-clustered intervals. Report fit under both
 scoring weights. The analysis is in R/check_crime_rate_population_weights.R.
+
+## 2026-11-27 — Historical crime-rate robustness check
+
+Fit the reduced final model separately for the three nonoverlapping five-year
+periods, using each release's whole block groups, rent, income, population and
+housing controls, and the corresponding five-year CPD count. Apply the same
+city and community overlay rule to each boundary vintage. Use both equal and
+population weights and the 2020–2024 block-group crime-rate interquartile range
+as a fixed contrast. Compare period slopes with community-clustered inference.
