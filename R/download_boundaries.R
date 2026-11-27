@@ -16,18 +16,19 @@ dir.create(shape_dir, recursive = TRUE, showWarnings = FALSE)
 options(timeout = max(600, getOption("timeout")))
 
 sources <- data.frame(
-  name = c("chicago_city", "chicago_community_areas", "illinois_block_groups", "illinois_tracts"),
+  name = c("chicago_city", "chicago_community_areas", "illinois_block_groups", "illinois_tracts", "chicago_zip_codes"),
   url = c(
     "https://data.cityofchicago.org/resource/qqq8-j68g.geojson?$limit=50000",
     "https://data.cityofchicago.org/resource/igwz-8jzy.geojson?$limit=50000",
     sprintf("https://www2.census.gov/geo/tiger/TIGER%d/BG/tl_%d_17_bg.zip",
             tiger_year, tiger_year),
     sprintf("https://www2.census.gov/geo/tiger/TIGER%d/TRACT/tl_%d_17_tract.zip",
-            tiger_year, tiger_year)
+            tiger_year, tiger_year),
+    "https://data.cityofchicago.org/api/geospatial/unjd-c2ca?method=export&format=Shapefile"
   ),
   filename = c("chicago_city.geojson", "chicago_community_areas.geojson",
                sprintf("tl_%d_17_bg.zip", tiger_year),
-               sprintf("tl_%d_17_tract.zip", tiger_year))
+               sprintf("tl_%d_17_tract.zip", tiger_year), "chicago_zip_codes.zip")
 )
 
 # Never overwrite cached source bytes. Delete a cached file explicitly to refresh it.
@@ -76,6 +77,11 @@ stopifnot(nrow(city) >= 1, nrow(community_areas) == 77L,
           "area_numbe" %in% names(community_areas),
           length(unique(community_areas$area_numbe)) == 77L)
 
+zip_archive <- normalizePath(file.path(raw_dir, "chicago_zip_codes.zip"))
+zip_codes <- read_boundary(paste0("/vsizip/", zip_archive))
+stopifnot(nrow(zip_codes) > 0L, "zip" %in% names(zip_codes),
+          all(grepl("^[0-9]{5}$", zip_codes$zip)))
+
 # Extract the authoritative Illinois TIGER/Line archive beneath data/shape.
 tiger_dir <- file.path(shape_dir, sprintf("tiger_%d_illinois", tiger_year))
 dir.create(tiger_dir, recursive = TRUE, showWarnings = FALSE)
@@ -122,6 +128,7 @@ chicago_tracts <- tracts[tracts$GEOID %in% tract_overlap$GEOID, ]
 chicago_tracts <- chicago_tracts[order(chicago_tracts$GEOID), ]
 write_shape(chicago_tracts, sprintf("chicago_tracts_%d", tiger_year))
 write_shape(tract_overlap, sprintf("chicago_tracts_%d_clipped", tiger_year))
+write_shape(zip_codes["zip"], "chicago_zip_codes")
 write_shape(city, "chicago_city")
 write_shape(community_areas, "chicago_community_areas")
 write_shape(chicago_bg, sprintf("chicago_block_groups_%d", tiger_year))

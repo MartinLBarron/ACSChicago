@@ -6,10 +6,10 @@
   <title>Chicago rent explorer</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet">
-  <link href="style.css?v=20261121-distributions" rel="stylesheet">
+  <link href="style.css?v=20261127-boundary-defaults" rel="stylesheet">
   <script defer src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
   <script defer src="measures.js?v=20261127-population"></script>
-  <script defer src="map.js?v=20261127-population"></script>
+  <script defer src="map.js?v=20261127-boundary-defaults"></script>
   <script defer src="vendor/d3.v7.9.0.min.js"></script>
   <script defer src="city-stats.js?v=20261127-population"></script>
   <script defer src="distributions.js?v=20261121-distributions"></script>
@@ -40,9 +40,10 @@
     <fieldset disabled id="layers">
       <legend>Boundary outlines</legend>
       <label><input type="checkbox" data-layer="city" checked><span class="key city"></span>City limits</label>
-      <label><input type="checkbox" data-layer="communities" checked><span class="key communities"></span>Community areas</label>
-      <label><input type="checkbox" data-layer="blocks" checked><span class="key blocks"></span>Block groups</label>
-      <label><input type="checkbox" data-layer="tracts" checked><span class="key tracts"></span>Census tracts</label>
+      <label><input type="checkbox" data-layer="communities"><span class="key communities"></span>Community areas</label>
+      <label><input type="checkbox" data-layer="zips"><span class="key zips"></span>ZIP codes</label>
+      <label><input type="checkbox" data-layer="blocks"><span class="key blocks"></span>Block groups</label>
+      <label><input type="checkbox" data-layer="tracts"><span class="key tracts"></span>Census tracts</label>
     </fieldset>
     <button id="reset" disabled>Show all of Chicago</button>
     <p id="status" role="status">Loading boundaries…</p>

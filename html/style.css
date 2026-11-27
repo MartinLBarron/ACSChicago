@@ -37,6 +37,7 @@ select { width: 100%; min-height: 42px; padding: 9px 7px; font-size: 12px; borde
 #layers label { display: flex; align-items: center; gap: 9px; min-height: 40px; font-size: 12px; clear: both; }
 input[type=checkbox] { width: 16px; height: 16px; accent-color: #35684f; }
 .key { display: inline-block; width: 16px; height: 3px; }
+.key.zips { height: 0; border-top: 2px solid #a45319; }
 .key.pumas { background: #a66523; }
 .city { background: #b83246; }.communities { background: #126875; }.blocks { background: #655c79; }.tracts { background: #403a50; }
 button { color: var(--ink); background: #f0f3e8; border: 1px solid #d5dfc8; border-radius: 3px; padding: 10px 12px; }
@@ -82,8 +83,6 @@ button:disabled { opacity: .5; cursor: wait; }
 .project-placeholder a { color: #2b6550; }
 @media (max-width: 850px) { .site-header { gap: 20px; flex-wrap: wrap; padding: 15px 0; } nav { flex-wrap: wrap; gap: 18px; } nav a { min-height: 36px; } }
 
-.data-page { max-width: 960px; }
-.data-page:has(.variable-dictionary) { max-width: 1280px; }
 .data-dictionary-scroll { overflow-x: auto; margin: 25px 0; border: 1px solid var(--line); }
 .data-dictionary { width: 100%; min-width: 850px; border-collapse: collapse; font-size: 14px; line-height: 1.65; text-align: left; }
 .data-dictionary caption { text-align: left; padding: 16px; color: var(--muted); }
@@ -95,8 +94,8 @@ button:disabled { opacity: .5; cursor: wait; }
 .data-dictionary code { font-size: 12px; overflow-wrap: anywhere; }
 .data-dictionary a { color: #2b6550; text-underline-offset: 3px; }
 .data-page h2 { font: normal 30px/1.2 var(--serif); margin: 30px 0 16px; }
-.data-page p:not(.eyebrow) { color: var(--muted); max-width: 700px; font-size: 15px; line-height: 1.8; }
-.data-page .source-notes { margin-top: 32px; padding-top: 25px; border-top: 1px solid var(--line); max-width: 700px; font-size: 14px; }
+.data-page p:not(.eyebrow) { color: var(--muted); font-size: 15px; line-height: 1.8; }
+.data-page .source-notes { margin-top: 32px; padding-top: 25px; border-top: 1px solid var(--line); font-size: 14px; }
 .chicago-reset-control button { display: grid; place-items: center; color: var(--ink); }
 
 .site-footer a.chicago-stars { text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }

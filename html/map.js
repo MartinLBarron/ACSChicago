@@ -19,6 +19,7 @@ const definitions = [
   { id: "blocks", file: "block_group_rent_2024", color: "#655c79", width: 0.5 },
   { id: "tracts", file: "tract_rent_2024", color: "#403a50", width: 0.8 },
   { id: "communities", file: "chicago_community_areas", color: "#126875", width: 1.8 },
+  { id: "zips", file: "chicago_zip_codes", color: "#a45319", width: 2 },
   { id: "city", file: "chicago_city", color: "#b83246", width: 3 }
 ];
 const measureControl = document.getElementById("measure");
@@ -177,7 +178,7 @@ async function start() {
     const source = { type: "geojson", data: data[i] };
     if (["blocks", "tracts"].includes(definition.id)) source.promoteId = "GEOID";
     map.addSource(definition.id, source);
-    map.addLayer({ id: `${definition.id}-fill`, type: "fill", source: definition.id,
+    if (definition.id !== "zips") map.addLayer({ id: `${definition.id}-fill`, type: "fill", source: definition.id,
       paint: { "fill-color": missingColor, "fill-opacity": 0 } });
     map.addLayer({ id: `${definition.id}-line`, type: "line", source: definition.id,
       layout: { visibility: document.querySelector(`[data-layer="${definition.id}"]`).checked ? "visible" : "none" },
