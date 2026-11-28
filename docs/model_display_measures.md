@@ -1,9 +1,9 @@
 # Model measures on the map and dashboard
 
-All 26 display measures cover ACS **2010–2014, 2015–2019 and 2020–2024**.
+All 28 display measures cover ACS **2010–2014, 2015–2019 and 2020–2024**.
 They use tract and block-group boundaries matching each release, retaining whole
 areas with positive Chicago overlap and excluding the configured lake-only tract.
-The separate regression study still uses 2020–2024 only.
+The primary model uses 2020–2024, with final-model robustness checks for the two earlier periods.
 
 ## Definitions
 
@@ -12,7 +12,7 @@ The separate regression study still uses 2020–2024 only.
 - Renter profile: recent move-ins; householders under 35 and age 65+.
 - Context: poverty, median household income, bachelor+ and no diploma/GED shares
   among adults 25+, non-Hispanic Black and Hispanic/Latino population shares.
-- Crime: raw CPD violent-crime rows dated within each five-year period.
+- Crime measures include the recorded five-year count and the five-year rate per 1,000 residents. The model uses the rate.
 
 Recent move-ins mean **2010+, 2015+ and 2020+**, respectively. The first release
 uses B25038_010; the others sum _010 and _011. These are stock shares with
@@ -39,8 +39,7 @@ specifications retain these as reference categories.
 The frozen 2024 IUCR definition applies to all periods: Index murder, criminal
 sexual assault, robbery, aggravated assault/battery, including the documented
 child-sexual-assault and ritual-battery codes. Each unique CPD row counts once;
-separate murder-victim rows remain separate. No rates, annualization or nearby
-buffers are used. Unusable coordinates are excluded from mapped counts, while
+separate murder-victim rows remain separate. For the rate, divide the five-year count by the same geography’s ACS total population (B03002_001) and multiply by 1,000. A zero or missing population yields an unavailable rate. Unusable coordinates are excluded from mapped counts, while
 city totals retain them. No survey MOE applies; reporting and location errors
 remain. Zero assigned rows does not establish absence of violence.
 
@@ -76,8 +75,7 @@ stage to verify numerical reproducibility; cached inputs avoid new downloads.
 
 Upload the complete `html/` folder, including all three years' supplements. The
 map joins by GEOID and period. All dashboard tabs work in all periods. ACS charts
-connect all three estimates; the crime chart shows the three five-year period
-totals, using the same citywide counts as its cards. All 25 ACS measures have peer-city comparisons; violent
+connect all three estimates; the crime charts show five-year counts and rates using the same data as the cards. All 26 ACS measures have peer-city comparisons; violent
 crime remains Chicago-only pending a comparable external crime source. No
 point-level crime data is published.
 No new R package dependencies are introduced.

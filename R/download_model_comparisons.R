@@ -69,7 +69,7 @@ options(chicago.display_year=comparison_previous_option)
 comparison_model_data <- dplyr::bind_rows(comparison_model_frames)
 comparison_model_long <- dplyr::bind_rows(comparison_model_sources)
 comparison_model_derivations <- dplyr::bind_rows(comparison_model_derived)
-comparison_acs_measures <- setdiff(model_display_measures,"violent_crime_count")
+comparison_acs_measures <- setdiff(model_display_measures,c("violent_crime_count","crime_rate"))
 stopifnot(nrow(comparison_model_data)==33L,!anyDuplicated(comparison_model_data[c("GEOID","acs_end_year")]))
 for(measure in comparison_acs_measures)for(suffix in c("estimate","moe")) {
   values <- comparison_model_data[[paste0(measure,"_",suffix)]]

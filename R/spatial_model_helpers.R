@@ -9,8 +9,7 @@ sp_impact <- function(beta,theta,eigenvalues,island_fraction) {
   total_factor <- island_fraction+(1-island_fraction)/(1-theta)
   c(direct=beta*direct_factor,indirect=beta*(total_factor-direct_factor),total=beta*total_factor)
 }
-sp_effects <- function(beta,V,theta,theta_name,family,eigenvalues,island_fraction,interval,seed,draws=4000L) {
-  crime <- "violent_crime_count"
+sp_effects <- function(beta,V,theta,theta_name,family,eigenvalues,island_fraction,interval,seed,draws=4000L,crime="violent_crime_count") {
   if(family!="SAR") {
     se <- sqrt(V[crime,crime])
     return(data.frame(effect="Conditional association",log_effect=beta[crime],

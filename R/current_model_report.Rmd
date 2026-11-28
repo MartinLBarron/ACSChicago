@@ -1,0 +1,95 @@
+---
+title: "Median contract rent and the five-year violent crime rate in Chicago"
+output: html_document
+params:
+  model_data: ""
+---
+
+```{r setup, include=FALSE}
+w <- jsonlite::read_json(params$model_data, simplifyVector=TRUE)
+stopifnot(w$version == 4L)
+pct <- function(x) sprintf("%.2f%%", x)
+interval <- function(lo, hi) paste(pct(lo), "to", pct(hi))
+```
+
+## Study design
+
+The four models use the same `r format(w$sample_n, big.mark=",")` block groups and
+give each area equal weight. The outcome is log median monthly contract rent.
+The exposure is the number of geocoded CPD violent crimes in 2020–2024 divided by
+the block group's ACS five-year total population estimate, multiplied by 1,000.
+Each retained block group has a positive population, usable rent and controls,
+and at least half its polygon area inside Chicago.
+
+## Staged results
+
+The rent differences below correspond to `r round(w$crime_contrast,1)` more
+recorded violent crimes per 1,000 residents over five years, the observed
+interquartile range. Intervals use HC3 standard errors.
+
+```{r stages, echo=FALSE}
+m <- w$models
+e <- w$effects[match(m$model,w$effects$model),]
+knitr::kable(data.frame(Model=m$model, Specification=m$specification,
+  R2=pct(100*m$r_squared), Rent_difference=pct(e$percent_estimate),
+  HC3_interval=interval(e$percent_hc3_conf_low,e$percent_hc3_conf_high)),
+  col.names=c("Model","Specification","R²","Rent difference","95% interval"))
+```
+
+M4 compares areas within the same community, adjusting for housing, renter and
+socioeconomic characteristics. Its confidence interval includes zero. These
+area-level associations cannot establish what a change in crime would do to rent.
+
+## Period and weighting checks
+
+The same crime-rate difference is used in every row. Each period uses its own
+block-group boundaries, complete cases and ACS population denominators.
+
+```{r robustness, echo=FALSE}
+p <- w$period_checks
+knitr::kable(data.frame(Period=paste(p$year-4,p$year,sep="–"), Weight=p$weighting,
+  Areas=p$n, Rent_difference=pct(p$contrast_pct_estimate),
+  CI=interval(p$contrast_pct_hc3_conf_low,p$contrast_pct_hc3_conf_high)),
+  col.names=c("ACS period","Block-group weight","Block groups","M4 rent difference","95% interval"))
+```
+
+## Measurement and coverage
+
+Population is ACS cell B03002_001. The rate uses recorded homicide, criminal sexual
+assault, robbery and aggravated assault/battery with usable locations.
+Incidents may involve visitors, and recording and geographic coverage vary.
+Regression intervals treat the population denominator as fixed. Differences
+across periods may also reflect which areas had publishable rent and income.
+
+## Fit and diagnostics
+
+```{r validation, echo=FALSE}
+knitr::kable(data.frame(Model=m$model, Fit=pct(100*m$adjusted_r_squared),
+  Held_out=pct(100*m$predictive_R2), RMSE=round(m$RMSE_log,3)),
+  col.names=c("Model","Adjusted R²","Held-out R²","Held-out RMSE (log rent)"))
+```
+
+Cross-validation uses tract-based folds. The community-area model requires a
+community observed in the training fold, so all stages use the same held-out
+areas. The primary fits give each block group equal weight. The following
+sensitivity fits use the same four stages under narrower sample definitions.
+
+```{r sample-checks, echo=FALSE}
+knitr::kable(data.frame(Sample=w$sensitivity$sensitivity, Areas=w$sensitivity$n,
+                        M4=pct(100*w$sensitivity$M4)),
+             col.names=c("Sample","Block groups","M4 R²"))
+```
+
+## Final model coefficients
+
+The crime coefficient below is per one additional recorded crime per 1,000
+residents over five years. Housing and demographic shares are per ten percentage
+points. Income enters as log median household income. Intervals are in log-rent
+units. A community with one retained area has no estimable HC3 interval for its
+indicator.
+
+```{r coefficients, echo=FALSE}
+co <- subset(w$formal_coefficients, model == "M4")
+knitr::kable(co[c("label","estimate","hc3_conf_low","hc3_conf_high")], digits=5,
+  col.names=c("Term","Coefficient","95% HC3 lower","95% HC3 upper"))
+```

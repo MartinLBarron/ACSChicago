@@ -70,18 +70,29 @@
     return { ...chart, x, y, m };
   }
   function overview() {
-    const m2 = data.models.find(d=>d.model==="M2");
-    const m3 = data.models.find(d=>d.model==="M3");
     const m1 = data.models.find(d=>d.model==="M1");
     const m4 = data.models.find(d=>d.model==="M4");
-    const gain = m4.r_squared-m3.r_squared;
     const crimeOnly = data.effects.find(row=>row.model==="M1");
     const crimeFull = data.effects.find(row=>row.model==="M4");
     $("summary-data").textContent = `The study combines 2020–2024 ACS five-year estimates, matching 2024 Census boundaries and 2020–2024 Chicago Police Department records. It includes ${number(data.sample_n)} complete-case block groups across ${data.communities_n} community areas.`;
     const intervalValue=value=>`${value>0?"+":""}${d3.format(".2f")(value)}%`;
-    const finding=crimeFull.hc3_p_value<.05 ? "This association is statistically significant at the 5% level using HC3, with its confidence interval narrowly excluding zero." : "This association is not statistically significant using HC3.";
-    $("summary-results").textContent = `Crime alone accounts for ${percent(m1.r_squared)} of rent variation. In M1, 100 additional recorded violent-crime rows are associated with ${signed(crimeOnly.percent_per100_estimate)} rent. That association becomes much smaller after adding the measured controls. The full M4 accounts for ${percent(m4.r_squared)} of rent variation, with crime associated with ${signed(crimeFull.percent_per100_estimate)} rent per 100 additional recorded crimes (95% CI: ${intervalValue(crimeFull.percent_per100_hc3_conf_low)} to ${intervalValue(crimeFull.percent_per100_hc3_conf_high)}). ${finding}`;
-    for (const m of data.models) cellRow($("model-table"), [m.model, m.model === "M0" ? `${m.label}: ${m.specification}` : m.specification,number(m.n),m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared)]);
+    const contrast = data.crime_contrast.toFixed(1);
+    $("summary-results").textContent = `Across the middle half of observed crime rates, a difference of ${contrast} crimes per 1,000 residents over five years is associated with ${intervalValue(crimeOnly.percent_estimate)} median rent in M1. The crime-only model explains ${percent(m1.r_squared)} of variation in log rent. In M4 the rent difference is ${intervalValue(crimeFull.percent_estimate)} (95% HC3 interval ${intervalValue(crimeFull.percent_hc3_conf_low)} to ${intervalValue(crimeFull.percent_hc3_conf_high)}). The full model explains ${percent(m4.r_squared)} of variation in log rent.`;
+    for (const m of data.models) cellRow($("model-table"), [m.model, m.specification, number(m.n),m.parameters,percent(m.r_squared),percent(m.adjusted_r_squared)]);
+    $("crime-estimates-caption").textContent = `Difference in median contract rent associated with ${contrast} more recorded violent crimes per 1,000 residents over 2020–2024 (25th to 75th percentile).`;
+    for (const model of data.models) {
+      const effect = data.effects.find(row => row.model === model.model);
+      cellRow($("crime-estimates"), [
+        `${model.model} · ${model.label}`,
+        intervalValue(effect.percent_estimate),
+        `${intervalValue(effect.percent_hc3_conf_low)} to ${intervalValue(effect.percent_hc3_conf_high)}`
+      ]);
+    }
+    const effectText = row => `${intervalValue(row.contrast_pct_estimate)} (${intervalValue(row.contrast_pct_hc3_conf_low)} to ${intervalValue(row.contrast_pct_hc3_conf_high)})`;
+    for (const row of data.period_checks.filter(row => row.weighting === "Equal")) {
+      const weighted = data.period_checks.find(other => other.year === row.year && other.weighting === "Population");
+      cellRow($("period-checks"), [`${row.year-4}–${row.year}`, number(row.n), effectText(row), effectText(weighted)]);
+    }
     $("sample-note").textContent=`The outcome is median contract rent (B25058), excluding separately paid utilities. The ${number(data.majority_city_n)} majority-in-city block groups lose ${number(data.missing_rent_n)} without usable rent and another ${number(data.missing_income_n)} without median household income, leaving ${number(data.sample_n)} complete cases. Dollar values use 2024 dollars and matching 2024 TIGER block-group boundaries.`;
     $("caveat-note").textContent=`${data.open_ended_rent_n} rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. ${data.singleton_n} community (Oakland) has only one usable block group and is fitted exactly.`;
   }
@@ -185,10 +196,10 @@
   function render() { hideTip(); coefficientChart(); diagnostics(); }
   async function start() {
     try {
-      const response=await fetch("data/web/block_group_model_2024.json?v=20261122-reduced-primary", { cache: "no-cache" });
+      const response=await fetch("data/web/block_group_model_2024.json?v=20261128-crime-rate", { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       data=await response.json();
-      if (data.version!==3 || data.synthetic_data || !data.models?.length || !data.coefficients?.length || !data.formal_coefficients?.length || !data.spatial_robustness || !data.vif?.length) throw new Error("Invalid model export");
+      if (data.version!==4 || data.synthetic_data || data.models?.map(m=>m.model).join(",")!=="M1,M2,M3,M4" || !data.coefficients?.length || !data.formal_coefficients?.length || !data.spatial_robustness || !data.vif?.length) throw new Error("Invalid model export");
       $("model-content").hidden=false;
       overview();
       $("coefficient-model").addEventListener("change",coefficientChart);

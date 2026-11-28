@@ -17,7 +17,7 @@ function setup(stale=false){
 }
 (async()=>{
  const context=setup();const data=await context.load();
- const measures=context.window.ChicagoMeasures.filter(m=>!m.administrative);
+ const measures=context.window.ChicagoMeasures.filter(m=>m.comparison!==false);
  assert.equal(measures.length,26);assert.ok(measures.every(m=>m.comparison!==false));
  for(const year of [2014,2019,2024])for(const measure of measures){
   const includeNational=measure.money||measure.percent;

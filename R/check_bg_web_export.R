@@ -2,7 +2,7 @@
 # contrast fixtures for the browser's calculation (including negative differences).
 source("R/bg_model_config.R")
 r <- readRDS(file.path(bg_model_config$analytic_dir, "model_results.rds"))
-web <- jsonlite::read_json("html/data/web/block_group_model_2024.json", simplifyVector = TRUE)
+web <- jsonlite::read_json(file.path(bg_model_config$output_dir,"archived_web","block_group_model_2024.json"), simplifyVector = TRUE)
 stopifnot(web$sample_n == nrow(r$data), web$communities_n == nlevels(r$data$community_id),
   nrow(web$points) == nrow(r$data), !web$synthetic_data)
 model_rows <- match(web$models$model, r$metrics$model)

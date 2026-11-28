@@ -50,12 +50,14 @@ function renderLegend() {
   const measure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
   const unit = measure.administrative ? "recorded crimes" : measure.unit;
   const money = value => dollars.format(value);
-  const labels = isPercent
+  const labels = measure.rate
+    ? [`Under ${breaks[0]}`, ...breaks.slice(0,-1).map((v,i)=>`${v} to under ${breaks[i+1]}`), `${breaks.at(-1)} or more`, "Unavailable / no residents"]
+    : isPercent
     ? [`Under ${breaks[0]}%`, ...breaks.slice(0,-1).map((v,i)=>`${v}% to under ${breaks[i+1]}%`), `${breaks.at(-1)}% or more`, "Unavailable / no eligible population"]
     : isCount ? [`0 ${unit}`, ...breaks.slice(0,-1).map((v,i)=>`${v.toLocaleString()}–${(breaks[i+1]-1).toLocaleString()} ${unit}`), `${breaks.at(-1).toLocaleString()} or more ${unit}`, "Unavailable"]
     : [`Under ${money(breaks[0])}`, ...breaks.slice(0,-1).map((v,i)=>`${money(v)} to under ${money(breaks[i+1])}`), `${money(breaks.at(-1))} or more`, "Unavailable"];
   list.setAttribute("aria-label", `${measure.label} color scale`);
-  document.getElementById("legend-note").textContent = measure.administrative
+  document.getElementById("legend-note").textContent = measure.rate ? `Recorded violent crimes per 1,000 residents over ${periodLabel(periodControl.value)}. Gray means the rate is unavailable.` : measure.administrative
     ? `${periodLabel(periodControl.value)} CPD recorded crimes with usable coordinates, within whole Census areas. Raw counts, not rates or resident risk. Zero means zero assigned records. No survey MOE applies.`
     : `${measure.description}. ${isPercent ? "MOEs are in percentage points." : measure.money ? `${periodControl.value} dollars ${measure.unit}; not inflation-adjusted.` : "Counts are survey estimates."} Gray means unavailable. Community names appear in the popup and boundary outlines.`;
   labels.forEach((label, i) => {
@@ -252,7 +254,7 @@ async function start() {
     renderLegend();
     document.dispatchEvent(new CustomEvent("chicago:period-change", { detail: { year: periodControl.value } }));
     const selectedMeasure = window.chicagoMeasureForYear(window.ChicagoMeasures.find(measure => measure.id === measureControl.value), periodControl.value);
-    document.getElementById("map-period").textContent = selectedMeasure.administrative
+    document.getElementById("map-period").textContent = selectedMeasure.rate ? `${periodLabel(periodControl.value)} CPD and ACS · ${periodControl.value} boundaries` : selectedMeasure.administrative
       ? `${periodLabel(periodControl.value)} CPD records · ${periodControl.value} Census boundaries`
       : `${periodLabel(periodControl.value)} ACS · ${periodControl.value} boundaries`;
     status.textContent = "";
@@ -328,7 +330,7 @@ async function start() {
       const selectedValue=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_estimate`],selectedMeasure);
       const selectedMoe=window.formatChicagoValue(area.properties[`${selectedMeasure.id}_moe`],selectedMeasure,true);
       const selectedNotes = window.chicagoValueNotes(area.properties, selectedMeasure);
-      lines.push(`${selectedMeasure.label}: ${selectedValue}${selectedMeasure.administrative ? " recorded crimes; no sampling MOE" : selectedMoe==="Not available" ? " (MOE unavailable)" : ` ±${selectedMoe}`}. ${selectedMeasure.description}.${selectedNotes ? ` ${selectedNotes}.` : ""}`);
+      lines.push(`${selectedMeasure.label}: ${selectedValue}${selectedMeasure.rate ? " crimes per 1,000 residents" : selectedMeasure.administrative ? " recorded crimes; no sampling MOE" : selectedMoe==="Not available" ? " (MOE unavailable)" : ` ±${selectedMoe}`}. ${selectedMeasure.description}.${selectedNotes ? ` ${selectedNotes}.` : ""}`);
       if(area.properties.model_community)lines.push(`Block-group model community assignment: ${area.properties.model_community}`);
       lines.push(rentText(area.properties, "median_contract_rent", "Median contract rent"));
       lines.push(rentText(area.properties, "median_gross_rent", "Median gross rent"));

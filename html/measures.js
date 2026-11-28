@@ -27,6 +27,7 @@ window.ChicagoMeasures = [
   ,{ id: "total_population", label: "Total population", count: true, percent: false, unit: "residents", description: "Estimated number of residents of all ages in the selected geography", breaks: [1,500,1000,1500,2000,3000], tractBreaks: [1,1000,2500,4000,5500,7500] }
   ,{ id: "nh_black_pct", label: "Non-Hispanic Black population share", unit: "percent of residents", description: "Share of the total population identifying as Black alone and not Hispanic or Latino", breaks: [5,15,30,50,70,90] }
   ,{ id: "hispanic_pct", label: "Hispanic/Latino population share", unit: "percent of residents", description: "Share of the total population identifying as Hispanic or Latino, of any race", breaks: [5,15,30,50,70,90] }
+  ,{ id: "crime_rate", comparison: false, rate: true, percent: false, label: "Five-year violent crime rate", unit: "crimes per 1,000 residents", description: "Five years of recorded violent crimes divided by the ACS population estimate, per 1,000 residents. Area totals use geocoded crimes; the citywide total includes all selected records", breaks: [10,20,40,60,100,150], color: "#986345" }
   ,{ id: "violent_crime_count", comparison: false, label: "Recorded violent crime", administrative: true, percent: false, count: true, unit: "recorded crimes over five years", description: "Count of selected violent crimes recorded by CPD; map excludes unusable coordinates, citywide total includes them", breaks: [1,10,25,50,100,250], tractBreaks: [1,25,75,150,300,600], color: "#986345" }
  ].map((measure,index) => ({ unit: "percent of eligible units", color: "#2b6550",
   ...(index >= 7 ? { supplemental: true, comparison: true, percent: true, group: "model", unit: "percent of renter-occupied homes" } : {}), ...measure }));
@@ -48,13 +49,14 @@ const measureGroupMembers = {
   economics: ["area_median_income", "poverty_pct"],
   education: ["college_pct", "no_high_school_pct"],
   population: ["total_population", "nh_black_pct", "hispanic_pct"],
-  crime: ["violent_crime_count"]
+  crime: ["crime_rate", "violent_crime_count"]
 };
 for (const [group, ids] of Object.entries(measureGroupMembers)) {
   ids.forEach(id => { window.ChicagoMeasures.find(measure => measure.id === id).group = group; });
 }
 window.formatChicagoValue = (value, measure, isMoe = false) => {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return "Not available";
+  if (measure.rate) return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
   if (measure.percent) return `${value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${isMoe ? " pp" : "%"}`;
   return new Intl.NumberFormat("en-US", { ...(measure.money ? { style: "currency", currency: "USD" } : {}), maximumFractionDigits: 0 }).format(value);
 };
@@ -68,6 +70,7 @@ window.chicagoValueNotes = (row, measure) => {
     const text = statusLabels[row[`${measure.id}_${suffix}`]];
     if (text && !notes.includes(text)) notes.push(text);
   }
+  if (measure.rate) notes.push("A combined margin of error is unavailable");
   if (measure.administrative) notes.push("CPD recorded crimes, not an ACS estimate; no sampling MOE applies");
   return notes.join(". ");
 };

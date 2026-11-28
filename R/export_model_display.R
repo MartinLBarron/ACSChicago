@@ -33,6 +33,9 @@ for(tag in c("block_group","tract","chicago_city")) {
     counts<-table(factor(ids,levels=out$GEOID))
     out$violent_crime_count_estimate<-as.integer(counts)
   }
+  out$crime_rate_estimate <- ifelse(out$total_population_estimate > 0,
+    1000 * out$violent_crime_count_estimate / out$total_population_estimate, NA_real_)
+  out$crime_rate_moe <- NA_real_
   out$acs_start_year<-cfg$year-4L
   out$acs_end_year<-cfg$year
   out$boundary_year<-cfg$year

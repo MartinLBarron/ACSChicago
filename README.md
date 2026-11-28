@@ -2,7 +2,9 @@
 
 Reproducible R pipeline for Chicago geographic boundaries.
 
-## Block-group rent research report
+The current website fits [four crime-rate models](#current-website-models) of median contract rent.
+
+## Earlier block-group rent research reports
 
 The staged 2020–2024 median contract rent study is documented in
 [docs/block_group_rent_model.md](docs/block_group_rent_model.md). Run
@@ -21,7 +23,7 @@ The CPD crime extension is documented in [docs/crime_model.md](docs/crime_model.
 Run `Rscript R/run_crime_analysis.R` to download the 2020–2024 records, audit
 violent-offense/geographic coverage and fit M5 (M3 plus the raw violent row count).
 The review report is `output/models/block_group_crime_2024/report.html`; M5 is
-kept separate from the website pending review.
+archived with the earlier count specifications.
 
 For the crime-first sequence (M0 intercept; M1 crime; M2 housing/renter profile;
 M3 socioeconomic context; M4 community areas), run `Rscript R/run_crime_stages.R`.
@@ -31,7 +33,7 @@ See [docs/crime_stages.md](docs/crime_stages.md) for the specification and check
 ## Interactive map
 
 The map now uses tracts and block groups only. Latest-period model measures,
-including recorded violent crime, are documented in
+including recorded violent crime counts and five-year rates, are documented in
 [docs/model_display_measures.md](docs/model_display_measures.md). Rebuild their
 map/dashboard supplements with `Rscript R/run_model_display.R` after the ACS and
 crime stages. Include the complete `html/data/web/` folder when uploading.
@@ -369,7 +371,7 @@ open-ended-median sensitivity. The report is
 ### All-period map and citywide measures
 
 `Rscript R/run_model_display.R` now builds every display measure for 2010–2014,
-2015–2019 and 2020–2024, including historical violent-crime counts. It preserves
+2015–2019 and 2020–2024, including violent crime counts and rates. It preserves
 ACS estimates/MOEs, validates changing table definitions and assigns crime points
 to each period's geometry. See [measure definitions and rebuild instructions](docs/model_display_measures.md).
 Upload the complete `html/data/web` directory with the updated HTML/JS.
@@ -398,12 +400,17 @@ The spatial fits are robustness checks; OLS remains the website's primary model.
 Install the listed packages before running; rerun the runner to verify cached
 reproducibility.
 
-### Current reduced website models
+### Current website models
 
-Run `Rscript R/run_current_model_web.R` after the original crime-stage inputs
-exist. This rebuilds M0–M4 without college-educated share or the 20+-unit-building
-share, keeps the same 1,468 block groups, refreshes diagnostics and spatial
-checks, and exports `html/data/web/block_group_model_2024.json`. The full
-`R/run_crime_stages.R` pipeline includes this step. Original fits remain archived.
-Run `node tests/check_current_model_page.cjs` to check the rendered table content.
-Deploy the updated `html/model.html`, `html/model.js` and JSON together.
+Run `Rscript R/run_current_model_web.R` after preparing the three periods with
+`Rscript R/run_model_display.R`. The full pipeline runs these in dependency order.
+M1 models log median contract rent using five-year geocoded violent crimes per
+1,000 residents (CPD count divided by ACS B03002_001, times 1,000). M2 adds
+housing and renter profile, M3 adds socioeconomic controls and M4 adds community
+fixed effects. All four include intercepts and use the same 1,468 block groups
+in 2020–2024. The displayed crime contrast is the observed interquartile range.
+
+The runner refits the models, validates publication values, runs period, population
+weight and spatial checks, and builds the standalone report. Serve or deploy the
+complete `html/` directory, including the generated `html/data/web/` files.
+Run `node tests/check_current_model_page.cjs` to verify the model tables and summary.

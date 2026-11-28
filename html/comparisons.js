@@ -29,7 +29,7 @@
         if (!Array.isArray(rows) || rows.length !== 33 || new Set(rows.map(row => `${row.GEOID}-${row.acs_end_year}`)).size !== 33) {
           throw new Error("Unexpected comparison data. Re-run the comparison pipeline.");
         }
-        const measures = window.ChicagoMeasures.filter(measure=>!measure.administrative);
+        const measures = window.ChicagoMeasures.filter(measure=>measure.comparison!==false);
         if(measures.some(measure=>rows.some(row=>!Object.hasOwn(row,`${measure.id}_estimate`) || !Object.hasOwn(row,`${measure.id}_moe`)))) throw new Error("Comparison data is outdated. Upload the rebuilt data/web/comparison_statistics.json file.");
         return rows;
       }).catch(error => { dataPromise = undefined; throw error; });

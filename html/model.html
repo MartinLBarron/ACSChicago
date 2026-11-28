@@ -9,7 +9,7 @@
   <link href="style.css?v=20261118-bg-model" rel="stylesheet">
   <link href="model.css?v=20261122-no-formal-divider" rel="stylesheet">
   <script defer src="vendor/d3.v7.9.0.min.js"></script>
-  <script defer src="model.js?v=20261124-simplified-diagnostics"></script>
+  <script defer src="model.js?v=crime-rate-summary-table"></script>
 </head>
 <body>
   <a class="skip-link" href="#model">Skip to model information</a>
@@ -20,7 +20,7 @@
   <main id="model" class="project-page model-page">
     <p class="eyebrow">Model / 2020–2024 ACS</p>
     <h1>Rent and violent crime.</h1>
-    <p class="project-lede">Violent crimes lack of impact on median rent</p>
+    <p class="project-lede">Five-year violent crime rates and median monthly contract rent across Chicago block groups.</p>
     <p class="model-status" id="model-status" role="status">Loading model results…</p>
     <noscript><p>Enable JavaScript to explore the model results and charts.</p></noscript>
     <div id="model-content" class="model-layout" hidden>
@@ -32,11 +32,11 @@
     <section class="model-section model-summary-section" id="summary" aria-labelledby="summary-heading">
       <p class="eyebrow">01 / Summary</p>
       <h2 id="summary-heading">Rent and violent crime in context.</h2>
-      <p class="model-project-intro"><strong>Does violent crime help explain differences in Chicago rents?</strong> We use regression analysis to compare rents across block groups while accounting for housing characteristics, socioeconomic conditions, and community location. Higher crime counts are associated with lower rents when modeled alone, but the association become much smaller after other factors are considered. The fully adjusted models suggest a negligible impact of crime on rent.</p>
+      <p class="model-project-intro"><strong>Does violent crime help explain differences in Chicago rents?</strong> We use regression analysis to compare rents across block groups while accounting for housing characteristics, socioeconomic conditions, and community location. Block groups with higher violent crime rates tend to have lower rents in the crime-only model. After adjustment, the estimated association is close to zero and its direction is uncertain.</p>
       <div class="model-summary-grid">
         <div><h3>Research question</h3><p>What is the association between median contract rent and violent crime across Chicago block groups, and how does that association change after accounting for housing, socioeconomic conditions, and community-area location?</p></div>
-        <div><h3>Models built</h3><p>Five nested linear models use the natural log of median monthly contract rent, with equal weight per block group. M0 is the intercept-only baseline; M1 adds violent crime; M2 adds housing and renter profile; M3 adds socioeconomic context; M4 adds indicators for the 77 community areas. The models omit the college-educated share and the 20+-unit-building share.</p></div>
-        <div><h3>Data used</h3><p id="summary-data"></p><p>ACS estimates describe housing composition, renter profiles, income, poverty, education and racial/ethnic composition. CPD records supply the five-year count of violent crimes located within each block group. More data details can be found under <a href="data.html">About the data</a>.</p></div>
+        <div><h3>Models built</h3><p>Four nested linear models use the natural log of median monthly contract rent, with equal weight per block group. M1 uses the five-year violent crime rate; M2 adds housing and renter profile; M3 adds socioeconomic context; M4 adds indicators for the 77 community areas. The models omit the college-educated share and the 20+-unit-building share.</p></div>
+        <div><h3>Data used</h3><p id="summary-data"></p><p>ACS estimates describe housing composition, renter profiles, income, poverty, education and racial/ethnic composition. The model divides each block group’s five-year CPD violent crime count by its ACS population estimate and multiplies by 1,000. More data details can be found under <a href="data.html">About the data</a>.</p></div>
         <div><h3>Main findings</h3><p id="summary-results"></p></div>
       </div>
     </section>
@@ -46,15 +46,14 @@
     <section class="model-section" id="stages" aria-labelledby="stages-heading">
       <p class="eyebrow">02 / Model specifications and fit</p>
       <h2 id="stages-heading">Model specifications and fit.</h2>
-      <p class="model-intro">We build five models in sequence to examine how the association between violent crime and rent changes as additional characteristics are considered. Every model uses the same block groups, the natural log of median monthly contract rent as its outcome, and equal weight per block group. Each stage retains all variables from the preceding stage.</p>
+      <p class="model-intro">We build four models in sequence to examine how the association between violent crime and rent changes as additional characteristics are considered. Every model uses the same block groups, the natural log of median monthly contract rent as its outcome, and equal weight per block group. Each stage retains all variables from the preceding stage.</p>
       <h3>Variables and purpose of each model</h3>
       <div class="table-scroll model-table-wrap" tabindex="0" role="region" aria-label="Model variables and purposes">
         <table class="model-table">
           <caption>What each model includes and why</caption>
           <thead><tr><th scope="col">Model</th><th scope="col">Variables added</th><th scope="col">Purpose</th></tr></thead>
           <tbody>
-            <tr><th scope="row">M0 · Baseline</th><td>Intercept only; no explanatory variables.</td><td>Establish a common predicted log rent against which to assess improvements in fit.</td></tr>
-            <tr><th scope="row">M1 · Violent crime</th><td>Raw count of recorded violent-crime rows within the block group during 2020–2024.</td><td>Describe the unadjusted association between crime counts and median contract rent.</td></tr>
+            <tr><th scope="row">M1 · Violent crime</th><td>Recorded violent crimes per 1,000 residents over 2020–2024.</td><td>Describe the unadjusted association between the violent crime rate and median contract rent.</td></tr>
             <tr><th scope="row">M2 · Housing and renter profile</th><td><strong>Bedroom mix:</strong> studio/one-bedroom and three-or-more-bedroom rental shares.<br><strong>Building size:</strong> rental shares in 2–4 and 5–19-unit buildings.<br><strong>Building age:</strong> shares built before 1940 and in 2000 or later.<br><strong>Renter profile:</strong> share who moved in during 2020 or later, and householder shares under 35 and age 65+.</td><td>Assess the crime association after accounting for differences in the rental stock and renter-householder profiles.</td></tr>
             <tr><th scope="row">M3 · Socioeconomic context</th><td>Poverty rate; log median household income; adult share without a high-school diploma/GED; non-Hispanic Black and Hispanic/Latino population shares.</td><td>Assess whether the crime association persists after accounting for measured economic, educational and demographic context.</td></tr>
             <tr><th scope="row">M4 · Community location</th><td>Community-area indicators, allowing a separate intercept for each of Chicago’s 77 community areas while retaining common variable slopes.</td><td>Compare block groups within community areas after the measured controls, and quantify the additional variation associated with community location.</td></tr>
@@ -68,22 +67,31 @@
         <summary>Formal model specification</summary>
         <p>Outcome: natural log of median monthly contract rent. Cells show the estimated coefficient, its 95% HC3 confidence interval in brackets, and a statistical significance indicator. Models are ordinary least squares with equal weight per block group.</p>
         <div class="table-scroll formal-table-wrap" tabindex="0" role="region" aria-label="Formal model coefficient matrix" aria-describedby="formal-table-notes">
-          <table class="model-table formal-model-table"><caption>OLS estimates · log median contract rent · 2020–2024</caption><thead><tr><th scope="col">Parameter / statistic</th><th scope="col">M0</th><th scope="col">M1</th><th scope="col">M2</th><th scope="col">M3</th><th scope="col">M4</th></tr></thead><tbody id="formal-fit"></tbody><tbody id="formal-coefficients"></tbody></table>
+          <table class="model-table formal-model-table"><caption>OLS estimates · log median contract rent · 2020–2024</caption><thead><tr><th scope="col">Parameter / statistic</th><th scope="col">M1</th><th scope="col">M2</th><th scope="col">M3</th><th scope="col">M4</th></tr></thead><tbody id="formal-fit"></tbody><tbody id="formal-coefficients"></tbody></table>
         </div>
         <p id="formal-table-notes">* p &lt; 0.05; ** p &lt; 0.01; *** p &lt; 0.001. Coefficient tests are two-sided and use HC3 uncertainty, with no multiple-testing adjustment.</p>
-        <p>Coefficients are in log-rent units, rather than the percentage differences shown below. Share predictors enter per 10 percentage points; household income enters as its natural logarithm; crime enters as the untransformed five-year row count.</p>
-        <p id="formal-reference"></p>
+        <p>Coefficients are in log-rent units, rather than the percentage differences shown below. Share predictors enter per 10 percentage points; household income enters as its natural logarithm; the crime coefficient gives the difference per one additional recorded crime per 1,000 residents over five years.</p>
+        <p><a href="data/web/block_group_model_report.html">Read the standalone model report</a></p>
+      <p id="formal-reference"></p>
       </details>
     </section>
 
     <section class="model-section" id="effects" aria-labelledby="effects-heading">
       <p class="eyebrow">03 / Variable associations</p>
       <h2 id="effects-heading">Variable associations.</h2>
-      <p class="model-intro">Compare associations of variables holding other variables constant. Share coefficients describe a 10-percentage-point difference; income describes a 10% difference; crime describes 100 additional recorded violent crimes.</p>
+      <p class="model-intro">Compare associations of variables holding other variables constant. Share coefficients describe a 10-percentage-point difference; income describes a 10% difference; the crime contrast spans the 25th to 75th percentile of the five-year rate.</p>
       <div class="model-panel">
         <div class="model-panel-heading"><div><h3>Conditional associations</h3><p class="model-caption">See how estimates change as the model adds context and community location.</p></div><div class="model-control"><label for="coefficient-model">Model</label><select id="coefficient-model"><option value="M4" selected>M4 · Crime + all controls + community</option><option value="M3">M3 · Crime + housing/profile + context</option><option value="M2">M2 · Crime + housing/profile</option><option value="M1">M1 · Crime only</option></select></div></div>
         <div id="coefficient-chart" class="model-chart"></div>
         <p class="model-caption">Dots show estimated percent differences; lines show 95% HC3 intervals. Crossing zero means the variable is not statistically significant.</p>
+      </div>
+      <h3 id="crime-estimates-heading">Crime rate and median contract rent by model</h3>
+      <div class="table-scroll model-table-wrap" tabindex="0" role="region" aria-labelledby="crime-estimates-heading">
+        <table class="model-table">
+          <caption id="crime-estimates-caption"></caption>
+          <thead><tr><th scope="col">Model</th><th scope="col">Estimated rent difference</th><th scope="col">95% HC3 confidence interval</th></tr></thead>
+          <tbody id="crime-estimates"></tbody>
+        </table>
       </div>
     </section>
 
@@ -97,13 +105,16 @@
         <article class="model-panel"><h3>Do the residuals have heavy tails?</h3><div id="qq-chart" class="model-chart"></div></article>
         <article class="model-panel"><h3>How reliable are the rent estimates?</h3><div id="reliability-chart" class="model-chart"></div></article>
       </div>
+      <h3>Does the association hold across periods and weighting choices?</h3>
+      <p>Each M4 fit uses its period’s complete cases and the same crime-rate contrast as the main model. Population weighting gives larger block groups more influence.</p>
+      <div class="table-scroll model-table-wrap" tabindex="0" role="region" aria-label="Crime rate robustness checks"><table class="model-table"><caption>M4 median rent differences and 95% HC3 intervals</caption><thead><tr><th scope="col">Period</th><th scope="col">Block groups</th><th scope="col">Equal weights</th><th scope="col">Population weights</th></tr></thead><tbody id="period-checks"></tbody></table></div>
       <p>We also fitted spatial error and spatial lag regressions, using both shared boundaries and nearest neighbors to define nearby areas. For the fully adjusted M4, the estimated crime association remained similar and improvements in model fit were small. We therefore retain the easier-to-interpret ordinary least squares (OLS) regression as the main model, with spatial models as robustness checks. Spatial adjustment mattered more for M3, and statistical uncertainty varied across methods, so these checks do not rule out remaining spatial dependence.</p>
     </section>
 
     <section class="model-section model-methods" id="methods" aria-labelledby="methods-heading">
       <p class="eyebrow">05 / Methods and limitations</p>
       <h2 id="methods-heading">Methods and limitations.</h2>
-      <div class="model-method-grid"><div><h3>The data and sample</h3><p id="sample-note"></p><p>Crime is the raw count of CPD Index I violent-crime rows dated 2020–2024 within each whole block group: homicide, criminal sexual assault, robbery and aggravated assault/battery. Records without usable coordinates are excluded from spatial counts. Counts are not population-adjusted; they also reflect area size, activity and reporting.</p><p>We retain whole block groups with at least half their total polygon area inside Chicago and assign each to its largest-overlap community area. Estimates are not clipped to city boundaries. Missing inputs are excluded, not imputed. The complete-case sample is held fixed after removing the two predictors, so model comparisons use the same areas.</p></div><div><h3>Comparisons and uncertainty</h3><p>Housing shares use all renter-occupied units. Recent-mover share (moved in 2020 or later) and renter-householder shares under 35 and age 65+ enter every model from M2 onward. The omitted renter-age group is 35–64; recent moves are a stock measure, not an annual turnover rate. Two-bedroom rentals and buildings constructed in 1940–1999 are omitted housing categories. Education is represented by the no diploma/GED share among adults 25+. College-educated share is omitted. The building-size reference group includes one-unit and 20+-unit buildings, plus mobile/other structures.</p><p>Coefficient intervals are 95%; ACS MOEs are 90%. HC3 handles unequal variance but does not fix nonlinearity, spatial dependence or ACS measurement error. Community-clustered intervals are a sensitivity and can still miss dependence across adjacent communities.</p></div><div><h3>Limits on interpretation</h3><p id="caveat-note">7 rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. 1 community (Oakland) has only one usable block group and is fitted exactly.</p></div></div>
+      <div class="model-method-grid"><div><h3>The data and sample</h3><p id="sample-note"></p><p>The numerator counts geocoded CPD homicides, criminal sexual assaults, robberies and aggravated assaults or batteries during 2020–2024. The denominator is the ACS five-year estimate of all residents (B03002_001). Rates are calculated per 1,000 residents over the full period. Incidents may involve visitors. The regression intervals treat the estimated population as fixed.</p><p>We retain whole block groups with at least half their total polygon area inside Chicago and assign each to its largest-overlap community area. Estimates are not clipped to city boundaries. Missing inputs are excluded, not imputed. The complete-case sample is held fixed after removing the two predictors, so model comparisons use the same areas.</p></div><div><h3>Comparisons and uncertainty</h3><p>Housing shares use all renter-occupied units. Recent-mover share (moved in 2020 or later) and renter-householder shares under 35 and age 65+ enter every model from M2 onward. The omitted renter-age group is 35–64; recent moves are a stock measure, not an annual turnover rate. Two-bedroom rentals and buildings constructed in 1940–1999 are omitted housing categories. Education is represented by the no diploma/GED share among adults 25+. College-educated share is omitted. The building-size reference group includes one-unit and 20+-unit buildings, plus mobile/other structures.</p><p>Coefficient intervals are 95%; ACS MOEs are 90%. HC3 handles unequal variance but does not fix nonlinearity, spatial dependence or ACS measurement error. Community-clustered intervals are a sensitivity and can still miss dependence across adjacent communities.</p></div><div><h3>Limits on interpretation</h3><p id="caveat-note">7 rent medians represent $3,500 or more and are entered at the supplied $3,501 endpoint; an exclusion sensitivity is reported. 1 community (Oakland) has only one usable block group and is fitted exactly.</p></div></div>
     </section>
     </div>
     </div>

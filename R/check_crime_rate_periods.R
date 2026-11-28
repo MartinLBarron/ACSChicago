@@ -23,7 +23,7 @@ prepare_period <- function(year) {
                   cash_rent_units_estimate > 0, area_median_income_estimate > 0, total_population_estimate > 0) |>
     dplyr::mutate(log_rent = log(median_contract_rent_estimate), log_income = log(area_median_income_estimate),
                   total_population = total_population_estimate,
-                  crime_rate = 1000 * violent_crime_count_estimate / total_population,
+                  crime_rate = crime_rate_estimate,
                   community_id = factor(community_id))
   # Preserve the original complete-case screen, including the two subsequently omitted shares.
   for (term in grep("_10pp$", bg_predictors, value = TRUE)) {
@@ -40,8 +40,8 @@ for (year in acs_years) {
   period_data[[as.character(year)]] <- areas[c(all.vars(latest$formulas$M4), "total_population")]
   if (year == 2024L) stopifnot(setequal(areas$GEOID, latest$data$GEOID))
   for (weighting in c("Equal", "Population")) {
-    weights <- if (weighting == "Equal") rep(1, nrow(areas)) else areas$total_population
-    fit <- lm(latest$formulas$M4, data = areas, weights = weights, na.action = na.fail)
+    areas$analysis_weight <- if (weighting == "Equal") rep(1, nrow(areas)) else areas$total_population
+    fit <- lm(latest$formulas$M4, data = areas, weights = analysis_weight, na.action = na.fail)
     stopifnot(fit$rank == length(coef(fit)))
     if (year == 2024L && weighting == "Equal")
       stopifnot(isTRUE(all.equal(coef(fit), coef(latest$models$M4), tolerance = 1e-9)))

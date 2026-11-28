@@ -693,3 +693,12 @@ housing controls, and the corresponding five-year CPD count. Apply the same
 city and community overlay rule to each boundary vintage. Use both equal and
 population weights and the 2020–2024 block-group crime-rate interquartile range
 as a fixed contrast. Compare period slopes with community-clustered inference.
+
+## 2026-11-27 — Publish the five-year crime-rate models
+
+Martin selected the population-based specification for the website and requested
+removal of the intercept-only stage. The primary publication fits M1–M4 with
+equal block-group weights and retains an intercept in every fit. Report crime
+contrasts at the observed 2020–2024 interquartile range, using the same increment
+for both historical and population-weighted comparisons. Publish the underlying
+count and derived rate as separate descriptive measures.

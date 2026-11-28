@@ -76,7 +76,7 @@
     measure = selectedMeasure; year = String(selectedYear); opener = button;
     geography.value = "tract"; binControl.value = 30;
     dialog.querySelector("#distribution-title").textContent = measure.label;
-    dialog.querySelector("#distribution-period").textContent = `${year-4}–${year} ${measure.administrative?"CPD records":"ACS"}`;
+    dialog.querySelector("#distribution-period").textContent = `${year-4}–${year} ${measure.rate?"CPD and ACS":measure.administrative?"CPD records":"ACS"}`;
     dialog.showModal(); render();
   };
   geography.addEventListener("change", render); binControl.addEventListener("change", render);

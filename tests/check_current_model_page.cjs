@@ -10,18 +10,27 @@ const helpers=source.slice(source.indexOf("  const $"),source.indexOf("  let dat
 const row=source.slice(source.indexOf("  function cellRow("),source.indexOf("  function svgRoot("));
 const tables=source.slice(source.indexOf("  function overview()"),source.indexOf("  function coefficientChart()"));
 vm.runInContext(helpers+"\nlet data=supplied;\n"+row+tables+"\noverview();formalSpecification();",context);
-assert.equal(supplied.version,3);
+assert.equal(supplied.version,4);
 for(const term of ["college_10pp","structure_20_plus_10pp"]) {
  assert.ok(!supplied.coefficients.some(row=>row.term===term));
  assert.ok(!supplied.formal_coefficients.some(row=>row.term===term));
 }
-assert.match(nodes["summary-results"].textContent,/72\.8%/);
-assert.match(nodes["summary-results"].textContent,/−2\.3%/);
-assert.match(nodes["summary-results"].textContent,/−0\.02%/);
-assert.match(nodes["summary-results"].textContent,/statistically significant/);
-assert.ok(!nodes["summary-results"].textContent.includes("not statistically significant"));
-for(const [id,count] of [["model-table",5],["formal-coefficients",92],["formal-fit",5]])
+assert.deepEqual(supplied.models.map(m=>m.model), ["M1","M2","M3","M4"]);
+assert.ok(supplied.effects.every(row=>row.term==="crime_rate"));
+assert.ok(!/\bM0\b/.test(html));
+assert.match(nodes["summary-results"].textContent,/57.5 crimes per 1,000 residents/);
+assert.match(nodes["summary-results"].textContent,/−0.07%/);
+assert.match(nodes["summary-results"].textContent,/−1.22% to \+1.08%/);
+for(const [id,count] of [["model-table",4],["formal-coefficients",92],["formal-fit",5],["period-checks",3],["crime-estimates",4]])
  assert.equal(nodes[id].children.length,count,id);
+assert.match(nodes["crime-estimates-caption"].textContent,/57\.5 more recorded violent crimes per 1,000 residents/);
+for (const [index, model] of supplied.models.entries()) {
+ const effect=supplied.effects.find(row=>row.model===model.model);
+ const pct=d3.format("+.2f");
+ assert.deepEqual(nodes["crime-estimates"].children[index].children.map(cell=>cell.textContent),
+   [`${model.model} · ${model.label}`, `${pct(effect.percent_estimate)}%`,
+    `${pct(effect.percent_hc3_conf_low)}% to ${pct(effect.percent_hc3_conf_high)}%`]);
+}
 assert.match(nodes["formal-reference"].textContent,/20\+-unit/);
 for(const id of ["spatial-table","spatial-note","spatial-robustness","vif-table","diagnostic-table","sensitivity-table"])
  assert.ok(!nodes[id],id);
@@ -29,4 +38,4 @@ assert.ok(!html.includes("These checks explain why the current model is a starti
 assert.ok(!html.includes("bachelor’s degree or higher and without"));
 assert.ok(!html.includes("rental shares in 2–4, 5–19 and 20+"));
 for(const match of source.matchAll(/\$\("([^"]+)"\)/g))assert.ok(nodes[match[1]],match[1]);
-console.log("PASS: reduced coefficients and fit, significant HC3 summary, remaining tables, removed diagnostic sections and DOM references");
+console.log("PASS: reduced coefficients and fit, rate-based HC3 summary, remaining tables, removed diagnostic sections and DOM references");

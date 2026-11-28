@@ -14,7 +14,7 @@ for(tag in c("block_group","tract","chicago_city")) {
     stopifnot(all(c(value,moe)%in%names(web)),
       isTRUE(all.equal(x[[value]],as.numeric(web[[value]]))),all(is.na(x[[value]])|x[[value]]>=0))
     if(grepl("_pct$",measure))stopifnot(all(is.na(x[[value]])|x[[value]]<=100+1e-8))
-    if(measure=="violent_crime_count")stopifnot(all(is.na(web[[moe]]))) else
+    if(measure %in% c("violent_crime_count","crime_rate"))stopifnot(all(is.na(web[[moe]]))) else
       stopifnot(isTRUE(all.equal(x[[moe]],as.numeric(web[[moe]]))))
   }
   source<-if(tag=="block_group" && cfg$year==2024L)readRDS(file.path(bg_model_config$analytic_dir,"all_bg_model_data.rds")) else
@@ -31,6 +31,8 @@ for(tag in c("block_group","tract","chicago_city")) {
     good<-is.finite(expected)&denominator>0&numerator<=denominator
     stopifnot(isTRUE(all.equal(x[[paste0(name,"_pct_estimate")]][good[idx]],expected[idx][good[idx]])))
   }
+  expected_rate <- ifelse(x$total_population_estimate > 0, 1000*x$violent_crime_count_estimate/x$total_population_estimate, NA_real_)
+  stopifnot(isTRUE(all.equal(expected_rate, web$crime_rate_estimate)))
   if(tag=="chicago_city")stopifnot(x$violent_crime_count_estimate==nrow(violent)) else {
     assignments<-readRDS(file.path(cfg$analytic_dir,paste0(tag,"_crime_assignment.rds")))
     stopifnot(sum(x$violent_crime_count_estimate)==sum(!is.na(assignments$GEOID)),

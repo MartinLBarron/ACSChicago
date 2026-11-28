@@ -33,4 +33,4 @@ display_direct_fields <- function(data) {
   names(population) <- fields("total_population")
   dplyr::bind_cols(data[fields("area_median_income")], population)
 }
-model_display_measures <- c(paste0(names(model_display_shares),"_pct"),"area_median_income","total_population","violent_crime_count")
+model_display_measures <- c(paste0(names(model_display_shares),"_pct"),"area_median_income","total_population","violent_crime_count","crime_rate")

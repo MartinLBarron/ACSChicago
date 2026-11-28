@@ -55,7 +55,7 @@ payload <- list(
   previous_comparison = r$previous_comparison,
   notes = list(confidence_model = .95, confidence_acs = .90, primary_weighting = "Equal block groups",
                outcome = "Log median monthly contract rent", model_version = "Recent moves and renter age · 2026-11-19"))
-out <- "html/data/web"
+out <- file.path(cfg$output_dir, "archived_web")
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 path <- file.path(out, "block_group_model_2024.json")
 jsonlite::write_json(payload, path, dataframe = "rows", auto_unbox = TRUE, na = "null", digits = NA)

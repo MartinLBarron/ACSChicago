@@ -3,7 +3,7 @@ source("R/acs_config.R")
 source("R/housing_config.R")
 source("R/model_display_config.R")
 comparison <- jsonlite::read_json("html/data/web/comparison_statistics.json",simplifyVector=TRUE)
-measures <- c(housing_display_variables(acs_config$variables),setdiff(model_display_measures,"violent_crime_count"))
+measures <- c(housing_display_variables(acs_config$variables),setdiff(model_display_measures,c("violent_crime_count","crime_rate")))
 stopifnot(length(measures)==26L,nrow(comparison)==33L,
   !anyDuplicated(comparison[c("GEOID","acs_end_year")]),!any(comparison$synthetic_data))
 for(year in acs_years) {

@@ -1,14 +1,12 @@
 # Publish aggregate model results, not R objects or PUMS housing-unit records.
 source("R/crime_stages_config.R")
-cfg <- crime_stages_config
-cfg$analytic_dir <- "data/analytic/crime_stages_reduced_2024"
-r <- readRDS(file.path(cfg$analytic_dir, "model_results.rds"))
+r <- readRDS("output/models/block_group_crime_rate_2024/models.rds")
 d <- r$data
 predictors <- setdiff(bg_predictors,r$removed_terms)
 baseline <- readRDS(file.path(bg_model_config$analytic_dir, "model_results.rds"))
-model_names <- c(M0="Baseline", M1="Violent crime", M2="Crime + housing/profile",
+model_names <- c(M1="Violent crime", M2="Crime + housing/profile",
   M3="Adding socioeconomic context", M4="Adding community location")
-specifications <- c(M0="Intercept only", M1="Violent-crime count",
+specifications <- c(M1="Five-year violent crime rate per 1,000 residents",
   M2="M1 + bedrooms, building size/age, recent movers and renter householder age",
   M3="M2 + poverty, income, education and racial/ethnic composition",
   M4="M3 + indicators for the community areas")
@@ -38,7 +36,7 @@ variables <- dplyr::bind_rows(lapply(predictors, function(term) {
     p05 = q[1], p25 = q[2], median = q[3], p75 = q[4], p95 = q[5])
 }))
 coefficients <- r$coefficients[r$coefficients$term %in% predictors &
-  r$coefficients$model %in% c("M1", "M2a", "M2", "M3", "M4"), ]
+  r$coefficients$model %in% names(model_names), ]
 fit <- r$models$M4
 points <- data.frame(community = d$community, observed = d$rent,
   fitted = exp(stats::fitted(fit)), residual = stats::residuals(fit),
@@ -55,12 +53,13 @@ sensitivity_row <- function(metrics,label) {
 }
 sensitivities<-dplyr::bind_rows(sensitivity_row(r$strict_metrics,"At least 99% of area inside Chicago"),
   sensitivity_row(r$closed_metrics,"Exclude open-ended rent medians"))
-crime_q <- unname(stats::quantile(d$violent_crime_count,c(.05,.25,.5,.75,.95)))
-variables <- dplyr::bind_rows(data.frame(term="violent_crime_count",label="Recorded violent crimes",coefficient_label="Violent crime (+100 recorded crimes)",unit="count",domain="Crime",p05=crime_q[1],p25=crime_q[2],median=crime_q[3],p75=crime_q[4],p95=crime_q[5]),variables)
-crime_coef <- r$coefficients[r$coefficients$term=="violent_crime_count",]
-crime_coef$label <- "Violent crime (+100 recorded crimes)"
-for (field in c("estimate","hc3_conf_low","hc3_conf_high","cluster_conf_low","cluster_conf_high"))
-  crime_coef[[paste0("percent_",field)]] <- 100*expm1(100*crime_coef[[field]])
+crime_q <- unname(quantile(d$crime_rate, c(.05,.25,.5,.75,.95)))
+crime_label <- sprintf("Violent crime (+%.1f per 1,000 residents)", r$contrast)
+variables <- dplyr::bind_rows(data.frame(term="crime_rate",label="Five-year violent crime rate",
+  coefficient_label=crime_label,unit="crimes per 1,000 residents",domain="Crime",
+  p05=crime_q[1],p25=crime_q[2],median=crime_q[3],p75=crime_q[4],p95=crime_q[5]),variables)
+crime_coef <- r$effects
+crime_coef$label <- crime_label
 coefficients <- dplyr::bind_rows(crime_coef,coefficients)
 diagnostic_rows <- dplyr::bind_rows(
   data.frame(model=r$diagnostics$model,test="Breusch–Pagan",statistic=r$diagnostics$BP_statistic,p_value=r$diagnostics$BP_p),
@@ -69,7 +68,7 @@ diagnostic_rows <- dplyr::bind_rows(
 formal_coefficients <- r$coefficients[c("model","term","estimate","hc3_conf_low","hc3_conf_high","hc3_p_value","label")]
 formal_coefficients$label[formal_coefficients$term=="(Intercept)"] <- "Intercept"
 formal_coefficients$label[formal_coefficients$term=="log_income"] <- "Log median household income"
-formal_coefficients$label[formal_coefficients$term=="violent_crime_count"] <- "Violent crime (one recorded row)"
+formal_coefficients$label[formal_coefficients$term=="crime_rate"] <- "Violent crime (+1 per 1,000 residents over five years)"
 reference_id <- r$models$M4$xlevels$community_id[1]
 reference_community <- d$community[match(reference_id,as.character(d$community_id))]
 community_rows <- grepl("^community_id",formal_coefficients$term)
@@ -77,17 +76,18 @@ community_ids <- sub("^community_id","",formal_coefficients$term[community_rows]
 formal_coefficients$label[community_rows] <- paste("Community:",d$community[match(community_ids,as.character(d$community_id))])
 stopifnot(!anyNA(formal_coefficients$label),!anyDuplicated(formal_coefficients[c("model","term")]))
 # Publish only spatial comparisons matching the now-primary reduced specification.
-spatial_models<-readRDS("data/analytic/spatial_sensitivity_2024/model_results.rds")
+spatial_models<-readRDS("data/analytic/spatial_crime_rate_2024/model_results.rds")
 stopifnot(identical(spatial_models$data$GEOID,d$GEOID))
 for(name in c("M3","M4"))for(rule in c("queen","knn4")) {
-  comparison_fit<-spatial_models$fits[[paste("Drop both",name,rule,"OLS",sep=" / ")]]
+  comparison_fit<-spatial_models$fits[[paste("Crime rate",name,rule,"OLS",sep=" / ")]]
   stopifnot(isTRUE(all.equal(coef(comparison_fit),coef(r$models[[name]]),check.attributes=FALSE)))
 }
-robustness<-list(metrics=spatial_models$metrics[spatial_models$metrics$spec=="Drop both",],
- effects=spatial_models$effects[spatial_models$effects$spec=="Drop both",],
- gmm=spatial_models$gmm[spatial_models$gmm$spec=="Drop both",])
+robustness<-list(metrics=spatial_models$metrics[spatial_models$metrics$spec=="Crime rate",],
+ effects=spatial_models$effects[spatial_models$effects$spec=="Crime rate",],
+ gmm=spatial_models$gmm[spatial_models$gmm$spec=="Crime rate",])
 payload <- list(
-  version = 3L, period = "2020–2024", sample_n = nrow(d), communities_n = nlevels(d$community_id),
+  version = 4L, crime_contrast = r$contrast,
+  period_checks = readr::read_csv("output/models/block_group_crime_rate_periods/m4_crime_associations.csv",show_col_types=FALSE), period = "2020–2024", sample_n = nrow(d), communities_n = nlevels(d$community_id),
   majority_city_n = sum(baseline$all_data$majority_city), missing_rent_n = sum(baseline$all_data$majority_city & !is.finite(baseline$all_data$log_rent)),
   missing_income_n = sum(baseline$all_data$majority_city & is.finite(baseline$all_data$log_rent) & !is.finite(baseline$all_data$log_income)),
   singleton_n = sum(table(d$community_id) == 1), open_ended_rent_n = sum(!is.finite(d$rent_moe)),
@@ -98,7 +98,7 @@ payload <- list(
   sample_flow = r$sample_flow, synthetic_data = r$synthetic_data,
   previous_comparison = list(),
   notes = list(confidence_model = .95, confidence_acs = .90, primary_weighting = "Equal block groups",
-               outcome = "Log median monthly contract rent", model_version = "Reduced crime-first M0–M4 · 2026-11-22"))
+               outcome = "Log median monthly contract rent", model_version = "Population-based violent crime rate · M1–M4"))
 out <- "html/data/web"
 dir.create(out, recursive = TRUE, showWarnings = FALSE)
 path <- file.path(out, "block_group_model_2024.json")

@@ -5,10 +5,10 @@ const read = path => JSON.parse(fs.readFileSync(path, "utf8"));
 const context = { window: {} };
 vm.runInNewContext(fs.readFileSync("html/measures.js", "utf8"), context);
 const measures = context.window.ChicagoMeasures;
-assert.equal(measures.length, 27);
+assert.equal(measures.length, 28);
 assert.equal(measures.filter(m => m.latestOnly).length, 0);
-assert.equal(measures.filter(m => m.supplemental).length, 20);
-assert.equal(measures.filter(m => m.comparison === false).length, 1);
+assert.equal(measures.filter(m => m.supplemental).length, 21);
+assert.equal(measures.filter(m => m.comparison === false).length, 2);
 for (const year of [2014,2019,2024]) {
 const city = read("html/data/web/chicago_city_statistics.json").find(r => r.acs_end_year === year);
 Object.assign(city, read(`html/data/web/chicago_city_model_measures_${year}.json`)[0]);
@@ -66,4 +66,4 @@ for(const year of [2014,2019,2024]) {
   assert.equal(series.length,5);
   assert.equal(series.reduce((sum,r)=>sum+r.violent_crime_count_estimate,0),city.violent_crime_count_estimate);
 }
-console.log("PASS: 27 measures across all periods, readable units/cutoffs, geometry joins, MOEs and annual crime reconciliation");
+console.log("PASS: 28 measures across all periods, readable units/cutoffs, geometry joins, MOEs and annual crime reconciliation");
